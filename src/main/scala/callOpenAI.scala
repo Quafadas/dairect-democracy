@@ -99,7 +99,8 @@ object Main extends IOApp.Simple:
               // dispatch to `smithyGPT` here
               println(value.toString())
               val fakeFunctResult = ujson.Obj(
-                "content" -> ujson.Str("""{"location" -> "Zurich, Switerland", "unit" -> "celsius", "temperature" -> "27", "forecast" -> ujson.Arr("sunny", "windy")}"""),
+                // it is seriously weird, that it needs the JSON ... encoded as a string. Quite the footgun. 
+                "content" -> ujson.Str("""{"location" : "Zurich, Switerland", "unit" : "celsius", "temperature" : "27", "forecast" : ["sunny", "windy"]}"""),
                 "name" -> "get_current_weather",
                 "role" -> "function"
               )
