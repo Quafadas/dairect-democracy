@@ -1,0 +1,55 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "WeatherService",
+        "version": ""
+    },
+    "paths": {
+        "/weather/{location}": {
+            "get": {
+                "description": "Get the weather for a city",
+                "operationId": "GetWeather",
+                "parameters": [
+                    {
+                        "name": "location",
+                        "in": "path",
+                        "description": "The name of the city",
+                        "schema": {
+                            "type": "string",
+                            "description": "The name of the city"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetWeather 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetWeatherResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "GetWeatherResponseContent": {
+                "type": "object",
+                "properties": {
+                    "weather": {
+                        "type": "string",
+                        "description": "A description of the weather in the city"
+                    }
+                },
+                "required": [
+                    "weather"
+                ]
+            }
+        }
+    }
+}

@@ -1,3 +1,5 @@
+package weather
+
 import cats.effect.IOApp
 import java.util.Base64.Decoder
 import org.http4s.EntityDecoder
@@ -29,54 +31,32 @@ import io.circe.literal.*
 import ujson.circe.CirceJson
 import upickle.core.LinkedHashMap
 import org.http4s.headers.Accept
+import smithy4s.*
+import smithy4s.kinds.*
+
+import cats.effect.unsafe.implicits.global
 
 object Main extends IOApp.Simple:
 
   val key = env("OPEN_API_TOKEN").as[String].load[IO].toResource
 
-  // Generate this from `smithyGPTool`
-  val toolInfo = ujson.read("""[
-        {
-            "name": "get_current_weather",
-            "description": "Get the current weather in a given location",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "location": {
-                        "type": "string",
-                        "description": "The city and state, e.g. San Francisco, CA"
-                    },
-                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]}
-                },
-                "required": ["location"]
-            }
-        }
-    ]""")
-
-  val messages = ujson.Arr(
-      ujson.Obj(
-        "role" -> "system",
-        "content" -> "You are a helpful assistent. "
-      ),
-      ujson.Obj(
-        "role" -> "user",
-        "content" -> "Tell me the forecast for today, I'm in Zurich switzerland."
-      )
-    )
-
-  val basicBody = ujson.Obj(
-    "messages" -> messages,
-    "model" -> "gpt-3.5-turbo-0613",
-    "temperature" -> 0,
-    "functions" -> toolInfo
-  )
-
   val logger = (cIn: Client[IO]) =>
     Logger(logBody = true, logHeaders = true, _ => false, Some((x: String) => IO.println(x)))(cIn)
+
   val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] = EmberClientBuilder.default[IO].build.map(logger(_))
 
   def run =
     clientR.both(key).use { (client, token) =>
+
+      println(weatherServiceImpl.getWeather("London").unsafeRunSync())
+
+      val testJiggy = new JsonProtocolF[IO]
+      val smithyDispatcher =  testJiggy.toJsonF(weatherServiceImpl)
+
+      val callService = smithyDispatcher.apply(Document.DObject(
+        Map[String, Document]("GetWeather" -> Document.DObject( Map[String, Document]("location" -> Document.fromString("hi") ) )))).flatMap{ doc =>
+        IO.println(doc)
+      }
 
       val body: Json = CirceJson(basicBody)
       def request: Request[IO] = Request(
@@ -85,29 +65,31 @@ object Main extends IOApp.Simple:
         headers = Headers(
           Header("Authorization", "Bearer " + token),
           Accept(MediaType.application.json),
-          Accept(MediaType.text.plain),
+          Accept(MediaType.text.plain)
         )
       )
 
       val tmp = client
         .expect[Json](request.withEntity(body))
-        .flatMap: s => 
+        .flatMap: s =>
           val raw = ujson.read(s.toString)
           val check = raw("choices")(0)("message").objOpt.flatMap(_.get("function_call"))
           check match
-            case Some(value) => 
+            case Some(value) =>
               // dispatch to `smithyGPT` here
+              //val fromSmithy = smithyDispatcher( Document.encode(CirceJson(value)) )
               println(value.toString())
               val fakeFunctResult = ujson.Obj(
-                // it is seriously weird, that it needs the JSON ... encoded as a string. Quite the footgun. 
-                "content" -> ujson.Str("""{"location" : "Zurich, Switerland", "unit" : "celsius", "temperature" : "27", "forecast" : ["sunny", "windy"]}"""),
+                // it is seriously weird, that it needs the JSON ... encoded as a string. Quite the footgun.
+                "content" -> ujson.Str(
+                  """{"weather" : "lovely"}"""
+                ),
                 "name" -> "get_current_weather",
                 "role" -> "function"
               )
 
               val newMessages = messages.arr :+ raw("choices")(0)("message") :+ fakeFunctResult
-              
-              
+
               // In realz, recursive, but for now, just do it once
               val bodyTwo = ujson.Obj(
                 "model" -> "gpt-3.5-turbo-0613",
@@ -116,11 +98,12 @@ object Main extends IOApp.Simple:
               )
               println(ujson.write(bodyTwo))
               IO.println("------------------") >>
-              client.expect[Json](request.withEntity(CirceJson(bodyTwo))) >>
-              IO.println("------------------")
-              
+                client.expect[Json](request.withEntity(CirceJson(bodyTwo))) >>
+                IO.println("------------------")
+
             case None => IO.println("no function")
-          
+          end match
+      callService >>
       tmp
     }
   end run
