@@ -69,6 +69,10 @@ object Main extends IOApp.Simple:
         )
       )
 
+      // JsonSchemaVisitor[IO](weatherServiceImpl).flatMap{ doc =>
+      //   IO.println(doc)
+      // }
+
       val tmp = client
         .expect[Json](request.withEntity(body))
         .flatMap: s =>
@@ -97,6 +101,7 @@ object Main extends IOApp.Simple:
                 "temperature" -> 0
               )
               println(ujson.write(bodyTwo))
+              callService >>
               IO.println("------------------") >>
                 client.expect[Json](request.withEntity(CirceJson(bodyTwo))) >>
                 IO.println("------------------")

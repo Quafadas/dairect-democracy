@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-// Aggressively copy - pasted from 
+// Aggressively copy - pasted from
 // https://github.com/disneystreaming/smithy4s/blob/5902d2fd81d1eee6703daaab6e2ad95eb69684ab/modules/test-utils/src/smithy4s/tests/DefaultSchemaVisitor.scala#L4
 
 package weather
@@ -86,24 +86,22 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]) {
     }
   }
 
-  // def toJsonFCirce[Alg[_[_, _, _, _, _]]](
-  //     alg: FunctorAlgebra[Alg, F]
-  // )(implicit S: Service[Alg]): ujson.Value => F[Document] = {
-  //   val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
-  //   val jsonEndpoints =
-  //     S.endpoints.map(ep => ep.name -> ep).toMap
-  //   (d: ujson.Value) => {
-  //     d match {
-  //       case ujson.Obj(m) if m.size == 1 =>
-  //         val (method, payload) = m.head
-  //         jsonEndpoints.get(method) match {
-  //           case Some(jsonEndpoint) => jsonEndpoint(payload)
-  //           case None               => F.raiseError(NotFound)
-  //         }
-  //       case _ => F.raiseError(NotFound)
-  //     }
-  //   }
-  // }
+  def toJsonSchema[Alg[_[_, _, _, _, _]]](
+      alg: FunctorAlgebra[Alg, F]
+  )(implicit S: Service[Alg]): Map[String, JsonSchema[?]] = {
+    val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
+    //transformation.
+    //S.endpoints.map(ep => ep.  )
+    val serviceName = S.id.name
+    //println(serv)
+    val s = S.endpoints.map((ep: Endpoint[S.Operation, ?, ?, ?, ?, ?]) =>
+
+      (ep.name -> ep.input.compile(new JsonSchemaVisitor{}))
+    ).toMap
+    println("------")
+    println(s)
+    s
+  }
 
   private def fromLowLevel[Alg[_[_, _, _, _, _]]](service: Service[Alg])(
       jsonF: Document => F[Document]
