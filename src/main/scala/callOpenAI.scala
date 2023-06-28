@@ -35,8 +35,13 @@ import smithy4s.*
 import smithy4s.kinds.*
 
 import cats.effect.unsafe.implicits.global
+import smithy4s.http.json.JCodec
+import scala.collection.mutable.ArrayBuffer
+import ujson.Value
 
 object Main extends IOApp.Simple:
+
+  implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
   val key = env("OPEN_API_TOKEN").as[String].load[IO].toResource
 
@@ -48,15 +53,8 @@ object Main extends IOApp.Simple:
   def run =
     clientR.both(key).use { (client, token) =>
 
-      println(weatherServiceImpl.getWeather("London").unsafeRunSync())
-
       val testJiggy = new JsonProtocolF[IO]
-      val smithyDispatcher =  testJiggy.toJsonF(weatherServiceImpl)
-
-      val callService = smithyDispatcher.apply(Document.DObject(
-        Map[String, Document]("GetWeather" -> Document.DObject( Map[String, Document]("location" -> Document.fromString("hi") ) )))).flatMap{ doc =>
-        IO.println(doc)
-      }
+      val smithyDispatcher = testJiggy.openAiFunctionDispatch(weatherServiceImpl)
 
       val body: Json = CirceJson(basicBody)
       def request: Request[IO] = Request(
@@ -69,46 +67,63 @@ object Main extends IOApp.Simple:
         )
       )
 
-      // JsonSchemaVisitor[IO](weatherServiceImpl).flatMap{ doc =>
-      //   IO.println(doc)
-      // }
-
       val tmp = client
         .expect[Json](request.withEntity(body))
         .flatMap: s =>
+          // val fctConfig = com.github.plokhotnyuk.jsoniter_scala.core.readFromString(s)
           val raw = ujson.read(s.toString)
           val check = raw("choices")(0)("message").objOpt.flatMap(_.get("function_call"))
           check match
             case Some(value) =>
               // dispatch to `smithyGPT` here
-              //val fromSmithy = smithyDispatcher( Document.encode(CirceJson(value)) )
-              println(value.toString())
-              val fakeFunctResult = ujson.Obj(
-                // it is seriously weird, that it needs the JSON ... encoded as a string. Quite the footgun.
-                "content" -> ujson.Str(
-                  """{"weather" : "lovely"}"""
-                ),
-                "name" -> "get_current_weather",
-                "role" -> "function"
-              )
+              // We need to construct this document
+              // val callService = smithyDispatcher.apply(Document.DObject(
+              //   Map[String, Document]("GetWeather" -> Document.DObject( Map[String, Document]("location" -> Document.fromString("hi") ) )))).flatMap{ doc =>
+              //   IO.println(doc)
+              // }
 
-              val newMessages = messages.arr :+ raw("choices")(0)("message") :+ fakeFunctResult
+              // val fctConfig = com.github.plokhotnyuk.jsoniter_scala.core.readFromString(value.toString)
+              println("OpenAI function call")
+              // println(fctConfig)
+              val fctRestult = smithyDispatcher
+                .apply(raw)
+                .map(doc =>
+                  ujson.Obj(
+                    // it is seriously weird, that it needs the JSON ... encoded as a string. Quite the footgun.
+                    "content" -> ujson.Str(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(doc)),
+                    "name" -> "GetWeather",
+                    "role" -> "function"
+                  )
+                )
 
-              // In realz, recursive, but for now, just do it once
-              val bodyTwo = ujson.Obj(
-                "model" -> "gpt-3.5-turbo-0613",
-                "messages" -> newMessages,
-                "temperature" -> 0
-              )
-              println(ujson.write(bodyTwo))
-              callService >>
+              val sendBack = functResultJson
+                .map(s =>
+                  val newMessages: ArrayBuffer[Value] = messages.arr :+ raw("choices")(0)("message") :+ s
+                  ujson.Obj(
+                    "model" -> "gpt-3.5-turbo-0613",
+                    "messages" -> newMessages,
+                    "temperature" -> 0
+                  )
+                )
+                .flatTap(IO.println)
+
+              // val newMessages = messages.arr :+ raw("choices")(0)("message")
+
+              // // In realz, recursive, but for now, just do it once
+              // val bodyTwo = ujson.Obj(
+              //   "model" -> "gpt-3.5-turbo-0613",
+              //   "messages" -> newMessages,
+              //   "temperature" -> 0
+              // )
+              // println(ujson.write(bodyTwo))
+              // callService >>
               IO.println("------------------") >>
-                client.expect[Json](request.withEntity(CirceJson(bodyTwo))) >>
+                sendBack.flatMap(bodyTwo => client.expect[Json](request.withEntity(CirceJson(bodyTwo)))) >>
                 IO.println("------------------")
 
             case None => IO.println("no function")
           end match
-      callService >>
+
       tmp
     }
   end run

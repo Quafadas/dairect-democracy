@@ -32,6 +32,7 @@ import smithy4s.schema.Primitive.*
 import cats.Id
 import java.util.UUID
 import io.circe.Json
+import smithy4s.http.json.JCodec
 
 /**
   * These are toy interpreters that turn services into json-in/json-out
@@ -40,6 +41,9 @@ import io.circe.Json
   * Created for testing purposes.
   */
 class JsonProtocolF[F[_]](implicit F: MonadThrow[F]) {
+
+  // needed for document parsing
+  implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
   def dummy[Alg[_[_, _, _, _, _]]](
       service: Service[Alg]
@@ -86,22 +90,66 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]) {
     }
   }
 
+    def openAiFunctionDispatch[Alg[_[_, _, _, _, _]]](
+      alg: FunctorAlgebra[Alg, F]
+  )(implicit S: Service[Alg]): ujson.Value => F[Document] = {
+    val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
+    val jsonEndpoints =
+      S.endpoints.map(ep => ep.name -> toLowLevel(transformation, ep)).toMap
+
+    (d: ujson.Value) => {
+      val start = d("choices")(0)("message").objOpt.flatMap(_.get("function_call"))
+      val endpointName = start.map(jsonRaw => jsonRaw("name").str)
+      val arguments = start.map(jsonRaw => ujson.read(jsonRaw("arguments").str))
+      println(arguments)
+      (endpointName, arguments) match {
+        case (Some(epName), Some(args)) =>
+          println(args)
+          val fctConfig: Document = com.github.plokhotnyuk.jsoniter_scala.core.readFromString(args.toString)
+          println(fctConfig)
+          val ep = jsonEndpoints.get(epName)
+          ep match {
+            case Some(jsonEndpoint) => jsonEndpoint(fctConfig)
+            case None               => F.raiseError(NotFound)
+          }
+
+        case _               => F.raiseError(NotFound)
+      }
+
+      }
+    }
+
+
   def toJsonSchema[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
-  )(implicit S: Service[Alg]): Map[String, JsonSchema[?]] = {
+  )(implicit S: Service[Alg]): Document = {
     val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
-    //transformation.
-    //S.endpoints.map(ep => ep.  )
     val serviceName = S.id.name
-    //println(serv)
-    val s = S.endpoints.map((ep: Endpoint[S.Operation, ?, ?, ?, ?, ?]) =>
 
-      (ep.name -> ep.input.compile(new JsonSchemaVisitor{}))
-    ).toMap
-    println("------")
-    println(s)
-    s
+
+    val hints: Hints = S.service.hints
+
+    //val annotationsa = S
+    print(S.service)
+    println(s"ServiceName : $serviceName")
+    println(s"Hints : $hints")
+    hints.all.foreach(println)
+
+    val s : IndexedSeq[Document] = S.endpoints.map((ep: Endpoint[S.Operation, ?, ?, ?, ?, ?]) =>
+      //val hints = ep.hints.filter((h: Hint) => h. )
+
+      val fields = Map[String, Document]("name" -> Document.fromString(ep.name)) ++ ep.input.compile(new JsonSchemaVisitor{}).make
+      Document.DObject(fields)
+    ).toIndexedSeq
+    Document.DArray(s)
   }
+
+  def stringSchema[Alg[_[_, _, _, _, _]]](
+      alg: FunctorAlgebra[Alg, F]
+  )(implicit S: Service[Alg]): String =
+    val asSchema = toJsonSchema(alg)
+    "hello"
+
 
   private def fromLowLevel[Alg[_[_, _, _, _, _]]](service: Service[Alg])(
       jsonF: Document => F[Document]
