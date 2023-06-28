@@ -96,7 +96,7 @@ object Main extends IOApp.Simple:
                   )
                 )
 
-              val sendBack = functResultJson
+              val sendBack = fctRestult
                 .map(s =>
                   val newMessages: ArrayBuffer[Value] = messages.arr :+ raw("choices")(0)("message") :+ s
                   ujson.Obj(
