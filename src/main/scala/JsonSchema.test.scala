@@ -19,7 +19,7 @@ class MySuite extends munit.FunSuite:
 
     assertNoDiff(
       stringSchema,
-      """[{"name":"GetWeather","parameters":{"type":"object","properties":{"location":{"type":"string"}}}}]"""
+      """[{"name":"GetWeather","description":"Get the weather for a city","parameters":{"type":"object","properties":{"location":{"type":"string"}}}}]"""
     )
 
 end MySuite
