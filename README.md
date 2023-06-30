@@ -1,6 +1,6 @@
 # Goal
 
-Turn _every_ @simpleRestJson service defined in smithy, into a tool which can be called by the chat endpoint of openAI (chatGPT, if you will).
+Turn _every_ @simpleRestJson service defined in smithy, into a tool which can be called by the function call interface of the chat endpoint of openAI (integration with chatGPT, if you will).
 
 
 ## Sketch
@@ -14,7 +14,7 @@ To generate the weather smithy model, run the following command:
 
 ## Status
 
-I have one (!) unit test, which tests that we can produce JSON schema for very simple cases
+I have one (!) unit test, which tests that we can produce JSON schema for simple cases.
 `scala-cli test .` -  `jsonschema.test.scala`
 
 I have a POC of the "end to end" concept, which
