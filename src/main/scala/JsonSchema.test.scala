@@ -8,10 +8,8 @@ import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
 
 
-
 class MySuite extends munit.FunSuite:
   test("hello"):
-    //val default = JsonProtocolF[IO].toJsonSchema(DefaultSchemaVisitor)
     implicit val jc : JCodec[Document] = JCodec.fromSchema(Schema.document)
 
     val generatedSchema = JsonProtocolF[IO].toJsonSchema(weatherServiceImpl)
@@ -19,7 +17,7 @@ class MySuite extends munit.FunSuite:
 
     assertNoDiff(
       stringSchema,
-      """[{"name":"GetWeather","description":"Get the weather for a city","parameters":{"type":"object","properties":{"location":{"type":"string"}}}}]"""
+      """[{"name":"GetWeather","description":"Get the weather for a city","parameters":{"type":"object","properties":{"location":{"type":"string"}}}},{"name":"GetWeatherLatLong","description":"Get the weather for a city given a latitude and longitude","parameters":{"type":"object","properties":{"lat":{"type":"number"},"long":{"type":"number"}}}},{"name":"GetWeatherLatLongPacked","description":"Get the weather for a city given a latitude and longitude, but pack the inputs together","parameters":{"type":"object","properties":{"lat":{"type":"number"},"long":{"type":"number"}}}}]"""
     )
 
 end MySuite

@@ -9,14 +9,35 @@ import smithy4s.schema.Schema.StructSchema
 import cats.syntax.option.*
 import smithy4s.Document.DNull
 
+/*
+  This class is supposed to extract everything needed to produce a JsonSchema from a smithy schema.
+
+  Apparently Working
+  - Primitive types
+  - Document hint (descriptions)
+  - Structs
+  - packed inputs
+
+  Currently not looked at
+  - Nested structures (should work "free")
+  - I'm not sure if the encdoing of all primitive types is correct. Needs testing
+  - List
+  - Recursion
+  - Unions
+  - Maps
+  - Refinements (e.g. type myId = uuid)
+  - shape restrictions / hints (e.g. string with a regex)
+
+
+*/
+
 trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
 
   private val alreadySeen: Set[ShapeId] = Set.empty
 
   def record(alreadySeen: Set[ShapeId]): JsonSchemaRecord = ???
 
-  override def nullable[A](schema: Schema[A]): JsonSchema[Option[A]] =
-    ??? // Create a list. These fields are not mandatory.
+  override def nullable[A](schema: Schema[A]): JsonSchema[Option[A]] = ???
 
   override def map[K, V](shapeId: ShapeId, hints: Hints, key: Schema[K], value: Schema[V]): JsonSchema[Map[K, V]] = ???
 
@@ -28,10 +49,10 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
       fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
       make: IndexedSeq[Any] => S
   ): JsonSchema[S] =
-    println("struct")
-    println(shapeId)
-    println(hints)
-    println(fields.mkString(", "))
+    // println("struct")
+    // println(shapeId)
+    // println(hints)
+    // println(fields.mkString(", "))
 
     val expandFields: Map[String, JsonSchema[?]] = fields.map { field =>
       field.label -> this(field.instance)

@@ -5,6 +5,48 @@
         "version": ""
     },
     "paths": {
+        "/weather/{lat}/{long}": {
+            "get": {
+                "description": "Get the weather for a city given a latitude and longitude",
+                "operationId": "GetWeatherLatLong",
+                "parameters": [
+                    {
+                        "name": "lat",
+                        "in": "path",
+                        "description": "Latitude",
+                        "schema": {
+                            "type": "number",
+                            "description": "Latitude",
+                            "format": "double"
+                        },
+                        "required": true
+                    },
+                    {
+                        "name": "long",
+                        "in": "path",
+                        "description": "Longditude",
+                        "schema": {
+                            "type": "number",
+                            "description": "Longditude",
+                            "format": "double"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetWeatherLatLong 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetWeatherLatLongResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/weather/{location}": {
             "get": {
                 "description": "Get the weather for a city",
@@ -34,10 +76,74 @@
                     }
                 }
             }
+        },
+        "/weatherPacked/{lat}/{long}": {
+            "get": {
+                "description": "Get the weather for a city given a latitude and longitude, but pack the inputs together",
+                "operationId": "GetWeatherLatLongPacked",
+                "parameters": [
+                    {
+                        "name": "lat",
+                        "in": "path",
+                        "description": "Latitude",
+                        "schema": {
+                            "type": "number",
+                            "description": "Latitude",
+                            "format": "double"
+                        },
+                        "required": true
+                    },
+                    {
+                        "name": "long",
+                        "in": "path",
+                        "description": "Longditude",
+                        "schema": {
+                            "type": "number",
+                            "description": "Longditude",
+                            "format": "double"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetWeatherLatLongPacked 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetWeatherLatLongPackedResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
         "schemas": {
+            "GetWeatherLatLongPackedResponseContent": {
+                "type": "object",
+                "properties": {
+                    "weather": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "weather"
+                ]
+            },
+            "GetWeatherLatLongResponseContent": {
+                "type": "object",
+                "properties": {
+                    "weather": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "weather"
+                ]
+            },
             "GetWeatherResponseContent": {
                 "type": "object",
                 "properties": {

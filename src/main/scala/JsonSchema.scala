@@ -13,17 +13,25 @@ import smithy4s.schema.Primitive.PBigInt
 import smithy4s.schema.Primitive.PUUID
 import smithy4s.schema.Primitive.PTimestamp
 
-/* ++ emptyMap is the no-op for building our JSON schema */
+/*
+  ++ emptyMap is the no-op for building our JSON schema - it has a fancy name in functional programming
+  i.e. () in scala
+  the 0 in integer addition, 1 in integer multiplication
+
+  We'll need it a lot when we have optional fields.
+
+*/
 def emptyMap = Map[String, Document]()
 
 /*
   This is supposed to be our "basic" trait, which any and all schema-able entities _may_ implement.
 
   The idea, is that we'll end up with an object graph, looking exactly like the smithy Schema
-  object graph, but with the addition of a "make" method, which will return a JSON schema
+  object graph, but with the addition of a "make" method.
+
+  The make method will lean into it's class heirachy, each class shoudl call it's superclass make.
 
  */
-
 trait JsonSchema[A]:
   val shapeIdJ: Option[ShapeId]
   val description: Option[String]
@@ -41,7 +49,7 @@ end JsonSchema
 JSON schema has, apparently, these primitives:
   https://json-schema.org/understanding-json-schema/reference/type.html
 
-Where I've made up my own definition of primitive as non-composite type
+Where I've made up my own definition of primitive as non-composite type and ditched array, object etc
 
  */
 enum JsonSchemaPrimitive:
@@ -52,16 +60,16 @@ enum JsonSchemaPrimitive:
   case Null // I don't think we need this?
 end JsonSchemaPrimitive
 
+/* */
 trait PrimitiveSchemaIR[A] extends JsonSchema[A]:
   val typ: JsonSchemaPrimitive
   override def make: Map[String, Document] = super.make ++ Map("type" -> Document.fromString(typ.toString.toLowerCase()))
 
 end PrimitiveSchemaIR
 
-trait NonPrimitiveSchemaIR[A] extends JsonSchema[A]:
-  val childeren: Map[ShapeId, JsonSchema[?]] = Map.empty
-end NonPrimitiveSchemaIR
-
+/*
+  Easier constructor for PrimitiveSchemaIR
+*/
 object PrimitiveSchemaIR:
   def apply[A](typIn: JsonSchemaPrimitive, shapeIdIn: Option[ShapeId]): PrimitiveSchemaIR[A] =
     new PrimitiveSchemaIR[A]:
@@ -71,6 +79,11 @@ object PrimitiveSchemaIR:
     end new
   end apply
 end PrimitiveSchemaIR
+
+
+trait NonPrimitiveSchemaIR[A] extends JsonSchema[A]:
+  val childeren: Map[ShapeId, JsonSchema[?]] = Map.empty
+end NonPrimitiveSchemaIR
 
 trait StructSchemaIR[S] extends NonPrimitiveSchemaIR[S]:
   val fields: Map[String, JsonSchema[?]]
