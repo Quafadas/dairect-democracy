@@ -15,9 +15,10 @@ To generate the weather smithy model, run the following command:
 ## Status
 
 I have one (!) unit test, which tests that we can produce JSON schema for very simple cases
-`scala-cli test .`
+`scala-cli test .` -  `jsonschema.test.scala`
 
 I have a POC of the "end to end" concept, which
+`scala-cli run .` is `callOpenAI.scala`
 
 1. generates JSON schema for a simple case
 2. sends a request to the openAI chat endpoint
@@ -36,4 +37,5 @@ Currently, I'm using the command above to code gen from a smithy model. This is 
 
 JsonProtocolF.scala copies and pastes code from the smithy4s library. This is bad. Is there a world in which these methods enter smithys public API?
 
+The original JSON schema generator sketch, looked like it was going a fairly functional route. I have not followed it faithfully. I think the current strategy can work, but it may not be acceptable for you. Is this / how big is this problem potentially?
 
