@@ -1,0 +1,73 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "PeopleService",
+        "version": ""
+    },
+    "paths": {
+        "/people/{id}": {
+            "get": {
+                "description": "Get the information about a person",
+                "operationId": "GetPerson",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "The id of the person",
+                        "schema": {
+                            "type": "string",
+                            "description": "The id of the person"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetPerson 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetPersonResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "GetPersonResponseContent": {
+                "type": "object",
+                "properties": {
+                    "person": {
+                        "$ref": "#/components/schemas/Person"
+                    }
+                },
+                "required": [
+                    "person"
+                ]
+            },
+            "Person": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "The id of this person"
+                    },
+                    "childeren": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Person"
+                        },
+                        "description": "Childeren of this person"
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        }
+    }
+}

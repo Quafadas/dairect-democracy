@@ -39,7 +39,7 @@ import smithy4s.http.json.JCodec
 import scala.collection.mutable.ArrayBuffer
 import ujson.Value
 
-object Main extends IOApp.Simple:
+object WeatherTool extends IOApp.Simple:
 
   implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
@@ -149,4 +149,4 @@ object Main extends IOApp.Simple:
           end match
     }
   end run
-end Main
+end WeatherTool
