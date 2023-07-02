@@ -30,6 +30,9 @@ import org.http4s.headers.Accept
 import org.http4s.headers.Authorization
 import org.http4s.MediaRange
 
+import weather.JsonProtocolF
+import weather.weatherServiceImpl
+
 
 object SmithyModelled extends IOApp.Simple:
 
@@ -61,8 +64,11 @@ object SmithyModelled extends IOApp.Simple:
         .uri(Uri.unsafeFromString("https://api.openai.com/v1"))
         .resource
     yield openAICS
-
     end resourced
+
+    val testJiggy = new JsonProtocolF[IO]
+    val smithyDispatcher = testJiggy.openAiFunctionDispatch(weatherServiceImpl)
+    val tools = testJiggy.toJsonSchema(weatherServiceImpl)
 
     resourced.use: (openAI) =>
       openAI.createChatCompletion(
@@ -78,7 +84,9 @@ object SmithyModelled extends IOApp.Simple:
                 role = ChatCompletionRequestMessageRole.user,
                 content = "Tell me a joke."
               )
-            )
+            ),
+            // functions = Stronglyt typed or stringly typed?
+
         )
       ).flatMap { (x) =>
         IO.println(x)
