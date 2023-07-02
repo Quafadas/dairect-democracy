@@ -49,10 +49,13 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
       fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
       make: IndexedSeq[Any] => S
   ): JsonSchema[S] =
-    // println("struct")
-    // println(shapeId)
-    // println(hints)
-    // println(fields.mkString(", "))
+    if(true)
+      println("struct")
+      println(shapeId)
+      hints.all.foreach(println)
+      println(fields.mkString(", "))
+    end if
+
 
     val expandFields: Map[String, JsonSchema[?]] = fields.map { field =>
       field.label -> this(field.instance)
@@ -92,6 +95,9 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
   ): JsonSchema[C[A]] = ???
 
   override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): JsonSchema[P] =
+    hints.all.foreach(println)
+    println(tag)
+    println(shapeId)
     tag match
 
       case Primitive.PLong  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some)

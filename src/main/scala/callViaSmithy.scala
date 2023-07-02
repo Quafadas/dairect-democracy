@@ -33,7 +33,6 @@ import org.http4s.MediaRange
 import weather.JsonProtocolF
 import weather.weatherServiceImpl
 
-
 object SmithyModelled extends IOApp.Simple:
 
   implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
@@ -52,7 +51,8 @@ object SmithyModelled extends IOApp.Simple:
       )
     }
 
-  val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] = EmberClientBuilder.default[IO].build//.map(logger(_))
+  val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
+    EmberClientBuilder.default[IO].build // .map(logger(_))
 
   def run =
     val resourced: Resource[IO, OpenAIService[IO]] = for
@@ -64,14 +64,14 @@ object SmithyModelled extends IOApp.Simple:
         .uri(Uri.unsafeFromString("https://api.openai.com/v1"))
         .resource
     yield openAICS
-    end resourced
 
     val testJiggy = new JsonProtocolF[IO]
     val smithyDispatcher = testJiggy.openAiFunctionDispatch(weatherServiceImpl)
     val tools = testJiggy.toJsonSchema(weatherServiceImpl)
 
     resourced.use: (openAI) =>
-      openAI.createChatCompletion(
+      openAI
+        .createChatCompletion(
           CreateChatCompletionRequest(
             model = "gpt-3.5-turbo-0613",
             temperature = 0.0.some,
@@ -84,14 +84,14 @@ object SmithyModelled extends IOApp.Simple:
                 role = ChatCompletionRequestMessageRole.user,
                 content = "Tell me a joke."
               )
-            ),
+            )
             // functions = Stronglyt typed or stringly typed?
 
+          )
         )
-      ).flatMap { (x) =>
-        IO.println(x)
-      }
-
+        .flatMap { (x) =>
+          IO.println(x)
+        }
 
   end run
 
