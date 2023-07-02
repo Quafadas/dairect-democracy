@@ -45,3 +45,4 @@ The original JSON schema generator sketch, looked like it was going a fairly fun
 
 Currently, I have the entire zoo of JSON libraries in scala. ujson, circe, jsoniter. I'm not 100% sure what do about that, but I don't think it's a great place to be. Feedback welcomed.
 
+There's a model of openAIs API now in this repo. However, there's then a question over strongly typed or stringly typed function definitions. I guess we may as well go all in on smithy, and make this strongly typed ? Gets rid of the JSON zoo too. Should also massively improve testability.
