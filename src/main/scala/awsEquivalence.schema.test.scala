@@ -1,0 +1,122 @@
+package weather
+
+import software.amazon.smithy.jsonschema.JsonSchemaConverter
+import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.node.Node
+import smithy4s.ShapeId
+
+import cats.effect.IO
+import cats.Id
+import smithy4s.internals.DocumentEncoder
+import smithy4s.Document
+import smithy4s.http.json.JCodec
+import smithy4s.schema.Schema
+import people.peopleImpl
+import enums.enumServiceImpl
+import union.unionServiceImpl
+//import smithy4s.dynamic.DynamicSchemaIndex
+import smithy4s.Schema
+import smithy4s.dynamic.DynamicSchemaIndex
+
+class AwsSuite extends munit.FunSuite:
+
+  implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
+
+  def toModel(ns: String, smithy: String) = Model
+    .assembler()
+    .addUnparsedModel(
+      s"$ns.smithy",
+      smithy
+    )
+    .assemble()
+    .unwrap()
+
+  def awsSmithyToSchema(ns: String, smithy: String, shape: String) =
+    val r = toModel(ns, smithy)
+    val amazonSchema = Node.printJson(
+      JsonSchemaConverter
+        .builder()
+        .model(r)
+        .build()
+        .convertShape(
+          r.expectShape(software.amazon.smithy.model.shapes.ShapeId.from(s"$ns#$shape"))
+        )
+        .toNode()
+    )
+    amazonSchema
+  end awsSmithyToSchema
+
+  def smithy4sToSchema(ns: String, smithy: String, shape: String) =
+    val myModel = toModel(ns, smithy)
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
+    val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shape)).get
+
+    val jsVisitor = new JsonSchemaVisitor {}
+
+    val generatedSchema: Document = Document.DObject(jsVisitor(mySchema).make)
+    com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedSchema)
+  end smithy4sToSchema
+
+  test("aws simple struct schema") {
+
+    val ns = "test"
+    val smithy = """namespace test
+        |
+        |structure Foo { @required s: String }
+        |""".stripMargin
+
+    val awsVersion = awsSmithyToSchema(ns, smithy, "Foo")
+
+    val smithy4sVersion = smithy4sToSchema(ns, smithy, "Foo")
+
+    assertEquals(awsVersion, smithy4sVersion)
+  }
+
+  test("aws simple enum schema") {
+
+    val ns = "test"
+    val smithy = """$version: "2"
+        |namespace test
+        |
+        |enum Suit {
+        |   CLUB = "club"
+        |    DIAMOND = "diamond"
+        |    HEART = "heart"
+        |    SPADE = "spade"
+        |}
+        |""".stripMargin
+
+    val awsVersion = awsSmithyToSchema(ns, smithy, "Suit")
+
+    val smithy4sVersion = smithy4sToSchema(ns, smithy, "Suit")
+    val truncatedSmithyVersion = smithy4sVersion.tail.dropRight(1)
+    println(smithy4sVersion)
+    assert(awsVersion.contains(truncatedSmithyVersion))
+  }
+
+
+  test("aws docs hints") {
+
+    val ns = "test"
+    val smithy = """$version: "2"
+        |namespace test
+        |
+        |@documentation("A latitude and longitude")
+        |structure LatLong {
+        |    @documentation("Latitude") @httpLabel @required lat: Double,
+        |    @documentation("Longditude") @httpLabel @required long: Double
+        |}
+        |""".stripMargin
+
+    val awsVersion = awsSmithyToSchema(ns, smithy, "LatLong")
+
+    val smithy4sVersion = smithy4sToSchema(ns, smithy, "LatLong")
+
+    val smithyParsed = io.circe.parser.parse(smithy4sVersion)
+    val awsParsed = io.circe.parser.parse(awsVersion)
+
+    assertEquals(smithyParsed, awsParsed)
+  }
+
+
+end AwsSuite

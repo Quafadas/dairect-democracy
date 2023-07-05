@@ -27,9 +27,10 @@ import alloy.Discriminated
   - enumerations
   - List
   - Maps
+  - Unions
 
   Currently not looked at
-  - Unions
+
   - many shape restrictions / hints (e.g. string with a regex)
 
  */
@@ -77,7 +78,10 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
       field.label -> this(field.instance)
     }.toMap
 
+    val requredIn: Set[String] = fields.filter(_.isRequired).map(_.label).toSet
+
     new StructSchemaIR[S](hints):
+      override val required = requredIn
       override val fields: Map[String, JsonSchema[?]] = expandFields
       override val shapeIdJ: Option[ShapeId] = shapeId.some
     end new

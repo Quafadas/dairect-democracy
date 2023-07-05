@@ -19,7 +19,7 @@ service PeopleService {
 string PersonId
 
 structure Pet {
-  @required id: UUID,
+  id: UUID,
   name: String,
   owner: Person
 

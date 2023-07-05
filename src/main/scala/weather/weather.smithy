@@ -49,6 +49,7 @@ operation GetWeatherLatLongPacked  {
   output: WeatherOut
 }
 
+@documentation("A latitude and longitude")
 structure LatLong {
     @documentation("Latitude") @httpLabel @required lat: Double,
     @documentation("Longditude") @httpLabel @required long: Double

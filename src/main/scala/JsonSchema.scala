@@ -119,10 +119,13 @@ end NonPrimitiveSchemaIR
 
 trait StructSchemaIR[S](override val hints: Hints) extends NonPrimitiveSchemaIR[S]:
   val fields: Map[String, JsonSchema[?]]
+  val required: Set[String]
   override def make: Map[String, Document] =
+
     val fieldsJ = fields.map { case (k, v) => k -> Document.DObject(v.make) }
-    Map(
+    super.make ++ Map(
       "type" -> Document.fromString("object"),
+      "required" -> Document.DArray(required.map(Document.fromString).toIndexedSeq),
       "properties" -> Document.DObject(fieldsJ)
     )
 
@@ -171,7 +174,7 @@ trait EnumSchema[A](override val hints: Hints) extends JsonSchema[A]:
       )
     case StringEnum =>
       Map(
-        "enum" -> Document.DArray(values.toIndexedSeq.map(v => Document.fromString(v.value.toString())))
+        "enum" -> Document.DArray(values.toIndexedSeq.map(v => Document.fromString(v.stringValue)))
       )
 
   override def make: Map[String, Document] = super.make ++ makeEnum
