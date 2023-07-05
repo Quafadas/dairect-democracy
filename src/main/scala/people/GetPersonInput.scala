@@ -4,13 +4,12 @@ import smithy4s.Hints
 import smithy4s.Schema
 import smithy4s.ShapeId
 import smithy4s.ShapeTag
-import smithy4s.schema.Schema.string
 import smithy4s.schema.Schema.struct
 
 /** @param id
   *   The id of the person
   */
-case class GetPersonInput(id: String)
+final case class GetPersonInput(id: PersonId)
 object GetPersonInput extends ShapeTag.Companion[GetPersonInput] {
   val id: ShapeId = ShapeId("people", "GetPersonInput")
 
@@ -19,7 +18,7 @@ object GetPersonInput extends ShapeTag.Companion[GetPersonInput] {
   )
 
   implicit val schema: Schema[GetPersonInput] = struct(
-    string.required[GetPersonInput]("id", _.id).addHints(smithy.api.Documentation("The id of the person"), smithy.api.HttpLabel(), smithy.api.Required()),
+    PersonId.schema.required[GetPersonInput]("id", _.id).addHints(smithy.api.Documentation("The id of the person"), smithy.api.HttpLabel(), smithy.api.Required()),
   ){
     GetPersonInput.apply
   }.withId(id).addHints(hints)

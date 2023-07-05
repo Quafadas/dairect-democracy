@@ -12,6 +12,8 @@ Turn _every_ @simpleRestJson service defined in smithy, into a tool which can be
 To generate the weather smithy model, run the following command:
 ```cs launch --channel https://disneystreaming.github.io/coursier.json smithy4s:0.18.0-528-d32916a -- generate src/smithy/weather/weather.smithy```
 
+```cs launch --channel https://disneystreaming.github.io/coursier.json smithy4s:0.18.0-528-d32916a -- generate src/smithy/people/people.smithy```
+
 ```smithytranslate openapi-to-smithy --input /Users/simon/Code/smithy-call-tool/src/main/scala/openAI/openAI.openAPI.yaml /Users/simon/Code/smithy-call-tool/src/main/scala/openAI```
 
 ```cs launch --channel https://disneystreaming.github.io/coursier.json smithy4s:0.18.0-528-d32916a -- generate src/main/scala/openAI/openAI/openAPI.smithy```
@@ -45,5 +47,20 @@ The original JSON schema generator sketch, looked like it was going a fairly fun
 
 Currently, I have the entire zoo of JSON libraries in scala. ujson, circe, jsoniter. I'm not 100% sure what do about that, but I don't think it's a great place to be. Feedback welcomed. There's a model of openAIs API now in this repo. However, there's then a question over strongly typed or stringly typed function definitions. I guess may as well go all in on smithy, and make this strongly typed ? Gets rid of the JSON zoo too. Should also massively improve testability.
 
-I can't seem to grasp how NewTypes are represented in the Schema. For a UUID, the visitor appears to offer no hint of that constraint?
+### defs
 
+This feels like a real minefield. Ideally,
+```
+uuid PersonId
+
+@uuidFormat
+string AnotherId
+```
+Could actually be represented by the same def. However, if either of them have a description, then they cannot
+
+
+```
+/// Third id
+uuid ThirdId
+```
+Cannot have the the same $ref as the two above, as `$ref` is all or nothing.

@@ -94,7 +94,7 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
 
   It returns a Document which is correctly formatted for returning to openai
   as a chat message.
-  */
+   */
   def openAiFunctionDispatch[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
   )(implicit S: Service[Alg]): ujson.Value => F[Document] =
@@ -117,33 +117,25 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
           ep match
             case Some(jsonEndpoint) =>
               val fctResult = jsonEndpoint(fctConfig)
-              fctResult.map( r =>
+              fctResult.map(r =>
                 Document.obj(
                   "role" -> Document.fromString("function"),
                   "name" -> Document.fromString(epName),
                   "content" -> Document.fromString(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(r))
                 )
               )
-            case None               => F.raiseError(NotFound)
+            case None => F.raiseError(NotFound)
           end match
 
         case _ => F.raiseError(NotFound)
       end match
   end openAiFunctionDispatch
 
-  /* Helper function to get document hints */
-  def extractDocHint(hints: Hints): Map[String, Document] =
-    hints
-      .get(smithy.api.Documentation)
-      .map(desc => Map("description" -> Document.fromString(desc.toString())))
-      .getOrElse(Map.empty[String, Document])
-  end extractDocHint
-
   /*
     Procduces JSON schema, and in particular, JSON schema that are in a format that is consumable
     directly by openAI, in the hope that it will delegate tasks it is not good at, or has no data for,
     to smithy simpleRestJson operations.
-  */
+   */
   def toJsonSchema[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
   )(implicit S: Service[Alg]): Document =
@@ -154,6 +146,7 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
 
     val s: IndexedSeq[Document] = S.endpoints
       .map((ep: Endpoint[S.Operation, ?, ?, ?, ?, ?]) =>
+        val t = smithy.api.Pattern
         val hints = ep.hints.get(smithy.api.Documentation)
         val docHint = ep.hints.get(smithy.api.Documentation)
         val description = docHint
@@ -164,7 +157,11 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
           "name" -> Document.fromString(ep.name)
         ) ++ description
         val endpointfields = ep.input.compile(new JsonSchemaVisitor {})
-        val schema = epDesc ++ endpointfields.make
+        val schema = epDesc ++
+          Map(
+            "parameters" -> Document.DObject(endpointfields.make)
+          )
+
         Document.DObject(schema)
       )
       .toIndexedSeq

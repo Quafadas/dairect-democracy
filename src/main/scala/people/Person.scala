@@ -12,14 +12,16 @@ import smithy4s.schema.Schema.struct
   * @param childeren
   *   Childeren of this person
   */
-case class Person(id: PersonId, childeren: Option[List[people.Person]] = None)
+final case class Person(id: PersonId, mother: Option[people.Person] = None, father: Option[people.Person] = None, childeren: Option[List[people.Person]] = None)
 object Person extends ShapeTag.Companion[Person] {
   val id: ShapeId = ShapeId("people", "Person")
 
   val hints: Hints = Hints.empty
 
   implicit val schema: Schema[Person] = recursive(struct(
-    PersonId.schema.required[Person]("id", _.id).addHints(smithy.api.Documentation("The id of this person"), smithy.api.HttpLabel(), smithy.api.Required()),
+    PersonId.schema.required[Person]("id", _.id).addHints(smithy.api.Documentation("The id of this person"), smithy.api.Required()),
+    people.Person.schema.optional[Person]("mother", _.mother),
+    people.Person.schema.optional[Person]("father", _.father),
     People.underlyingSchema.optional[Person]("childeren", _.childeren).addHints(smithy.api.Documentation("Childeren of this person")),
   ){
     Person.apply

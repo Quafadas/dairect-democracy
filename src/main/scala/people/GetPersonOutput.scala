@@ -9,7 +9,7 @@ import smithy4s.schema.Schema.struct
 /** @param person
   *   A description of the weather in the city
   */
-case class GetPersonOutput(person: Person)
+final case class GetPersonOutput(person: Person)
 object GetPersonOutput extends ShapeTag.Companion[GetPersonOutput] {
   val id: ShapeId = ShapeId("people", "GetPersonOutput")
 

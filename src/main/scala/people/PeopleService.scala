@@ -9,7 +9,6 @@ import smithy4s.StreamingSchema
 import smithy4s.Transformation
 import smithy4s.kinds.PolyFunction5
 import smithy4s.kinds.toPolyFunction5.const5
-import smithy4s.Errorable
 
 trait PeopleServiceGen[F[_, _, _, _, _]] {
   self =>
@@ -18,7 +17,21 @@ trait PeopleServiceGen[F[_, _, _, _, _]] {
     * @param id
     *   The id of the person
     */
-  def getPerson(id: String): F[GetPersonInput, Nothing, GetPersonOutput, Nothing, Nothing]
+  def getPerson(id: PersonId): F[GetPersonInput, Nothing, GetPersonOutput, Nothing, Nothing]
+  /** Find number of childeren at each depth of the family tree
+    * @param id
+    *   The id of this person
+    * @param childeren
+    *   Childeren of this person
+    */
+  def familyTreeDepth(id: PersonId, mother: Option[Person] = None, father: Option[Person] = None, childeren: Option[List[Person]] = None): F[Person, Nothing, FamilyTreeDepthOutput, Nothing, Nothing]
+  /** Find number of childeren at each depth of the family tree
+    * @param id
+    *   The id of this person
+    * @param childeren
+    *   Childeren of this person
+    */
+  def getChilderen(id: PersonId, mother: Option[Person] = None, father: Option[Person] = None, childeren: Option[List[Person]] = None): F[Person, Nothing, GetChilderenOutput, Nothing, Nothing]
 
   def transform: Transformation.PartiallyApplied[PeopleServiceGen[F]] = Transformation.of[PeopleServiceGen[F]](this)
 }
@@ -41,6 +54,8 @@ object PeopleServiceGen extends Service.Mixin[PeopleServiceGen, PeopleServiceOpe
 
   val endpoints: List[smithy4s.Endpoint[PeopleServiceOperation, _, _, _, _, _]] = List(
     PeopleServiceOperation.GetPerson,
+    PeopleServiceOperation.FamilyTreeDepth,
+    PeopleServiceOperation.GetChilderen,
   )
 
   def endpoint[I, E, O, SI, SO](op: PeopleServiceOperation[I, E, O, SI, SO]) = op.endpoint
@@ -61,23 +76,24 @@ sealed trait PeopleServiceOperation[Input, Err, Output, StreamedInput, StreamedO
 object PeopleServiceOperation {
 
   object reified extends PeopleServiceGen[PeopleServiceOperation] {
-    def getPerson(id: String) = GetPerson(GetPersonInput(id))
+    def getPerson(id: PersonId) = GetPerson(GetPersonInput(id))
+    def familyTreeDepth(id: PersonId, mother: Option[Person] = None, father: Option[Person] = None, childeren: Option[List[Person]] = None) = FamilyTreeDepth(Person(id, mother, father, childeren))
+    def getChilderen(id: PersonId, mother: Option[Person] = None, father: Option[Person] = None, childeren: Option[List[Person]] = None) = GetChilderen(Person(id, mother, father, childeren))
   }
   class Transformed[P[_, _, _, _, _], P1[_ ,_ ,_ ,_ ,_]](alg: PeopleServiceGen[P], f: PolyFunction5[P, P1]) extends PeopleServiceGen[P1] {
-    def getPerson(id: String) = f[GetPersonInput, Nothing, GetPersonOutput, Nothing, Nothing](alg.getPerson(id))
+    def getPerson(id: PersonId) = f[GetPersonInput, Nothing, GetPersonOutput, Nothing, Nothing](alg.getPerson(id))
+    def familyTreeDepth(id: PersonId, mother: Option[Person] = None, father: Option[Person] = None, childeren: Option[List[Person]] = None) = f[Person, Nothing, FamilyTreeDepthOutput, Nothing, Nothing](alg.familyTreeDepth(id, mother, father, childeren))
+    def getChilderen(id: PersonId, mother: Option[Person] = None, father: Option[Person] = None, childeren: Option[List[Person]] = None) = f[Person, Nothing, GetChilderenOutput, Nothing, Nothing](alg.getChilderen(id, mother, father, childeren))
   }
 
   def toPolyFunction[P[_, _, _, _, _]](impl: PeopleServiceGen[P]): PolyFunction5[PeopleServiceOperation, P] = new PolyFunction5[PeopleServiceOperation, P] {
-    def apply[I, E, O, SI, SO](op: PeopleServiceOperation[I, E, O, SI, SO]): P[I, E, O, SI, SO] = op.run(impl)
+    def apply[I, E, O, SI, SO](op: PeopleServiceOperation[I, E, O, SI, SO]): P[I, E, O, SI, SO] = op.run(impl) 
   }
-  case class GetPerson(input: GetPersonInput) extends PeopleServiceOperation[GetPersonInput, Nothing, GetPersonOutput, Nothing, Nothing] {
+  final case class GetPerson(input: GetPersonInput) extends PeopleServiceOperation[GetPersonInput, Nothing, GetPersonOutput, Nothing, Nothing] {
     def run[F[_, _, _, _, _]](impl: PeopleServiceGen[F]): F[GetPersonInput, Nothing, GetPersonOutput, Nothing, Nothing] = impl.getPerson(input.id)
     def endpoint: (GetPersonInput, smithy4s.Endpoint[PeopleServiceOperation,GetPersonInput, Nothing, GetPersonOutput, Nothing, Nothing]) = (input, GetPerson)
   }
   object GetPerson extends smithy4s.Endpoint[PeopleServiceOperation,GetPersonInput, Nothing, GetPersonOutput, Nothing, Nothing] {
-
-    override def errorable: Option[Errorable[Nothing]] = None
-
     val id: ShapeId = ShapeId("people", "GetPerson")
     val input: Schema[GetPersonInput] = GetPersonInput.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
     val output: Schema[GetPersonOutput] = GetPersonOutput.schema.addHints(smithy4s.internals.InputOutput.Output.widen)
@@ -89,5 +105,43 @@ object PeopleServiceOperation {
       smithy.api.Readonly(),
     )
     def wrap(input: GetPersonInput) = GetPerson(input)
+    override val errorable: Option[Nothing] = None
+  }
+  final case class FamilyTreeDepth(input: Person) extends PeopleServiceOperation[Person, Nothing, FamilyTreeDepthOutput, Nothing, Nothing] {
+    def run[F[_, _, _, _, _]](impl: PeopleServiceGen[F]): F[Person, Nothing, FamilyTreeDepthOutput, Nothing, Nothing] = impl.familyTreeDepth(input.id, input.mother, input.father, input.childeren)
+    def endpoint: (Person, smithy4s.Endpoint[PeopleServiceOperation,Person, Nothing, FamilyTreeDepthOutput, Nothing, Nothing]) = (input, FamilyTreeDepth)
+  }
+  object FamilyTreeDepth extends smithy4s.Endpoint[PeopleServiceOperation,Person, Nothing, FamilyTreeDepthOutput, Nothing, Nothing] {
+    val id: ShapeId = ShapeId("people", "FamilyTreeDepth")
+    val input: Schema[Person] = Person.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
+    val output: Schema[FamilyTreeDepthOutput] = FamilyTreeDepthOutput.schema.addHints(smithy4s.internals.InputOutput.Output.widen)
+    val streamedInput: StreamingSchema[Nothing] = StreamingSchema.nothing
+    val streamedOutput: StreamingSchema[Nothing] = StreamingSchema.nothing
+    val hints: Hints = Hints(
+      smithy.api.Documentation("Find number of childeren at each depth of the family tree"),
+      smithy.api.Http(method = smithy.api.NonEmptyString("POST"), uri = smithy.api.NonEmptyString("/familyTreeDepth"), code = 200),
+      smithy.api.Readonly(),
+    )
+    def wrap(input: Person) = FamilyTreeDepth(input)
+    override val errorable: Option[Nothing] = None
+  }
+  final case class GetChilderen(input: Person) extends PeopleServiceOperation[Person, Nothing, GetChilderenOutput, Nothing, Nothing] {
+    def run[F[_, _, _, _, _]](impl: PeopleServiceGen[F]): F[Person, Nothing, GetChilderenOutput, Nothing, Nothing] = impl.getChilderen(input.id, input.mother, input.father, input.childeren)
+    def endpoint: (Person, smithy4s.Endpoint[PeopleServiceOperation,Person, Nothing, GetChilderenOutput, Nothing, Nothing]) = (input, GetChilderen)
+  }
+  object GetChilderen extends smithy4s.Endpoint[PeopleServiceOperation,Person, Nothing, GetChilderenOutput, Nothing, Nothing] {
+    val id: ShapeId = ShapeId("people", "GetChilderen")
+    val input: Schema[Person] = Person.schema.addHints(smithy4s.internals.InputOutput.Input.widen)
+    val output: Schema[GetChilderenOutput] = GetChilderenOutput.schema.addHints(smithy4s.internals.InputOutput.Output.widen)
+    val streamedInput: StreamingSchema[Nothing] = StreamingSchema.nothing
+    val streamedOutput: StreamingSchema[Nothing] = StreamingSchema.nothing
+    val hints: Hints = Hints(
+      smithy.api.Documentation("Find number of childeren at each depth of the family tree"),
+      smithy.api.Http(method = smithy.api.NonEmptyString("POST"), uri = smithy.api.NonEmptyString("/childeren"), code = 200),
+      smithy.api.Readonly(),
+    )
+    def wrap(input: Person) = GetChilderen(input)
+    override val errorable: Option[Nothing] = None
   }
 }
+
