@@ -59,6 +59,7 @@ trait JsonSchema[A]:
 
   def make: Map[String, Document] =
     // val addName = shapeIdJ.map(s => Map("name" -> Document.fromString(s.toString()))).getOrElse(emptyMap)
+    println(hints)
     val addDescription = description.map(s => Map("description" -> Document.fromString(s))).getOrElse(emptyMap)
     emptyMap ++ addDescription
   end make
@@ -79,6 +80,7 @@ enum JsonSchemaPrimitive:
   case Integer
   case Boolean
   case Null // I don't think we need this?
+  case Document
 end JsonSchemaPrimitive
 
 /* */
@@ -121,15 +123,14 @@ trait StructSchemaIR[S](override val hints: Hints) extends NonPrimitiveSchemaIR[
   val fields: Map[String, JsonSchema[?]]
   val required: Set[String]
   override def make: Map[String, Document] =
-
+    val anyRequired = required.isEmpty match
+      case false => Map("required" -> Document.DArray(required.map(Document.fromString).toIndexedSeq)),
+      case true => emptyMap
     val fieldsJ = fields.map { case (k, v) => k -> Document.DObject(v.make) }
     super.make ++ Map(
       "type" -> Document.fromString("object"),
-      "required" -> Document.DArray(required.map(Document.fromString).toIndexedSeq),
       "properties" -> Document.DObject(fieldsJ)
-    )
-
-    // Document.DObject(tmp)
+    ) ++ anyRequired
   end make
 
 end StructSchemaIR

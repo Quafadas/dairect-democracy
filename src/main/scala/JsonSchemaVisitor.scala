@@ -12,6 +12,8 @@ import cats.syntax.option.*
 import smithy4s.schema.Schema.BijectionSchema
 import alloy.Untagged
 import alloy.Discriminated
+import smithy4s.schema.Primitive.PDocument
+import smithy4s.schema.Primitive.PBlob
 
 
 /*
@@ -39,12 +41,12 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
 
   override def nullable[A](schema: Schema[A]): JsonSchema[Option[A]] = ???
 
-  override def map[K, V](shapeId: ShapeId, hints: Hints, key: Schema[K], value: Schema[V]): JsonSchema[Map[K, V]] =
+  override def map[K, V](shapeId1: ShapeId, hintsIn: Hints, key: Schema[K], value: Schema[V]): JsonSchema[Map[K, V]] =
     val keySchema = this(key)
     val valueSchema = this(value)
     new JsonSchema[Map[K, V]]:
-      override val hints: Hints = hints
-      override val shapeIdJ: Option[ShapeId] = shapeId.some
+      override val hints: Hints = hintsIn
+      override val shapeIdJ: Option[ShapeId] = shapeId1.some
       override val make: Map[String, Document] = super.make ++ Map[String, Document](
         "type" -> Document.fromString("object"),
         "additionalProperties" -> Document.DObject(valueSchema.make)
@@ -181,28 +183,29 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
     end new
   end collection
 
-  override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): JsonSchema[P] =
-    hints.all.foreach(println)
+  override def primitive[P](shapeId: ShapeId, hintsIn: Hints, tag: Primitive[P]): JsonSchema[P] =
+    hintsIn.all.foreach(println)
     println(tag)
     println(shapeId)
     tag match
 
-      case Primitive.PLong  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hints)
-      case Primitive.PInt   => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hints)
-      case Primitive.PShort => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hints)
-      case Primitive.PByte  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hints)
+      case Primitive.PLong  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hintsIn)
+      case Primitive.PInt   => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hintsIn)
+      case Primitive.PShort => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hintsIn)
+      case Primitive.PByte  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hintsIn)
 
-      case Primitive.PFloat      => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hints)
-      case Primitive.PBigInt     => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hints)
-      case Primitive.PDouble     => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hints)
-      case Primitive.PBigDecimal => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hints)
+      case Primitive.PFloat      => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
+      case Primitive.PBigInt     => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
+      case Primitive.PDouble     => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
+      case Primitive.PBigDecimal => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
 
-      case Primitive.PBoolean => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Boolean, shapeId.some, hints)
+      case Primitive.PBoolean => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Boolean, shapeId.some, hintsIn)
 
       case Primitive.PUUID =>
-        PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hints, formatIn = "uuid".some)
-      case Primitive.PTimestamp => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hints)
-      case Primitive.PString    => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hints)
+        PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn, formatIn = "uuid".some)
+      case Primitive.PTimestamp => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn)
+      case Primitive.PString    => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn)
+      case PDocument => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Document, shapeId.some, hintsIn)
       case _                    => throw new Exception("This is not a primitive shape - we shouldn't get here")
     end match
   end primitive

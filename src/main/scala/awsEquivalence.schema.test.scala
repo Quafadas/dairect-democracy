@@ -94,7 +94,6 @@ class AwsSuite extends munit.FunSuite:
     assert(awsVersion.contains(truncatedSmithyVersion))
   }
 
-
   test("aws docs hints") {
 
     val ns = "test"
@@ -118,5 +117,101 @@ class AwsSuite extends munit.FunSuite:
     assertEquals(smithyParsed, awsParsed)
   }
 
+  test("recursive definitions ") {
+
+    val ns = "test"
+    val smithy = """$version: "2"
+        |namespace test
+        |
+        |string PersonId
+        |
+        |
+        |structure Person {
+        |    @documentation("The id of this person") @required id: PersonId,
+        |    mother: Person,
+        |    father: Person,
+        |    @documentation("Childeren of this person") childeren: People
+        |}
+        |
+        |list People {
+        |    member: Person
+        |}
+        |
+        |
+        |""".stripMargin
+
+    val awsVersion = awsSmithyToSchema(ns, smithy, "Person")
+
+    val smithy4sVersion = smithy4sToSchema(ns, smithy, "Person")
+    val smithyParsed = io.circe.parser.parse(smithy4sVersion)
+    // TODO : defs?
+    // It's interesting, that AWS resulits are not self-contained.
+    val awsParsed = io.circe.parser.parse(awsVersion.replace("/definitions/Person", ""))
+
+    assertEquals(smithyParsed, awsParsed)
+
+  }
+
+  test("defaults and simple types") {
+
+    val ns = "test"
+    val smithy = """$version: "2"
+        |namespace test
+        |list StringList {
+        |  member: String
+        |}
+        |
+        |map DefaultStringMap {
+        |  key: String
+        |  value: String
+        |}
+        |
+        |structure DefaultTest {
+        |  one: Integer = 1
+        |  two: String = "test"
+        |  three: StringList = []
+        |  @default
+        |  four: StringList
+        |  @default
+        |  five: String
+        |  @default
+        |  six: Integer
+        |  @default
+        |  seven: Document
+        |  @default
+        |  eight: DefaultStringMap
+        |  @default
+        |  nine: Short
+        |  @default
+        |  ten: Double
+        |  @default
+        |  eleven: Float
+        |  @default
+        |  twelve: Long
+        |  @default
+        |  thirteen: Timestamp
+        |  @default
+        |  @timestampFormat("http-date")
+        |  fourteen: Timestamp
+        |  @default
+        |  @timestampFormat("date-time")
+        |  fifteen: Timestamp
+        |  @default
+        |  sixteen: Byte
+        |  @default
+        |  eighteen: Boolean
+        |}
+        |
+        |""".stripMargin
+
+    val awsVersion = awsSmithyToSchema(ns, smithy, "DefaultTest")
+
+    val smithy4sVersion = smithy4sToSchema(ns, smithy, "DefaultTest")
+    val smithyParsed = io.circe.parser.parse(smithy4sVersion)
+    val awsParsed = io.circe.parser.parse(awsVersion)
+
+    assertEquals(smithyParsed, awsParsed)
+
+  }
 
 end AwsSuite
