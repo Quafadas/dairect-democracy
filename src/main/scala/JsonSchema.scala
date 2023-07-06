@@ -16,6 +16,7 @@ import smithy4s.schema.Schema.BijectionSchema
 import smithy4s.http.matchPath
 import smithy4s.schema.EnumTag.IntEnum
 import smithy4s.schema.EnumTag.StringEnum
+import smithy4s.schema.Schema.MapSchema
 
 /*
   ++ emptyMap is the no-op for building our JSON schema - it has a fancy name in functional programming
@@ -83,17 +84,26 @@ enum JsonSchemaPrimitive:
   case Document
 end JsonSchemaPrimitive
 
+trait MayHaveDefault[A] extends JsonSchema[A]:
+  lazy val defalt = hints.get(smithy.api.Default).map(d => d.value)
+
+  override def make: Map[String, Document] =
+    val defal = defalt.map(d => Map("default" -> d)).getOrElse(emptyMap)
+    super.make ++ defal
+end MayHaveDefault
+
 /* */
-trait PrimitiveSchemaIR[A] extends JsonSchema[A]:
+trait PrimitiveSchemaIR[A](override val hints: Hints) extends JsonSchema[A] with MayHaveDefault[A]:
   val typ: JsonSchemaPrimitive
   val format: Option[String]
-  lazy val default = hints.get(smithy.api.Default).map(d => d.value)
   override def make: Map[String, Document] =
     val fmt = format.map(f => Map("format" -> Document.fromString(f))).getOrElse(emptyMap)
-    val defalt = default.map(d => Map("default" -> d)).getOrElse(emptyMap)
+    val typAdd = typ match
+      case JsonSchemaPrimitive.Document => emptyMap
+      case _ => Map("type" -> Document.fromString(typ.toString.toLowerCase()))
     super.make ++
-      Map("type" -> Document.fromString(typ.toString.toLowerCase())) ++
-      fmt ++ defalt
+      typAdd ++
+      fmt
   end make
 
 end PrimitiveSchemaIR
@@ -108,8 +118,7 @@ object PrimitiveSchemaIR:
       hintsIn: Hints,
       formatIn: Option[String] = None
   ): PrimitiveSchemaIR[A] =
-    new PrimitiveSchemaIR[A]:
-      override val hints: Hints = hintsIn
+    new PrimitiveSchemaIR[A](hintsIn):
       override val typ: JsonSchemaPrimitive = typIn
       override val shapeIdJ: Option[ShapeId] = shapeIdIn
       override val format: Option[String] = formatIn
@@ -137,7 +146,7 @@ trait StructSchemaIR[S](override val hints: Hints) extends NonPrimitiveSchemaIR[
 
 end StructSchemaIR
 
-trait ListJsonSchemaIR[A](override val hints: Hints) extends NonPrimitiveSchemaIR[A]:
+trait ListJsonSchemaIR[A](override val hints: Hints) extends NonPrimitiveSchemaIR[A] with MayHaveDefault[A]:
   val child: JsonSchema[?]
   override def make: Map[String, Document] =
     super.make ++ Map(
@@ -209,3 +218,15 @@ trait TaggedUnionSchema[A](override val hints: Hints) extends JsonSchema[A]:
     )
 
 end TaggedUnionSchema
+
+trait MapSchema[K, V](override val hints: Hints) extends JsonSchema[Map[K,V]]:
+  val value: JsonSchema[V]
+
+  override def make: Map[String, Document] =
+    super.make ++ Map(
+      "type" -> Document.fromString("object"),
+      "additionalProperties" -> Document.DObject(value.make),
+      "propertyNames" -> Document.DObject(Map("type" -> Document.fromString("string")))
+    )
+
+end MapSchema

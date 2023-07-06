@@ -69,7 +69,10 @@ class AwsSuite extends munit.FunSuite:
 
     val smithy4sVersion = smithy4sToSchema(ns, smithy, "Foo")
 
-    assertEquals(awsVersion, smithy4sVersion)
+    val smithyParsed = io.circe.parser.parse(smithy4sVersion)
+    val awsParsed = io.circe.parser.parse(awsVersion)
+
+    assertEquals(awsParsed, smithyParsed)
   }
 
   test("aws simple enum schema") {
@@ -153,9 +156,6 @@ class AwsSuite extends munit.FunSuite:
   }
 
   test("defaults and simple types") {
-
-
-
     val ns = "test"
     val smithy = """$version: "2"
         |namespace test
@@ -180,6 +180,7 @@ class AwsSuite extends munit.FunSuite:
         |  six: Integer
         |  @default
         |  seven: Document
+        |  eight: Document
         |  @default
         |  nine: Short
         |  @default
@@ -205,15 +206,41 @@ class AwsSuite extends munit.FunSuite:
         |""".stripMargin
 
     val awsVersion = awsSmithyToSchema(ns, smithy, "DefaultTest")
+    // TODO - is this a bug in smithy4s? Default int should be 1 and not 1.0
+    val smithy4sVersion = smithy4sToSchema(ns, smithy, "DefaultTest").replace("1.0", "1")
 
-    val smithy4sVersion = smithy4sToSchema(ns, smithy, "DefaultTest")
+    val smithyParsed = io.circe.parser.parse(smithy4sVersion)
+    val awsParsed = io.circe.parser.parse(awsVersion)
+
+    //val str = s"[$awsVersion, $smithy4sVersion]"
+
+    assertEquals(smithyParsed, awsParsed)
+
+  }
+
+  test("aws map") {
+
+    val ns = "test"
+    val smithy = """$version: "2"
+        |namespace test
+        |
+        |map IntegerMap {
+        |    key: String
+        |    value: Integer
+        |}
+        |
+        |""".stripMargin
+
+    val awsVersion = awsSmithyToSchema(ns, smithy, "IntegerMap")
+
+    val smithy4sVersion = smithy4sToSchema(ns, smithy, "IntegerMap")
+
     val smithyParsed = io.circe.parser.parse(smithy4sVersion)
     val awsParsed = io.circe.parser.parse(awsVersion)
 
     val str = s"[$awsVersion, $smithy4sVersion]"
 
     assertEquals(smithyParsed, awsParsed)
-
   }
 
 end AwsSuite

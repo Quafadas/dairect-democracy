@@ -42,15 +42,11 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
   override def nullable[A](schema: Schema[A]): JsonSchema[Option[A]] = ???
 
   override def map[K, V](shapeId1: ShapeId, hintsIn: Hints, key: Schema[K], value: Schema[V]): JsonSchema[Map[K, V]] =
-    val keySchema = this(key)
+
     val valueSchema = this(value)
-    new JsonSchema[Map[K, V]]:
-      override val hints: Hints = hintsIn
+    new MapSchema[K, V](hintsIn):
+      override val value: JsonSchema[V] = valueSchema
       override val shapeIdJ: Option[ShapeId] = shapeId1.some
-      override val make: Map[String, Document] = super.make ++ Map[String, Document](
-        "type" -> Document.fromString("object"),
-        "additionalProperties" -> Document.DObject(valueSchema.make)
-      )
     end new
   end map
 
