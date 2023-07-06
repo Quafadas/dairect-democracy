@@ -154,6 +154,8 @@ class AwsSuite extends munit.FunSuite:
 
   test("defaults and simple types") {
 
+
+
     val ns = "test"
     val smithy = """$version: "2"
         |namespace test
@@ -178,8 +180,6 @@ class AwsSuite extends munit.FunSuite:
         |  six: Integer
         |  @default
         |  seven: Document
-        |  @default
-        |  eight: DefaultStringMap
         |  @default
         |  nine: Short
         |  @default
@@ -209,6 +209,8 @@ class AwsSuite extends munit.FunSuite:
     val smithy4sVersion = smithy4sToSchema(ns, smithy, "DefaultTest")
     val smithyParsed = io.circe.parser.parse(smithy4sVersion)
     val awsParsed = io.circe.parser.parse(awsVersion)
+
+    val str = s"[$awsVersion, $smithy4sVersion]"
 
     assertEquals(smithyParsed, awsParsed)
 

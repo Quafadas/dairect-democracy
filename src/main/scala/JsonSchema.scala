@@ -77,7 +77,7 @@ Where I've made up my own definition of primitive as non-composite type and ditc
 enum JsonSchemaPrimitive:
   case String
   case Number
-  case Integer
+  //case Integer
   case Boolean
   case Null // I don't think we need this?
   case Document
@@ -87,11 +87,13 @@ end JsonSchemaPrimitive
 trait PrimitiveSchemaIR[A] extends JsonSchema[A]:
   val typ: JsonSchemaPrimitive
   val format: Option[String]
+  lazy val default = hints.get(smithy.api.Default).map(d => d.value)
   override def make: Map[String, Document] =
     val fmt = format.map(f => Map("format" -> Document.fromString(f))).getOrElse(emptyMap)
+    val defalt = default.map(d => Map("default" -> d)).getOrElse(emptyMap)
     super.make ++
       Map("type" -> Document.fromString(typ.toString.toLowerCase())) ++
-      fmt
+      fmt ++ defalt
   end make
 
 end PrimitiveSchemaIR
@@ -124,7 +126,7 @@ trait StructSchemaIR[S](override val hints: Hints) extends NonPrimitiveSchemaIR[
   val required: Set[String]
   override def make: Map[String, Document] =
     val anyRequired = required.isEmpty match
-      case false => Map("required" -> Document.DArray(required.map(Document.fromString).toIndexedSeq)),
+      case false => Map("required" -> Document.DArray(required.map(Document.fromString).toIndexedSeq))
       case true => emptyMap
     val fieldsJ = fields.map { case (k, v) => k -> Document.DObject(v.make) }
     super.make ++ Map(

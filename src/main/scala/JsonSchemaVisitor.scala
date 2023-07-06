@@ -189,10 +189,10 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
     println(shapeId)
     tag match
 
-      case Primitive.PLong  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hintsIn)
-      case Primitive.PInt   => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hintsIn)
-      case Primitive.PShort => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hintsIn)
-      case Primitive.PByte  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Integer, shapeId.some, hintsIn)
+      case Primitive.PLong  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
+      case Primitive.PInt   => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
+      case Primitive.PShort => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
+      case Primitive.PByte  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
 
       case Primitive.PFloat      => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
       case Primitive.PBigInt     => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
@@ -203,7 +203,7 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
 
       case Primitive.PUUID =>
         PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn, formatIn = "uuid".some)
-      case Primitive.PTimestamp => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn)
+      case Primitive.PTimestamp => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn, formatIn = "date-time".some)
       case Primitive.PString    => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn)
       case PDocument => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Document, shapeId.some, hintsIn)
       case _                    => throw new Exception("This is not a primitive shape - we shouldn't get here")
