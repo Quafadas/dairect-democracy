@@ -9,4 +9,4 @@
 //> using lib com.disneystreaming.smithy4s::smithy4s-http4s::0.18.0-528-d32916a
 //> using lib com.disneystreaming.smithy4s::smithy4s-dynamic::0.18.0-528-d32916a
 //> using lib software.amazon.smithy:smithy-jsonschema:1.33.0
-//> using test.dep org.scalameta::munit::0.7.29
+//> using test.dep org.scalameta::munit::1.0.0-M8
