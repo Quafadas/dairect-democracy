@@ -23,12 +23,104 @@ To generate the weather smithy model, run the following command:
 A suite of unit tests which check equivalence of simple shapes against the AWS library that does the same.
 
 I have a POC of the "end to end" concept, which
-`scala-cli run .` is `callOpenAI.scala`
+`scala-cli run .` is `callViaSmithy.scala`
 
-1. generates JSON schema for a simple case
+1. Uses a smithy model of the openAI Api.
 2. sends a request to the openAI chat endpoint
 3. parses the response and checks it's asking for a function call
 4. calls the function, and returns the result to openAI
+
+The first request to openAPI looks like
+
+```
+
+{
+  "model": "gpt-3.5-turbo-0613",
+  "messages": [
+    { "role": "system", "content": "You are a helpful assistent." },
+    { "role": "user", "content": "Get the weather for Zurich, Switzerland" }
+  ],
+  "functions": [
+    {
+      "name": "GetWeather",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "description": "The name of the city",
+            "type": "string"
+          }
+        },
+        "required": ["location"]
+      },
+      "description": "Get the weather for a city"
+    },
+    {
+      "name": "GetWeatherLatLong",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "lat": { "description": "Latitude", "type": "number" },
+          "long": { "description": "Longditude", "type": "number" }
+        },
+        "required": ["lat", "long"]
+      },
+      "description": "Get the weather for a city given a latitude and longitude"
+    },
+    {
+      "name": "GetWeatherLatLongPacked",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "lat": { "description": "Latitude", "type": "number" },
+          "long": { "description": "Longditude", "type": "number" }
+        },
+        "required": ["lat", "long"]
+      },
+      "description": "Get the weather for a city given a latitude and longitude, but pack the inputs together"
+    }
+  ],
+  "temperature": 0.0
+}
+
+```
+
+The final request to openAI looks like
+
+```
+{
+  "model": "gpt-3.5-turbo-0613",
+  "messages": [
+    { "role": "system", "content": "You are a helpful assistent." },
+    { "role": "user", "content": "Get the weather for Zurich, Switzerland" },
+    {
+      "role": "assistant",
+      "content": "",
+      "name": "GetWeather",
+      "function_call": {
+        "name": "GetWeather",
+        "arguments": "{\n  \"location\": \"Zurich, Switzerland\"\n}"
+      }
+    },
+    {
+      "role": "function",
+      "content": "{\"role\":\"function\",\"name\":\"GetWeather\",\"content\":\"{\\\"weather\\\":\\\"lovely\\\"}\"}",
+      "name": "GetWeather"
+    }
+  ],
+  "temperature": 0.0
+}
+```
+
+Which I think follows the example on the openAI website.
+https://openai.com/blog/function-calling-and-other-api-updates
+
+Importantly, I don't believe there to be anything "specific" about the weather service. It should work for anything we can generate schema for.
+
+See
+awsEquivalence.schema.test.scala
+
+
 
 ## Potential Applications
 

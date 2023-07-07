@@ -33,6 +33,9 @@ import cats.syntax.all.*
 
 import weather.JsonProtocolF
 import weather.weatherServiceImpl
+import openAI.ChatCompletionResponseMessage
+import openAI.ChatCompletionRequestMessageFunctionCall
+import openAI.CreateChatCompletionResponseChoicesItem
 
 object SmithyModelled extends IOApp.Simple:
 
@@ -45,16 +48,36 @@ object SmithyModelled extends IOApp.Simple:
     content = m
   )
 
+  def functionMessage(functionResult: String, functionName: String): ChatCompletionRequestMessage =
+    ChatCompletionRequestMessage(
+      role = ChatCompletionRequestMessageRole.function,
+      content = functionResult,
+      name = functionName.some
+    )
+
+  def assistentMessageFctCall(in: ChatCompletionResponseMessage): ChatCompletionRequestMessage =
+    ChatCompletionRequestMessage(
+      role = ChatCompletionRequestMessageRole.assistant,
+      content = "",
+      name = in.function_call.get.name,
+      function_call = in.function_call.map(m =>
+        ChatCompletionRequestMessageFunctionCall(
+          name = m.name.get,
+          arguments = m.arguments.get
+        )
+      )
+    )
+
   val promptStr = List[String](
-    "Get the weather for Zurich, Switzerland",
-    "Get the weeather at latitude 47.3769 and longditude 8.5417",
-     "Get the weather at latitude 47.3769 and longditude 8.5417, use the packed tool"
+    "Get the weather for Zurich, Switzerland"
+    // "Get the weeather at latitude 47.3769 and longditude 8.5417",
+    // "Get the weather at latitude 47.3769 and longditude 8.5417, use the packed tool"
   )
 
   val prompts = promptStr.map(userMsg)
 
   val logger = (cIn: Client[IO]) =>
-    Logger(logBody = true, logHeaders = true, _ => false, Some((x: String) => IO.println(x)))(cIn)
+    Logger(logBody = true, logHeaders = false, _ => false, Some((x: String) => IO.println(x)))(cIn)
 
   def authMiddleware(inTok: String): org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
     Client { req =>
@@ -106,20 +129,34 @@ object SmithyModelled extends IOApp.Simple:
               )
               .flatMap { response =>
                 val botChoices = response.body.choices.head
+                val responseMsg = botChoices.message.get
                 botChoices.finish_reason match
-                  case None => IO.println(response)
+                  case None =>
+                    IO.println("-----------------") >>
+                    IO.println("Don't want to be here") >>
+                    IO.println(response) >>
+                      IO.pure(None)
                   case Some(value) =>
                     val fctCall = botChoices.message.get.function_call.get
-                    smithyDispatcher.apply(fctCall)
+                    val fctResult = smithyDispatcher.apply(fctCall)
+                    val fctName = fctCall.name.get
+                    fctResult.map(s =>
+                      Some(
+                        List(
+                          assistentMessageFctCall(botChoices.message.get),
+                          functionMessage(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(s), fctName)
+                        )
+                      )
+                    )
                 end match
               }
-              .flatMap(in =>
+              .flatMap((in: Option[List[ChatCompletionRequestMessage]]) =>
                 in match
-                  case () => IO.println("Done")
-                  case _ =>
-                    val asStr = in.toString
-                    val newMessages = startMessages :+ userMsg(asStr)
-                    openAI.createChatCompletion(
+                  case None => IO.println("Done")
+                  case Some(ccm) =>
+                    val newMessages = startMessages ++ ccm
+                    openAI
+                      .createChatCompletion(
                         CreateChatCompletionRequest(
                           model = "gpt-3.5-turbo-0613",
                           temperature = 0.0.some,
