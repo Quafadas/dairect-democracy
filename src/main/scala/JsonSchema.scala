@@ -19,7 +19,7 @@ import smithy4s.schema.EnumTag.StringEnum
 import smithy4s.schema.Schema.MapSchema
 
 /*
-  ++ emptyMap is the no-op for building our JSON schema - it has a fancy name in functional programming
+  ++ emptyMap is the no-op for building our JSON schema
   i.e. () in scala
   the 0 in integer addition, 1 in integer multiplication
 

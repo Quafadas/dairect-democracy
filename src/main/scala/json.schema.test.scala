@@ -10,7 +10,6 @@ import people.peopleImpl
 import union.unionServiceImpl
 
 
-// TODO
 class IntegrationSuite extends munit.FunSuite:
 
   implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
