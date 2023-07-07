@@ -110,12 +110,13 @@ trait PrimitiveSchemaIR[A](override val hints: Hints) extends JsonSchema[A] with
     case true => hints.get(smithy.api.Range).flatMap(_.max).map(p => Map("maximum" -> Document.fromBigDecimal(p))).getOrElse(emptyMap)
     case false => emptyMap
 
+  def fmt = format.map(f => Map("format" -> Document.fromString(f))).getOrElse(emptyMap)
+
+  def typAdd = typ match
+    case JsonSchemaPrimitive.Document => emptyMap
+    case _ => Map("type" -> Document.fromString(typ.toString.toLowerCase()))
 
   override def make: Map[String, Document] =
-    val fmt = format.map(f => Map("format" -> Document.fromString(f))).getOrElse(emptyMap)
-    val typAdd = typ match
-      case JsonSchemaPrimitive.Document => emptyMap
-      case _ => Map("type" -> Document.fromString(typ.toString.toLowerCase()))
     super.make ++
       typAdd ++
       fmt ++
