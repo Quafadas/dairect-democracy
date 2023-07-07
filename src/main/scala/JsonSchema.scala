@@ -96,6 +96,21 @@ end MayHaveDefault
 trait PrimitiveSchemaIR[A](override val hints: Hints) extends JsonSchema[A] with MayHaveDefault[A]:
   val typ: JsonSchemaPrimitive
   val format: Option[String]
+  def mayHavePattern: Boolean = typ == JsonSchemaPrimitive.String
+  def pattern: Map[String, Document] = mayHavePattern match
+    case true => hints.get(smithy.api.Pattern).map(p => Map("pattern" -> Document.fromString(p.toString()))).getOrElse(emptyMap)
+    case false => emptyMap
+
+  def mayHaveRange: Boolean = typ == JsonSchemaPrimitive.Number
+  def min: Map[String, Document] = mayHaveRange match
+    case true => hints.get(smithy.api.Range).flatMap(_.min).map(p => Map("minimum" -> Document.fromBigDecimal(p))).getOrElse(emptyMap)
+    case false => emptyMap
+
+  def max: Map[String, Document] = mayHaveRange match
+    case true => hints.get(smithy.api.Range).flatMap(_.max).map(p => Map("maximum" -> Document.fromBigDecimal(p))).getOrElse(emptyMap)
+    case false => emptyMap
+
+
   override def make: Map[String, Document] =
     val fmt = format.map(f => Map("format" -> Document.fromString(f))).getOrElse(emptyMap)
     val typAdd = typ match
@@ -103,7 +118,11 @@ trait PrimitiveSchemaIR[A](override val hints: Hints) extends JsonSchema[A] with
       case _ => Map("type" -> Document.fromString(typ.toString.toLowerCase()))
     super.make ++
       typAdd ++
-      fmt
+      fmt ++
+      pattern ++
+      min ++
+      max
+
   end make
 
 end PrimitiveSchemaIR
@@ -148,11 +167,12 @@ end StructSchemaIR
 
 trait ListJsonSchemaIR[A](override val hints: Hints) extends NonPrimitiveSchemaIR[A] with MayHaveDefault[A]:
   val child: JsonSchema[?]
+  lazy val unique = hints.get(smithy.api.UniqueItems)
   override def make: Map[String, Document] =
     super.make ++ Map(
       "type" -> Document.fromString("array"),
       "items" -> Document.DObject(child.make)
-    )
+    ) ++ unique.map(_ => Map("uniqueItems" -> Document.fromBoolean(true))).getOrElse(emptyMap)
 end ListJsonSchemaIR
 
 trait BijectionJsonSchema[A](val bijectTarget: JsonSchema[?], override val hints: Hints)

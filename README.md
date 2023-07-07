@@ -20,8 +20,7 @@ To generate the weather smithy model, run the following command:
 
 ## Status
 
-I have one (!) unit test, which tests that we can produce JSON schema for simple cases.
-`scala-cli test .` -  `jsonschema.test.scala`
+A suite of unit tests which check equivalence of simple shapes against the AWS library that does the same.
 
 I have a POC of the "end to end" concept, which
 `scala-cli run .` is `callOpenAI.scala`
@@ -39,10 +38,6 @@ Not only do you get that free, but your entire api surface, that is defined in s
 
 ## Questions
 
-Currently, I'm using the command above to code gen from a smithy model. This is kind of slow, and I have to implement the errorAware method in the generated code otherwise it won't compile. Is there a better way to do this?
-
-JsonProtocolF.scala copies and pastes code from the smithy4s library. This is bad. Is there a world in which these methods enter smithys public API?
+JsonProtocolF.scala is a copy paste excercise from the smithy4s library. This is bad. Is there a world in which these methods enter smithys public API?
 
 The original JSON schema generator sketch, looked like it was going a fairly functional route. I have not followed it faithfully. I think the current strategy can work, but it may not be acceptable for you. Is this / how big is this problem potentially?
-
-Currently, I have the entire zoo of JSON libraries in scala. ujson, circe, jsoniter. I'm not 100% sure what do about that, but I don't think it's a great place to be. Feedback welcomed. There's a model of openAIs API now in this repo. However, there's then a question over strongly typed or stringly typed function definitions. I guess may as well go all in on smithy, and make this strongly typed ? Gets rid of the JSON zoo too. Should also massively improve testability.

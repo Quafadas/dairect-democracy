@@ -11,8 +11,8 @@ import enums.enumServiceImpl
 import union.unionServiceImpl
 
 
-
-class MySuite extends munit.FunSuite:
+// TODO
+class IntegrationSuite extends munit.FunSuite:
 
   implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
