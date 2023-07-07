@@ -17,7 +17,7 @@ import smithy4s.schema.Primitive.PBlob
 
 
 /*
-  This class is supposed to extract everything needed to produce a JsonSchema from a smithy schema.
+  This visitor is supposed to extract everything needed to produce a JsonSchema from a smithy schema.
 
   Apparently Working
   - Primitive types
@@ -51,9 +51,6 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
   end map
 
   override def lazily[A](suspend: Lazy[Schema[A]]): JsonSchema[A] =
-    println("lazily")
-    println(suspend.value)
-
     val forShape = suspend.value.shapeId
     val rb = new RecursionBustingJsonSchemaVisitor(forShape) {}
     rb(suspend.value)
@@ -65,13 +62,6 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
       fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
       make: IndexedSeq[Any] => S
   ): JsonSchema[S] =
-    if true then
-      println("struct")
-      println(shapeId)
-      hints.all.foreach(println)
-      println(fields.mkString(", "))
-    end if
-
     val expandFields: Map[String, JsonSchema[?]] = fields.map { field =>
       field.label -> this(field.instance)
     }.toMap
@@ -92,12 +82,6 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
       valuesIn: List[EnumValue[E]],
       total: E => EnumValue[E]
   ): JsonSchema[E] =
-    println("enumeration")
-    println(shapeIdIn)
-    println(hintsIn)
-    println(tagIn)
-    println(valuesIn)
-    println(total)
     new EnumSchema[E](hintsIn):
       override val tag: EnumTag = tagIn
       override val values: List[EnumValue[E]] = valuesIn
@@ -111,18 +95,6 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
       alternatives: Vector[Alt[smithy4s.schema.Schema, U, ?]],
       dispatch: Dispatcher[smithy4s.schema.Schema, U]
   ): JsonSchema[U] =
-    println("union")
-    println(shapeId)
-    println(hints)
-    println(alternatives)
-
-
-    alternatives.foreach { alt =>
-      println(alt.label)
-      println(alt.instance)
-    }
-
-
     hints match
       case Untagged.hint(_) =>
         val altSchemas = alternatives.map(alt => this(alt.instance))
@@ -140,9 +112,6 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
   end union
 
   override def refine[A, B](schema: Schema[A], refinement: Refinement[A, B]): JsonSchema[B] =
-    println("refine")
-    println(schema)
-    println(refinement)
     val target: JsonSchema[A] = this(schema)
     new JsonSchema[B]:
       override val hints: Hints = Hints.empty
@@ -153,14 +122,7 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
   end refine
 
   override def biject[A, B](schema: Schema[A], bijection: Bijection[A, B]): JsonSchema[B] =
-    println("biject")
-    println(schema)
-    // println(A.getClass)
-    // println(B.getClass)
-
-    println(bijection.toString())
     val target: JsonSchema[A] = this(schema)
-
     new BijectionJsonSchema[B](target, schema.hints):
       override val shapeIdJ: Option[ShapeId] = schema.shapeId.some
     end new
@@ -180,9 +142,7 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
   end collection
 
   override def primitive[P](shapeId: ShapeId, hintsIn: Hints, tag: Primitive[P]): JsonSchema[P] =
-    hintsIn.all.foreach(println)
-    println(tag)
-    println(shapeId)
+
     tag match
 
       case Primitive.PLong  => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Number, shapeId.some, hintsIn)
