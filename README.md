@@ -30,6 +30,8 @@ I have a POC of the "end to end" concept, which
 3. parses the response and checks it's asking for a function call
 4. calls the function, and returns the result to openAI
 
+Given src/main/scala/weather/weather.smithy, have a look at the implementation in src/main/scala/weatherImpl.scala.
+
 The first request to openAPI looks like
 
 ```
@@ -115,11 +117,17 @@ The final request to openAI looks like
 Which I think follows the example on the openAI website.
 https://openai.com/blog/function-calling-and-other-api-updates
 
+and responds with this,
+```CreateChatCompletion200(CreateChatCompletionResponse(chatcmpl-7ZfFmsJbYZ1sDnb1UqRrI2L5k7bpE,chat.completion,1688734414,gpt-3.5-turbo-0613,List(CreateChatCompletionResponseChoicesItem(Some(0),Some(ChatCompletionResponseMessage(assistant,Some(The weather in Zurich, Switzerland is lovely.),None)),Some(stop))),Some(CreateChatCompletionResponseUsage(74,9,83))))```
+
 Importantly, I don't believe there to be anything "specific" about the weather service. It should work for anything we can generate schema for.
 
 See
 awsEquivalence.schema.test.scala
 
+for what appears to be working right now.
+
+![worky](/working%202023-07-07.png)
 
 
 ## Potential Applications
