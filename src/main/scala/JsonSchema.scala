@@ -26,7 +26,7 @@ import smithy4s.schema.Schema.MapSchema
   We'll need it a lot when we have optional fields.
 
  */
-def emptyMap = Map[String, Document]()
+inline def emptyMap = Map[String, Document]()
 
 /* Helper function to get document hints */
 def extractDocHint(hints: Hints): Map[String, Document] =
