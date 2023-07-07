@@ -17,6 +17,7 @@ import union.unionServiceImpl
 //import smithy4s.dynamic.DynamicSchemaIndex
 import smithy4s.Schema
 import smithy4s.dynamic.DynamicSchemaIndex
+import java.net.URL
 
 class AwsSuite extends munit.FunSuite:
 
@@ -212,7 +213,7 @@ class AwsSuite extends munit.FunSuite:
     val smithyParsed = io.circe.parser.parse(smithy4sVersion)
     val awsParsed = io.circe.parser.parse(awsVersion)
 
-    //val str = s"[$awsVersion, $smithy4sVersion]"
+    // val str = s"[$awsVersion, $smithy4sVersion]"
 
     assertEquals(smithyParsed, awsParsed)
 
@@ -234,6 +235,40 @@ class AwsSuite extends munit.FunSuite:
     val awsVersion = awsSmithyToSchema(ns, smithy, "IntegerMap")
 
     val smithy4sVersion = smithy4sToSchema(ns, smithy, "IntegerMap")
+
+    val smithyParsed = io.circe.parser.parse(smithy4sVersion)
+    val awsParsed = io.circe.parser.parse(awsVersion)
+
+    val str = s"[$awsVersion, $smithy4sVersion]"
+
+    assertEquals(smithyParsed, awsParsed)
+  }
+
+  test("aws tagged union type") {
+
+    val ns = "test"
+    val smithys = """$version: "2"
+        |namespace test
+        |
+        |list StringList {
+        |  member: String
+        |}
+        |
+        |union MyUnion {
+        |    i32: Integer,
+        |
+        |    string: String,
+        |
+        |    time: Timestamp,
+        |
+        |    slist: StringList,
+        |}
+        |
+        |""".stripMargin
+
+    val awsVersion = awsSmithyToSchema(ns, smithys, "MyUnion")
+
+    val smithy4sVersion = smithy4sToSchema(ns, smithys, "MyUnion")
 
     val smithyParsed = io.circe.parser.parse(smithy4sVersion)
     val awsParsed = io.circe.parser.parse(awsVersion)

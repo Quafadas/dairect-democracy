@@ -211,7 +211,16 @@ trait TaggedUnionSchema[A](override val hints: Hints) extends JsonSchema[A]:
     super.make ++ Map(
       "oneOf" -> Document.DArray(alts.map(a =>
           Document.DObject(
-            Map(a._1 -> Document.DObject( a._2.make))
+            Map(
+              "type" -> Document.fromString("object"),
+              "required" -> Document.DArray(IndexedSeq(Document.fromString(a._1))),
+              "properties" -> Document.DObject(
+                Map(
+                  a._1 -> Document.DObject(a._2.make)
+                )
+              ),
+              "title" -> Document.fromString(a._1)
+            )
           )
         ).toIndexedSeq
       )
