@@ -58,11 +58,11 @@ trait JsonSchema[A]:
   val shapeIdJ: Option[ShapeId]
   lazy val description: Option[String] = hints.get(smithy.api.Documentation).map(_.toString())
 
+  def desc = description.map(d => Map("description" -> Document.fromString(d))).getOrElse(emptyMap)
+
   def make: Map[String, Document] =
-    // val addName = shapeIdJ.map(s => Map("name" -> Document.fromString(s.toString()))).getOrElse(emptyMap)
-    println(hints)
-    val addDescription = description.map(s => Map("description" -> Document.fromString(s))).getOrElse(emptyMap)
-    emptyMap ++ addDescription
+    emptyMap ++
+      desc
   end make
 
 end JsonSchema
@@ -78,7 +78,7 @@ Where I've made up my own definition of primitive as non-composite type and ditc
 enum JsonSchemaPrimitive:
   case String
   case Number
-  //case Integer
+  // case Integer
   case Boolean
   case Null // I don't think we need this?
   case Document
@@ -90,6 +90,7 @@ trait MayHaveDefault[A] extends JsonSchema[A]:
   override def make: Map[String, Document] =
     val defal = defalt.map(d => Map("default" -> d)).getOrElse(emptyMap)
     super.make ++ defal
+  end make
 end MayHaveDefault
 
 /* */
@@ -98,23 +99,34 @@ trait PrimitiveSchemaIR[A](override val hints: Hints) extends JsonSchema[A] with
   val format: Option[String]
   def mayHavePattern: Boolean = typ == JsonSchemaPrimitive.String
   def pattern: Map[String, Document] = mayHavePattern match
-    case true => hints.get(smithy.api.Pattern).map(p => Map("pattern" -> Document.fromString(p.toString()))).getOrElse(emptyMap)
+    case true =>
+      hints.get(smithy.api.Pattern).map(p => Map("pattern" -> Document.fromString(p.toString()))).getOrElse(emptyMap)
     case false => emptyMap
 
   def mayHaveRange: Boolean = typ == JsonSchemaPrimitive.Number
   def min: Map[String, Document] = mayHaveRange match
-    case true => hints.get(smithy.api.Range).flatMap(_.min).map(p => Map("minimum" -> Document.fromBigDecimal(p))).getOrElse(emptyMap)
+    case true =>
+      hints
+        .get(smithy.api.Range)
+        .flatMap(_.min)
+        .map(p => Map("minimum" -> Document.fromBigDecimal(p)))
+        .getOrElse(emptyMap)
     case false => emptyMap
 
   def max: Map[String, Document] = mayHaveRange match
-    case true => hints.get(smithy.api.Range).flatMap(_.max).map(p => Map("maximum" -> Document.fromBigDecimal(p))).getOrElse(emptyMap)
+    case true =>
+      hints
+        .get(smithy.api.Range)
+        .flatMap(_.max)
+        .map(p => Map("maximum" -> Document.fromBigDecimal(p)))
+        .getOrElse(emptyMap)
     case false => emptyMap
 
   def fmt = format.map(f => Map("format" -> Document.fromString(f))).getOrElse(emptyMap)
 
   def typAdd = typ match
     case JsonSchemaPrimitive.Document => emptyMap
-    case _ => Map("type" -> Document.fromString(typ.toString.toLowerCase()))
+    case _                            => Map("type" -> Document.fromString(typ.toString.toLowerCase()))
 
   override def make: Map[String, Document] =
     super.make ++
@@ -156,7 +168,7 @@ trait StructSchemaIR[S](override val hints: Hints) extends NonPrimitiveSchemaIR[
   override def make: Map[String, Document] =
     val anyRequired = required.isEmpty match
       case false => Map("required" -> Document.DArray(required.map(Document.fromString).toIndexedSeq))
-      case true => emptyMap
+      case true  => emptyMap
     val fieldsJ = fields.map { case (k, v) => k -> Document.DObject(v.make) }
     super.make ++ Map(
       "type" -> Document.fromString("object"),
@@ -214,7 +226,6 @@ trait EnumSchema[A](override val hints: Hints) extends JsonSchema[A]:
 
 end EnumSchema
 
-
 trait UntaggedUnionSchema[A](override val hints: Hints) extends JsonSchema[A]:
   val alts: Vector[JsonSchema[?]]
 
@@ -230,26 +241,29 @@ trait TaggedUnionSchema[A](override val hints: Hints) extends JsonSchema[A]:
 
   override def make: Map[String, Document] =
     super.make ++ Map(
-      "oneOf" -> Document.DArray(alts.map(a =>
-          Document.DObject(
-            Map(
-              "type" -> Document.fromString("object"),
-              "required" -> Document.DArray(IndexedSeq(Document.fromString(a._1))),
-              "properties" -> Document.DObject(
-                Map(
-                  a._1 -> Document.DObject(a._2.make)
-                )
-              ),
-              "title" -> Document.fromString(a._1)
+      "oneOf" -> Document.DArray(
+        alts
+          .map(a =>
+            Document.DObject(
+              Map(
+                "type" -> Document.fromString("object"),
+                "required" -> Document.DArray(IndexedSeq(Document.fromString(a._1))),
+                "properties" -> Document.DObject(
+                  Map(
+                    a._1 -> Document.DObject(a._2.make)
+                  )
+                ),
+                "title" -> Document.fromString(a._1)
+              )
             )
           )
-        ).toIndexedSeq
+          .toIndexedSeq
       )
     )
 
 end TaggedUnionSchema
 
-trait MapSchema[K, V](override val hints: Hints) extends JsonSchema[Map[K,V]]:
+trait MapSchema[K, V](override val hints: Hints) extends JsonSchema[Map[K, V]]:
   val value: JsonSchema[V]
 
   override def make: Map[String, Document] =

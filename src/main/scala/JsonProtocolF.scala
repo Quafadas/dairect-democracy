@@ -36,6 +36,10 @@ import cats.Id
 import java.util.UUID
 import io.circe.Json
 import smithy4s.http.json.JCodec
+import openAI.ChatCompletionFunctionParameters
+import openAI.ChatCompletionFunctions
+import openAI.ChatCompletionRequestMessageFunctionCall
+import openAI.ChatCompletionResponseMessageFunctionCall
 
 /** These are toy interpreters that turn services into json-in/json-out functions, and vice versa.
   *
@@ -95,41 +99,68 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
   It returns a Document which is correctly formatted for returning to openai
   as a chat message.
    */
-  def openAiFunctionDispatch[Alg[_[_, _, _, _, _]]](
+  // def openAiFunctionDispatch[Alg[_[_, _, _, _, _]]](
+  //     alg: FunctorAlgebra[Alg, F]
+  // )(implicit S: Service[Alg]): ujson.Value => F[Document] =
+  //   val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
+  //   val jsonEndpoints =
+  //     S.endpoints.map(ep => ep.name -> toLowLevel(transformation, ep)).toMap
+
+  //   (d: ujson.Value) =>
+  //     val start = d("choices")(0)("message").objOpt.flatMap(_.get("function_call"))
+  //     val endpointName = start.map(jsonRaw => jsonRaw("name").str)
+  //     val arguments = start.map(jsonRaw => ujson.read(jsonRaw("arguments").str))
+  //     println(arguments)
+  //     (endpointName, arguments) match
+  //       case (Some(epName), Some(args)) =>
+  //         println(args)
+  //         val fctConfig: Document = com.github.plokhotnyuk.jsoniter_scala.core.readFromString(args.toString)
+  //         println(fctConfig)
+  //         val ep = jsonEndpoints.get(epName)
+
+  //         ep match
+  //           case Some(jsonEndpoint) =>
+  //             val fctResult = jsonEndpoint(fctConfig)
+  //             fctResult.map(r =>
+  //               Document.obj(
+  //                 "role" -> Document.fromString("function"),
+  //                 "name" -> Document.fromString(epName),
+  //                 "content" -> Document.fromString(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(r))
+  //               )
+  //             )
+  //           case None => F.raiseError(NotFound)
+  //         end match
+
+  //       case _ => F.raiseError(NotFound)
+  //     end match
+  // end openAiFunctionDispatch
+
+  def openAiSmithyFunctionDispatch[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
-  )(implicit S: Service[Alg]): ujson.Value => F[Document] =
+  )(implicit S: Service[Alg]): ChatCompletionResponseMessageFunctionCall => F[Document] =
     val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
     val jsonEndpoints =
       S.endpoints.map(ep => ep.name -> toLowLevel(transformation, ep)).toMap
 
-    (d: ujson.Value) =>
-      val start = d("choices")(0)("message").objOpt.flatMap(_.get("function_call"))
-      val endpointName = start.map(jsonRaw => jsonRaw("name").str)
-      val arguments = start.map(jsonRaw => ujson.read(jsonRaw("arguments").str))
-      println(arguments)
-      (endpointName, arguments) match
-        case (Some(epName), Some(args)) =>
-          println(args)
-          val fctConfig: Document = com.github.plokhotnyuk.jsoniter_scala.core.readFromString(args.toString)
-          println(fctConfig)
-          val ep = jsonEndpoints.get(epName)
+    (m: ChatCompletionResponseMessageFunctionCall) =>
+      val fctConfig: Document = com.github.plokhotnyuk.jsoniter_scala.core.readFromString(m.arguments.get)
+      println(fctConfig)
+      val ep = jsonEndpoints.get(m.name.get)
 
-          ep match
-            case Some(jsonEndpoint) =>
-              val fctResult = jsonEndpoint(fctConfig)
-              fctResult.map(r =>
-                Document.obj(
-                  "role" -> Document.fromString("function"),
-                  "name" -> Document.fromString(epName),
-                  "content" -> Document.fromString(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(r))
-                )
-              )
-            case None => F.raiseError(NotFound)
-          end match
-
-        case _ => F.raiseError(NotFound)
+      ep match
+        case Some(jsonEndpoint) =>
+          val fctResult = jsonEndpoint(fctConfig)
+          fctResult.map(r =>
+            Document.obj(
+              "role" -> Document.fromString("function"),
+              "name" -> Document.fromString(m.name.get),
+              "content" -> Document.fromString(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(r))
+            )
+          )
+        case None => F.raiseError(NotFound)
       end match
-  end openAiFunctionDispatch
+
+  end openAiSmithyFunctionDispatch
 
   /*
     Procduces JSON schema, and in particular, JSON schema that are in a format that is consumable
@@ -167,6 +198,38 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
       .toIndexedSeq
     Document.DArray(s)
   end toJsonSchema
+
+  def openAiApiFunctions[Alg[_[_, _, _, _, _]]](
+      alg: FunctorAlgebra[Alg, F]
+  )(implicit S: Service[Alg]): List[ChatCompletionFunctions] =
+    val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
+
+    val serviceName = S.id.name
+    // val hints = S.service.hints
+    // val docHint = hints.get(smithy.api.Documentation)
+
+    S.endpoints
+      .map((ep: Endpoint[S.Operation, ?, ?, ?, ?, ?]) =>
+        val t = smithy.api.Pattern
+        val docHint = ep.hints.get(smithy.api.Documentation)
+        val description = docHint
+          .map(desc => Map("description" -> Document.fromString(desc.toString())))
+          .getOrElse(Map.empty[String, Document])
+
+        val epDesc = Map[String, Document](
+          "name" -> Document.fromString(ep.name)
+        ) ++ description
+        val endpointfields = ep.input.compile(new JsonSchemaVisitor {})
+        val paramsDoc = Document.DObject(endpointfields.make)
+
+        ChatCompletionFunctions(
+          name = ep.name,
+          description = docHint.map(_.toString()),
+          parameters = ChatCompletionFunctionParameters(paramsDoc)
+        )
+      )
+
+  end openAiApiFunctions
 
   // def stringSchema[Alg[_[_, _, _, _, _]]](
   //     alg: FunctorAlgebra[Alg, F]

@@ -29,6 +29,7 @@ import org.typelevel.ci.CIStringSyntax
 import org.http4s.headers.Accept
 import org.http4s.headers.Authorization
 import org.http4s.MediaRange
+import cats.syntax.all.*
 
 import weather.JsonProtocolF
 import weather.weatherServiceImpl
@@ -38,6 +39,19 @@ object SmithyModelled extends IOApp.Simple:
   implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
   val keyR = env("OPEN_API_TOKEN").as[String].load[IO].toResource
+
+  def userMsg(m: String): ChatCompletionRequestMessage = ChatCompletionRequestMessage(
+    role = ChatCompletionRequestMessageRole.user,
+    content = m
+  )
+
+  val promptStr = List[String](
+    "Get the weather for Zurich, Switzerland",
+    "Get the weeather at latitude 47.3769 and longditude 8.5417",
+     "Get the weather at latitude 47.3769 and longditude 8.5417, use the packed tool"
+  )
+
+  val prompts = promptStr.map(userMsg)
 
   val logger = (cIn: Client[IO]) =>
     Logger(logBody = true, logHeaders = true, _ => false, Some((x: String) => IO.println(x)))(cIn)
@@ -54,7 +68,7 @@ object SmithyModelled extends IOApp.Simple:
   val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
     EmberClientBuilder.default[IO].build // .map(logger(_))
 
-  def run =
+  def run: IO[Unit] =
     val resourced: Resource[IO, OpenAIService[IO]] = for
       key <- keyR
       client <- clientR
@@ -65,33 +79,58 @@ object SmithyModelled extends IOApp.Simple:
         .resource
     yield openAICS
 
-    val testJiggy = new JsonProtocolF[IO]
-    val smithyDispatcher = testJiggy.openAiFunctionDispatch(weatherServiceImpl)
-    val tools = testJiggy.toJsonSchema(weatherServiceImpl)
-
     resourced.use: (openAI) =>
-      openAI
-        .createChatCompletion(
-          CreateChatCompletionRequest(
-            model = "gpt-3.5-turbo-0613",
-            temperature = 0.0.some,
-            messages = List(
+
+      val testJiggy = new JsonProtocolF[IO]
+      val functions4Bot = testJiggy.openAiApiFunctions(weatherServiceImpl)
+      val smithyDispatcher = testJiggy.openAiSmithyFunctionDispatch(weatherServiceImpl)
+
+      val sendMe =
+        for (aPrompt <- prompts)
+          yield
+            val startMessages: List[ChatCompletionRequestMessage] = List(
               ChatCompletionRequestMessage(
                 role = ChatCompletionRequestMessageRole.system,
                 content = "You are a helpful assistent."
-              ),
-              ChatCompletionRequestMessage(
-                role = ChatCompletionRequestMessageRole.user,
-                content = "Tell me a joke."
               )
-            )
-            // functions = Stronglyt typed or stringly typed?
+            ) :+ aPrompt
 
-          )
-        )
-        .flatMap { (x) =>
-          IO.println(x)
-        }
+            openAI
+              .createChatCompletion(
+                CreateChatCompletionRequest(
+                  model = "gpt-3.5-turbo-0613",
+                  temperature = 0.0.some,
+                  messages = startMessages,
+                  functions = functions4Bot.some
+                )
+              )
+              .flatMap { response =>
+                val botChoices = response.body.choices.head
+                botChoices.finish_reason match
+                  case None => IO.println(response)
+                  case Some(value) =>
+                    val fctCall = botChoices.message.get.function_call.get
+                    smithyDispatcher.apply(fctCall)
+                end match
+              }
+              .flatMap(in =>
+                in match
+                  case () => IO.println("Done")
+                  case _ =>
+                    val asStr = in.toString
+                    val newMessages = startMessages :+ userMsg(asStr)
+                    openAI.createChatCompletion(
+                        CreateChatCompletionRequest(
+                          model = "gpt-3.5-turbo-0613",
+                          temperature = 0.0.some,
+                          messages = newMessages
+                        )
+                      )
+                      .flatMap(IO.println)
+              )
+
+      sendMe.sequence.void
+    // end resourced
 
   end run
 

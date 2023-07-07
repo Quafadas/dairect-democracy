@@ -11,8 +11,7 @@ import smithy4s.internals.DocumentEncoder
 import smithy4s.Document
 import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
-import people.peopleImpl
-import union.unionServiceImpl
+
 //import smithy4s.dynamic.DynamicSchemaIndex
 import smithy4s.Schema
 import smithy4s.dynamic.DynamicSchemaIndex

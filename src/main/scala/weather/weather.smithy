@@ -14,7 +14,7 @@ service WeatherService {
     ]
 }
 
-@documentation("Get the weather for a city")
+@documentation("Gets the weather for a city")
 @readonly
 @http(method: "GET", uri: "/weather/{location}")
 operation GetWeather {

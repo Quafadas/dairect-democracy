@@ -6,8 +6,6 @@ import smithy4s.internals.DocumentEncoder
 import smithy4s.Document
 import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
-import people.peopleImpl
-import union.unionServiceImpl
 
 
 class IntegrationSuite extends munit.FunSuite:
