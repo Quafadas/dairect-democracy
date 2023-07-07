@@ -12,7 +12,6 @@ import smithy4s.Document
 import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
 import people.peopleImpl
-import enums.enumServiceImpl
 import union.unionServiceImpl
 //import smithy4s.dynamic.DynamicSchemaIndex
 import smithy4s.Schema
