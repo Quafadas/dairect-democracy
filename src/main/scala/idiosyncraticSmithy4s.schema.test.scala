@@ -29,6 +29,7 @@ class IdiosyncraticSmithy4s extends munit.FunSuite:
       s"$ns.smithy",
       smithy
     )
+    .discoverModels()
     .assemble()
     .unwrap()
 
@@ -83,7 +84,6 @@ class IdiosyncraticSmithy4s extends munit.FunSuite:
         |
         |    time: Timestamp,
         |
-        |    slist: StringList,
         |}
         |""".stripMargin
 
