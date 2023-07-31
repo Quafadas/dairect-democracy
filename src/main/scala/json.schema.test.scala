@@ -1,4 +1,4 @@
-package weather
+package smithyOpenAI
 
 import cats.effect.IO
 import cats.Id

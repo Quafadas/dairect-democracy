@@ -1,4 +1,4 @@
-package weather
+package smithyOpenAI
 
 import software.amazon.smithy.jsonschema.JsonSchemaConverter
 import software.amazon.smithy.model.Model
@@ -95,7 +95,7 @@ class AwsSuite extends munit.FunSuite:
 
     val smithy4sVersion = smithy4sToSchema(ns, smithy, "Suit")
     val truncatedSmithyVersion = smithy4sVersion.tail.dropRight(1)
-    println(smithy4sVersion)
+    // println(smithy4sVersion)
     assert(awsVersion.contains(truncatedSmithyVersion))
   }
 
@@ -128,6 +128,8 @@ class AwsSuite extends munit.FunSuite:
     // Where amazons version is on the left. My view, is that the AWS implementation is incomplete / wrong.
 
     // assertEquals(awsParsed, smithyParsed)
+    // TODO
+    println("WARNING - UNTESTED")
   }
 
   test("docs hints") {

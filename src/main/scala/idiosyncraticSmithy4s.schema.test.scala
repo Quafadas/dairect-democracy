@@ -1,4 +1,4 @@
-package weather
+package smithyOpenAI
 
 import software.amazon.smithy.jsonschema.JsonSchemaConverter
 import software.amazon.smithy.model.Model

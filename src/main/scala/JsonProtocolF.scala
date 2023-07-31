@@ -20,7 +20,7 @@
 // I don't _think_ smithy exposes this functionality, because it's in the tests suite.
 // Is there a world in which at least part of it might be in the public api?
 
-package weather
+package smithyOpenAI
 
 import smithy4s.*
 import smithy4s.Document.*

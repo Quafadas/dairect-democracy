@@ -1,4 +1,4 @@
-package weather
+package smithyOpenAI
 
 // Constant type
 import smithy4s.*

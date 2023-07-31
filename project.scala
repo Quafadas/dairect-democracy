@@ -1,8 +1,9 @@
 //> using scala 3.3.0
 //> using repository sonatype:snapshots
-//> using lib org.typelevel::toolkit::0.1.4
+//> using lib org.typelevel::toolkit::0.1.6
 //> using lib com.disneystreaming.smithy4s::smithy4s-http4s::0.18.0-528-d32916a
 //> using lib is.cir::ciris:3.2.0
+//> using lib com.lihaoyi::pprint::0.8.1
 
 //// Use circe to avoid ordering issues in schema testing
 
