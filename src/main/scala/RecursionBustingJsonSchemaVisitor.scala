@@ -19,9 +19,7 @@ trait RecursionBustingJsonSchemaVisitor(val busted: scala.collection.mutable.Map
     extends JsonSchemaVisitor:
 
   override def lazily[A](suspend: Lazy[Schema[A]]): JsonSchema[A] =
-    if (!(busted.keySet.contains(suspend.value.shapeId))) {
-      busted += (suspend.value.shapeId -> 0)
-    }
+    if !(busted.keySet.contains(suspend.value.shapeId)) then busted += (suspend.value.shapeId -> 0)
     this(suspend.value)
   end lazily
 
@@ -70,7 +68,7 @@ object RecursionBustingJsonSchemaVisitor:
 
   def make(startShape: ShapeId) =
     val start = scala.collection.mutable.Map(startShape -> 0)
-    new RecursionBustingJsonSchemaVisitor(start){}
+    new RecursionBustingJsonSchemaVisitor(start) {}
   end make
 
 end RecursionBustingJsonSchemaVisitor
