@@ -9,35 +9,21 @@ import smithy4s.schema.Schema.StructSchema
 import cats.syntax.option.*
 import smithy4s.Document.DNull
 import cats.syntax.option.*
+
 /*
-  This class is supposed to extract everything needed to produce a JsonSchema from a smithy schema.
 
-  Apparently Working
-  - Primitive types
-  - Document hint (descriptions)
-  - Structs
-  - packed inputs
-  - bijection
-
-  Currently not looked at
-  - Nested structures (should work "free")
-  - I'm not sure if the encdoing of all primitive types is correct. Needs testing
-  - List
-  - Recursion
-  - Unions
-  - Maps
-  - shape restrictions / hints (e.g. string with a regex)
-  - enumerations
-
+This sets out to prevent looping in a visitor.
 
  */
-
-trait RecursionBustingJsonSchemaVisitor(val bustHere: ShapeId) extends JsonSchemaVisitor:
-
-  var bustCounter = 0
+trait RecursionBustingJsonSchemaVisitor(val busted: scala.collection.mutable.Map[ShapeId, Int])
+    extends JsonSchemaVisitor:
 
   override def lazily[A](suspend: Lazy[Schema[A]]): JsonSchema[A] =
+    if (!(busted.keySet.contains(suspend.value.shapeId))) {
+      busted += (suspend.value.shapeId -> 0)
+    }
     this(suspend.value)
+  end lazily
 
   override def struct[S](
       shapeId: ShapeId,
@@ -45,14 +31,46 @@ trait RecursionBustingJsonSchemaVisitor(val bustHere: ShapeId) extends JsonSchem
       fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
       make: IndexedSeq[Any] => S
   ): JsonSchema[S] =
+    if busted.keySet.contains(shapeId) then
+      busted.updateWith(shapeId)(currentCount =>
+        currentCount match
+          case None        => Some(1)
+          case Some(value) => Some(value + 1)
+      )
+    end if
+    if busted.get(shapeId).getOrElse(0) > 1 then new DefinitionSchema[S](shapeId.some) {}
+    else super.struct(shapeId, hints, fields, make)
 
-    if(shapeId == bustHere) {
-      bustCounter = bustCounter + 1
-    }
-    if(bustCounter > 1) {
-      new RecursiveSchema[S] {}
-    } else {
-      super.struct(shapeId, hints, fields, make)
-    }
+  end struct
+
+end RecursionBustingJsonSchemaVisitor
+
+trait RecursionBustingCountSchemaVisitor(val bustHere: ShapeId) extends ShapeCountSchemaVisitor:
+
+  var bustCounter = 0
+
+  override def lazily[A](suspend: Lazy[Schema[A]]): Noop[A] =
+    Noop()
+
+  override def struct[S](
+      shapeId: ShapeId,
+      hints: Hints,
+      fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
+      make: IndexedSeq[Any] => S
+  ): Noop[S] =
+
+    if shapeId == bustHere then bustCounter = bustCounter + 1
+    if bustCounter < 1 then super.struct(shapeId, hints, fields, make)
+    Noop()
+  end struct
+
+end RecursionBustingCountSchemaVisitor
+
+object RecursionBustingJsonSchemaVisitor:
+
+  def make(startShape: ShapeId) =
+    val start = scala.collection.mutable.Map(startShape -> 0)
+    new RecursionBustingJsonSchemaVisitor(start){}
+  end make
 
 end RecursionBustingJsonSchemaVisitor

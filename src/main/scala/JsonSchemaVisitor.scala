@@ -52,7 +52,7 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
 
   override def lazily[A](suspend: Lazy[Schema[A]]): JsonSchema[A] =
     val forShape = suspend.value.shapeId
-    val rb = new RecursionBustingJsonSchemaVisitor(forShape) {}
+    val rb = RecursionBustingJsonSchemaVisitor.make(forShape)
     rb(suspend.value)
   end lazily
 

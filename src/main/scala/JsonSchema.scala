@@ -36,14 +36,6 @@ def extractDocHint(hints: Hints): Map[String, Document] =
     .getOrElse(Map.empty[String, Document])
 end extractDocHint
 
-/* Helper function to get document hints */
-def extractRefinementHint(hints: Hints): Map[String, Document] =
-  hints
-    .get(smithy.api.Range)
-    .map(desc => Map("description" -> Document.fromString(desc.toString())))
-    .getOrElse(Map.empty[String, Document])
-end extractRefinementHint
-
 /*
   This is supposed to be our "basic" trait, which any and all schema-able entities _may_ implement.
 
@@ -53,6 +45,8 @@ end extractRefinementHint
   The make method will lean into it's class heirachy, each class shoudl call it's superclass make.
 
  */
+
+ val defRoot = "defs"
 trait JsonSchema[A]:
   val hints: Hints
   val shapeIdJ: Option[ShapeId]
@@ -198,15 +192,15 @@ end BijectionJsonSchema
 
 // case class JsonSchemaRecord(nested: Map[ShapeId, Document], surface: Document.DObject)
 
-trait RecursiveSchema[A] extends JsonSchema[A]:
+trait DefinitionSchema[A](override val shapeIdJ: Option[ShapeId]  ) extends JsonSchema[A]:
   override val hints: Hints = null // ooooof
-  override val shapeIdJ: Option[ShapeId] = null // ooooof
   override def make: Map[String, Document] =
+    val shapeId = shapeIdJ.get.toString
     Map(
-      "$ref" -> Document.fromString("#")
+      "$ref" -> Document.fromString(s"#/$defRoot/$shapeId")
     )
 
-end RecursiveSchema
+end DefinitionSchema
 
 trait EnumSchema[A](override val hints: Hints) extends JsonSchema[A]:
   val tag: EnumTag

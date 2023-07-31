@@ -11,5 +11,5 @@
 //> using test.dep io.circe::circe-literal::0.14.5
 //> using test.dep com.disneystreaming.alloy:alloy-core:0.2.3
 //> using test.dep com.disneystreaming.smithy4s::smithy4s-dynamic::0.18.0-528-d32916a
-//> using test.dep software.amazon.smithy:smithy-jsonschema:1.33.0
+//> using test.dep software.amazon.smithy:smithy-jsonschema:1.35.0
 //> using test.dep org.scalameta::munit::1.0.0-M8

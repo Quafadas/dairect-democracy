@@ -47,6 +47,19 @@ class AwsSuite extends munit.FunSuite:
     amazonSchema
   end awsSmithyToSchema
 
+  def awsSmithyCompleteSchema(ns: String, smithy: String) =
+    val r = toModel(ns, smithy)
+    val amazonSchema = Node.printJson(
+      JsonSchemaConverter
+        .builder()
+        .model(r)
+        .build()
+        .convert()
+        .toNode()
+    )
+    amazonSchema
+  end awsSmithyCompleteSchema
+
   def smithy4sToSchema(ns: String, smithy: String, shape: String) =
     val myModel = toModel(ns, smithy)
     val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
@@ -59,6 +72,7 @@ class AwsSuite extends munit.FunSuite:
   end smithy4sToSchema
 
   def singleShapeEquivalence(name: String, smithySpec: String) =
+    //val awsCompleteSpec = awsSmithyCompleteSchema(ns, smithySpec)
     val awsVersion = awsSmithyToSchema(ns, smithySpec, name)
     val smithy4sVersion = smithy4sToSchema(ns, smithySpec, name)
     val smithyParsed = io.circe.parser.parse(smithy4sVersion)
@@ -74,6 +88,35 @@ class AwsSuite extends munit.FunSuite:
     val smithy = s"""namespace $ns
         |
         |structure $shapeName { @required s: String }
+        |""".stripMargin
+
+    singleShapeEquivalence(shapeName, smithy)
+  }
+
+  test("mutual recursion") {
+    val shapeName = "Company"
+    val smithy = s"""namespace $ns
+        |
+        |structure Person {
+        |    spouse: Person,
+        |    children: People,
+        |    employer: Company,
+        |}
+        |
+        |structure Company {
+        |    name: String,
+        |    employees: People,
+        |    headquarters: Location,
+        |}
+        |
+        |list People {
+        |    member: Person
+        |}
+        |
+        |structure Location {
+        |    country: String,
+        |    company: Company,
+        |}
         |""".stripMargin
 
     singleShapeEquivalence(shapeName, smithy)
