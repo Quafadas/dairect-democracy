@@ -31,11 +31,72 @@ import org.http4s.headers.Authorization
 import org.http4s.MediaRange
 import cats.syntax.all.*
 
-import weather.JsonProtocolF
-import weather.weatherServiceImpl
 import openAI.ChatCompletionResponseMessage
 import openAI.ChatCompletionRequestMessageFunctionCall
 import openAI.CreateChatCompletionResponseChoicesItem
+import openAI.ChatCompletionFunctions
+import openAI.CreateChatCompletionRequestStop
+import cats.instances.function
+
+import ChatHelper.*
+
+def authMiddleware(inTok: String): org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
+  Client { req =>
+    client.run(
+      req.putHeaders(
+        Authorization(Credentials.Token(AuthScheme.Bearer, inTok))
+      )
+    )
+  }
+
+object ReplClient:
+
+  import cats.effect.unsafe.implicits.global
+
+  lazy val openAiUrl = Uri.unsafeFromString("https://api.openai.com/v1")
+
+  lazy val defaultLogger = Some((cIn: Client[IO]) =>
+    Logger(
+      logBody = true,
+      logHeaders = true,
+      (name => name.toString.toLowerCase.contains("token")),
+      Some((x: String) => IO.println(x))
+    )(cIn)
+  )
+
+  def apply(logger: Option[Client[cats.effect.IO] => Client[IO]] = defaultLogger) : OpenAIService[cats.Id] =
+    val keyR = env("OPEN_API_TOKEN").as[String].load[IO].toResource
+    val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
+      EmberClientBuilder.default[IO].build
+
+    val resourced: Resource[IO, OpenAIService[IO]] =
+      logger match
+        case None =>
+          for
+            key <- keyR
+            client <- clientR
+            openAICS <- SimpleRestJsonBuilder
+              .apply(OpenAIService)
+              .client(authMiddleware(key)(client))
+              .uri(openAiUrl)
+              .resource
+          yield openAICS
+        case Some(logger0) =>
+          for
+            key <- keyR
+            client <- clientR
+            openAICS <- SimpleRestJsonBuilder
+              .apply(OpenAIService)
+              .client(authMiddleware(key)(logger0(client)))
+              .uri(openAiUrl)
+              .resource
+          yield openAICS
+
+    resourced.allocated.map(_._1).unsafeRunSync().transform(sync)
+
+  end apply
+
+end ReplClient
 
 object SmithyModelled extends IOApp.Simple:
 
@@ -77,16 +138,12 @@ object SmithyModelled extends IOApp.Simple:
   val prompts = promptStr.map(userMsg)
 
   val logger = (cIn: Client[IO]) =>
-    Logger(logBody = true, logHeaders = false, _ => false, Some((x: String) => IO.println(x)))(cIn)
-
-  def authMiddleware(inTok: String): org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
-    Client { req =>
-      client.run(
-        req.putHeaders(
-          Authorization(Credentials.Token(AuthScheme.Bearer, inTok))
-        )
-      )
-    }
+    Logger(
+      logBody = true,
+      logHeaders = false,
+      name => name.toString.toLowerCase.contains("token"),
+      Some((x: String) => IO.println(x))
+    )(cIn)
 
   val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
     EmberClientBuilder.default[IO].build // .map(logger(_))
@@ -105,8 +162,8 @@ object SmithyModelled extends IOApp.Simple:
     resourced.use: (openAI) =>
 
       val testJiggy = new JsonProtocolF[IO]
-      val functions4Bot = testJiggy.openAiApiFunctions(weatherServiceImpl)
-      val smithyDispatcher = testJiggy.openAiSmithyFunctionDispatch(weatherServiceImpl)
+      val functions4Bot = testJiggy.openAiApiFunctions(weather.weatherServiceImpl)
+      val smithyDispatcher = testJiggy.openAiSmithyFunctionDispatch(weather.weatherServiceImpl)
 
       val sendMe =
         for (aPrompt <- prompts)
@@ -133,8 +190,8 @@ object SmithyModelled extends IOApp.Simple:
                 botChoices.finish_reason match
                   case None =>
                     IO.println("-----------------") >>
-                    IO.println("Don't want to be here") >>
-                    IO.println(response) >>
+                      IO.println("Don't want to be here") >>
+                      IO.println(response) >>
                       IO.pure(None)
                   case Some(value) =>
                     val fctCall = botChoices.message.get.function_call.get
