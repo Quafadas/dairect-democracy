@@ -175,8 +175,6 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
     val hints = S.service.hints
     val docHint = hints.get(smithy.api.Documentation)
 
-    //S.service.
-
     val s: IndexedSeq[Document] = S.endpoints
       .map((ep: Endpoint[S.Operation, ?, ?, ?, ?, ?]) =>
         val defs = Set[ShapeId]()
@@ -190,8 +188,10 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
         val epDesc = Map[String, Document](
           "name" -> Document.fromString(ep.name)
         ) ++ description
-
+        val shapeCounts = new ShapeCountSchemaVisitor{}
+        ep.input.compile(shapeCounts)
         //val schema = ep.input.withId()
+        println(shapeCounts.getCounts)
         val endpointfields = ep.input.compile(new JsonSchemaVisitor {})
         val schema = epDesc ++
           Map(

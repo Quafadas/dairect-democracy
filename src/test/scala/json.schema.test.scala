@@ -1,5 +1,11 @@
 package smithyOpenAI
 
+
+import software.amazon.smithy.jsonschema.JsonSchemaConverter
+import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.node.Node
+import smithy4s.ShapeId
+
 import cats.effect.IO
 import cats.Id
 import smithy4s.internals.DocumentEncoder
@@ -7,10 +13,16 @@ import smithy4s.Document
 import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
 
+//import smithy4s.dynamic.DynamicSchemaIndex
+import smithy4s.Schema
+import smithy4s.dynamic.DynamicSchemaIndex
+import java.net.URL
 
 class IntegrationSuite extends munit.FunSuite:
 
   implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
+
+  val ns = "test"
 
   test("weather schema") {
     val generatedSchema = JsonProtocolF[IO].toJsonSchema(weather.weatherServiceImpl)
@@ -25,5 +37,95 @@ class IntegrationSuite extends munit.FunSuite:
       shouldBe
     )
   }
+
+  test("def generation") {
+
+    val shapeName = "Game" // Change this \\ Game, Person, Company, Eye, Location
+    val smithy = s"""namespace $ns
+        |
+        |string Country
+        |
+        | structure Game{
+        | n: String,
+        | with: Person
+        | at: Location
+        |}
+        |
+        |structure Person {
+        |    spouse: Person,
+        |    children: People,
+        |    employer: Company,
+        |    @required s: String,
+        |    e1: Eye,
+        |    e2: Eye,
+        |    birthLoc: Country,
+        |    loc:Country
+        |
+        |
+        |}
+        |
+        |structure Company {
+        |    name: String,
+        |    employees: People,
+        |    headquarters: Location,
+        |    i: Integer
+        |}
+        |
+        |list People {
+        |    member: Person
+        |}
+        |
+        |structure Eye {
+        |   side: String,
+        |   colour: String
+        |}
+        |
+        |structure Location {
+        |    country: Country,
+        |    company: Company,
+        |
+        |}
+        |""".stripMargin
+
+    val myModel = toModel(ns, smithy)
+    val buildModel = DynamicSchemaIndex.loadModel(myModel).toTry.get
+    val schemaUnderTest = buildModel.getSchema(ShapeId(ns, shapeName)).get
+
+    // naive headline grabbing... but perhaps not useful useful 1 liner
+    val naive = Document.DObject(new JsonSchemaVisitor{}.apply(schemaUnderTest).makeWithDefs(Set[ShapeId]()))
+    println(naive)
+    //println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(naive)(jc) )
+
+    // A slower, more explanatory approach.
+    // We need a way, to decide what is a def, and what is not.
+    val shapeCounts = new ShapeCountSchemaVisitor{}
+    shapeCounts(schemaUnderTest)
+    val countResult = shapeCounts.getCounts
+    println(countResult)
+
+    val proposedDefs = countResult
+      .filterNot((shape, _) => shape.namespace == "smithy.api" )
+      .filter((_, count) => count > 1 )
+      .keySet
+
+    println(proposedDefs)
+
+    // The below mechanism implicitly represents an "eject" possibility. If we've totally borked something up,
+    // then one can always make up the defs (some other way) and use those definitions instead.
+    // The generation here simply respects what it's told on that front...
+    val schemaVisitor = new JsonSchemaVisitor {}
+    val internalRep = schemaVisitor(schemaUnderTest)
+    val generatedJsonSchema: Document = Document.DObject(internalRep.makeWithDefs(proposedDefs))
+    println(generatedJsonSchema)
+    println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedJsonSchema)(jc) )
+
+    // Now our generated schemna respects the defs, but we don't have any defs defined right now!
+    val x = 1
+
+    assert(false)
+
+  }
+
+
 
 end IntegrationSuite

@@ -159,6 +159,67 @@ class CountShapeIds extends munit.FunSuite:
     assert(countVisitor.getCounts(foo) == 1.0)
     assert(countVisitor.getCounts(s) == 1.0)
     assert(countVisitor.getCounts(i) == 1.0)
+  }
+
+
+  test("Something messy") {
+
+    val shapeName = "Person"
+    val smithy = s"""namespace $ns
+        |
+        |string Country
+        |
+        |structure Person {
+        |    spouse: Person,
+        |    children: People,
+        |    employer: Company,
+        |    @required s: String,
+        |    @required e: Eyes,
+        |    birthLoc: Country
+        |
+        |
+        |}
+        |
+        |structure Company {
+        |    name: String,
+        |    employees: People,
+        |    headquarters: Location,
+        |    i: Integer
+        |}
+        |
+        |list People {
+        |    member: Person
+        |}
+        |
+        |structure Eyes {
+        |   leftColour: String,
+        |   rightColour: String
+        |   @range(min: 0, max: 2)
+        |   @required count : Integer
+        |}
+        |
+        |structure Location {
+        |    country: Country,
+        |    company: Company,
+        |
+        |}
+        |""".stripMargin
+
+    val myModel = toModel(ns, smithy)
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get
+    val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
+    val countVisitor = new ShapeCountSchemaVisitor {}
+    countVisitor(mySchema)
+    val foo = ShapeId("test", shapeName)
+    val s = ShapeId("smithy.api", "String")
+    val i = ShapeId("smithy.api", "Integer")
+    val sl = ShapeId("test", "Country")
+    val s2 = ShapeId("test", "Eyes")
+    assert(countVisitor.getCounts(foo).isInfinite())
+    assert(countVisitor.getCounts(s) == 3.0)
+    assert(countVisitor.getCounts(i) == 1.0)
+    assert(countVisitor.getCounts(sl) == 1.0)
+    assert(countVisitor.getCounts(s2) == 1.0)
 
   }
 

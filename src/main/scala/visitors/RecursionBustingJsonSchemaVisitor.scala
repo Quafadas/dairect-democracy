@@ -43,27 +43,6 @@ trait RecursionBustingJsonSchemaVisitor(val busted: scala.collection.mutable.Map
 
 end RecursionBustingJsonSchemaVisitor
 
-trait RecursionBustingCountSchemaVisitor(val bustHere: ShapeId) extends ShapeCountSchemaVisitor:
-
-  var bustCounter = 0
-
-  override def lazily[A](suspend: Lazy[Schema[A]]): Noop[A] =
-    Noop()
-
-  override def struct[S](
-      shapeId: ShapeId,
-      hints: Hints,
-      fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
-      make: IndexedSeq[Any] => S
-  ): Noop[S] =
-
-    if shapeId == bustHere then bustCounter = bustCounter + 1
-    if bustCounter < 1 then super.struct(shapeId, hints, fields, make)
-    Noop()
-  end struct
-
-end RecursionBustingCountSchemaVisitor
-
 object RecursionBustingJsonSchemaVisitor:
 
   def make(startShape: ShapeId) =

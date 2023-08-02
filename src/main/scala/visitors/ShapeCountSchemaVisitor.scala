@@ -88,8 +88,10 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
   override def refine[A, B](schema: Schema[A], refinement: Refinement[A, B]): Noop[B] = ???
 
   override def lazily[A](suspend: Lazy[Schema[A]]): Noop[A] =
-    val otherFields = new RecursionBustingCountSchemaVisitor(suspend.value.shapeId) {}
+    val otherFields = RecursionBustingCountSchemaVisitor.make(suspend.value.shapeId)
     otherFields(suspend.value)
+    val counts = otherFields.getCounts
+    observed ++= counts
     observed += (suspend.value.shapeId -> Double.PositiveInfinity)
     Noop()
   end lazily
