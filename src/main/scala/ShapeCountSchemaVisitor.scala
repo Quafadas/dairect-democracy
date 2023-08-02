@@ -25,14 +25,14 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
   private def incrementObserved(shapeId: ShapeId) =
     observed.updateWith(shapeId)(currentCount =>
       currentCount match
-        case None => Some(1)
+        case None        => Some(1)
         case Some(value) => Some(value + 1)
     )
 
   // Should be Map[ShapeId, Double]
   private val observed: Map[ShapeId, Double] = Map.empty
 
-  def getCounts : scala.collection.immutable.Map[ShapeId, Double] = observed.toMap
+  def getCounts: scala.collection.immutable.Map[ShapeId, Double] = observed.toMap
 
   override def enumeration[E](
       shapeId: ShapeId,
@@ -43,13 +43,17 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
   ): Noop[E] =
     incrementObserved(shapeId)
     Noop()
+  end enumeration
 
   override def collection[C[_$2], A](
       shapeId: ShapeId,
       hints: Hints,
       tag: CollectionTag[C],
       member: Schema[A]
-  ): Noop[C[A]] = ???
+  ): Noop[C[A]] =
+    this(member)
+    incrementObserved(shapeId)
+    Noop[C[A]]()
 
   override def map[K, V](
       shapeId: ShapeId,
@@ -57,14 +61,16 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
       key: Schema[K],
       value: Schema[V]
   ): Noop[scala.collection.immutable.Map[K, V]] =
+    this(key)
     this(value)
-
+    incrementObserved(shapeId)
     Noop()
   end map
 
   override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): Noop[P] =
     incrementObserved(shapeId)
     Noop()
+  end primitive
 
   override def biject[A, B](schema: Schema[A], bijection: Bijection[A, B]): Noop[B] = ???
 
@@ -93,7 +99,11 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
       hints: Hints,
       alternatives: Vector[Alt[smithy4s.schema.Schema, U, ?]],
       dispatch: Dispatcher[smithy4s.schema.Schema, U]
-  ): Noop[U] = ???
+  ): Noop[U] =
+    alternatives.foreach(alt => this(alt.instance))
+    incrementObserved(shapeId)
+    Noop[U]()
+  end union
 
   override def nullable[A](schema: Schema[A]): Noop[Option[A]] = ???
 

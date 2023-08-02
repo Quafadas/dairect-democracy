@@ -46,7 +46,7 @@ class CountShapeIds extends munit.FunSuite:
     val myModel = toModel(ns, smithy)
     val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName2)).get
-    val countVisitor = new ShapeCountSchemaVisitor{}
+    val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
 
     println(countVisitor.getCounts)
@@ -73,13 +73,12 @@ class CountShapeIds extends munit.FunSuite:
     val myModel = toModel(ns, smithy)
     val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, "Suit")).get
-    val countVisitor = new ShapeCountSchemaVisitor{}
+    val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
     val foo = ShapeId("test", "Suit")
 
     assert(countVisitor.getCounts(foo) == 1.0)
   }
-
 
   test("docs hints") {
     val shapeName = "LatLong"
@@ -96,7 +95,7 @@ class CountShapeIds extends munit.FunSuite:
     val myModel = toModel(ns, smithy)
     val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
-    val countVisitor = new ShapeCountSchemaVisitor{}
+    val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
     val foo = ShapeId("test", shapeName)
 
@@ -128,7 +127,7 @@ class CountShapeIds extends munit.FunSuite:
     val myModel = toModel(ns, smithy)
     val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
-    val countVisitor = new ShapeCountSchemaVisitor{}
+    val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
     println(countVisitor.getCounts)
     val foo = ShapeId("test", shapeName)
@@ -150,65 +149,52 @@ class CountShapeIds extends munit.FunSuite:
         |""".stripMargin
 
     val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
-    val countVisitor = new ShapeCountSchemaVisitor{}
+    val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
     val foo = ShapeId("test", shapeName)
-
+    val s = ShapeId("smithy.api", "String")
+    val i = ShapeId("smithy.api", "Integer")
     assert(countVisitor.getCounts(foo) == 1.0)
+    assert(countVisitor.getCounts(s) == 1.0)
+    assert(countVisitor.getCounts(i) == 1.0)
+
   }
 
-  // test("tagged union") {
-  //   val shapeName = "MyUnion"
-  //   val smithys = s"""$$version: "2"
-  //       |namespace $ns
-  //       |
-  //       |list StringList {
-  //       |  member: String
-  //       |}
-  //       |
-  //       |union $shapeName {
-  //       |    i32: Integer,
-  //       |
-  //       |    string: String,
-  //       |
-  //       |    time: Timestamp,
-  //       |
-  //       |    slist: StringList,
-  //       |}
-  //       |
-  //       |""".stripMargin
-
-  //   singleShapeEquivalence(shapeName, smithys)
-  // }
-
-  // test("unique items") {
-  //   val shapeName = "MyList"
-  //   val smithys = s"""$$version: "2"
-  //       |namespace $ns
-  //       |
-  //       |@uniqueItems
-  //       |list $shapeName {
-  //       |    member: String
-  //       |}
-  //       |""".stripMargin
-
-  //   singleShapeEquivalence(shapeName, smithys)
-  // }
-
-  // test("pattern") {
-  //   val shapeName = "Alphabetic"
-  //   val smithys = s"""$$version: "2"
-  //       |namespace $ns
-  //       |
-  //       |@pattern("^[A-Za-z]+$")
-  //       |string $shapeName
-  //       |
-  //       |""".stripMargin
-
-  //   singleShapeEquivalence(shapeName, smithys)
-  // }
-
+  test("tagged union") {
+    val shapeName = "MyUnion"
+    val smithy = s"""$$version: "2"
+        |namespace $ns
+        |
+        |list StringList {
+        |  member: String
+        |}
+        |
+        |union $shapeName {
+        |    i32: Integer,
+        |
+        |    string: String,
+        |
+        |    time: Timestamp,
+        |
+        |    slist: StringList,
+        |}
+        |
+        |""".stripMargin
+    val myModel = toModel(ns, smithy)
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get
+    val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
+    val countVisitor = new ShapeCountSchemaVisitor {}
+    countVisitor(mySchema)
+    val foo = ShapeId("test", shapeName)
+    val s = ShapeId("smithy.api", "String")
+    val i = ShapeId("smithy.api", "Integer")
+    val sl = ShapeId("test", "StringList")
+    assert(countVisitor.getCounts(foo) == 1.0)
+    assert(countVisitor.getCounts(s) == 2.0)
+    assert(countVisitor.getCounts(i) == 1.0)
+    assert(countVisitor.getCounts(sl) == 1.0)
+  }
 
 end CountShapeIds
