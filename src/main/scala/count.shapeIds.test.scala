@@ -32,19 +32,6 @@ class CountShapeIds extends munit.FunSuite:
     .assemble()
     .unwrap()
 
-
-  def smithy4sToSchema(ns: String, smithy: String, shape: String) =
-    val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
-    val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shape)).get
-
-    val jsVisitor = new JsonSchemaVisitor {}
-
-    val generatedSchema: Document = Document.DObject(jsVisitor(mySchema).make)
-    com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedSchema)
-  end smithy4sToSchema
-
-
   test("count simple struct") {
     val shapeName = "Foo"
     val shapeName2 = "DoubleFoo"

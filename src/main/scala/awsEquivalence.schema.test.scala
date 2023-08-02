@@ -23,58 +23,10 @@ class AwsSuite extends munit.FunSuite:
 
   val ns = "test"
 
-  def toModel(ns: String, smithy: String) = Model
-    .assembler()
-    .addUnparsedModel(
-      s"$ns.smithy",
-      smithy
-    )
-    .assemble()
-    .unwrap()
-
-  def awsSmithyToSchema(ns: String, smithy: String, shape: String) =
-    val r = toModel(ns, smithy)
-    val amazonSchema = Node.printJson(
-      JsonSchemaConverter
-        .builder()
-        .model(r)
-        .build()
-        .convertShape(
-          r.expectShape(software.amazon.smithy.model.shapes.ShapeId.from(s"$ns#$shape"))
-        )
-        .toNode()
-    )
-    amazonSchema
-  end awsSmithyToSchema
-
-  def awsSmithyCompleteSchema(ns: String, smithy: String) =
-    val r = toModel(ns, smithy)
-    val amazonSchema = Node.printJson(
-      JsonSchemaConverter
-        .builder()
-        .model(r)
-        .build()
-        .convert()
-        .toNode()
-    )
-    amazonSchema
-  end awsSmithyCompleteSchema
-
-  def smithy4sToSchema(ns: String, smithy: String, shape: String) =
-    val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
-    val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shape)).get
-
-    val jsVisitor = new JsonSchemaVisitor {}
-
-    val generatedSchema: Document = Document.DObject(jsVisitor(mySchema).make)
-    com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedSchema)
-  end smithy4sToSchema
-
-  def singleShapeEquivalence(name: String, smithySpec: String) =
-    //val awsCompleteSpec = awsSmithyCompleteSchema(ns, smithySpec)
+  def singleShapeEquivalence(name: String, smithySpec: String, defsOpt: Option[Set[ShapeId]] = None) =
+    // val awsCompleteSpec = awsSmithyCompleteSchema(ns, smithySpec)
     val awsVersion = awsSmithyToSchema(ns, smithySpec, name)
-    val smithy4sVersion = smithy4sToSchema(ns, smithySpec, name)
+    val smithy4sVersion = smithy4sToSchema(ns, smithySpec, name, defsOpt)
     val smithyParsed = io.circe.parser.parse(smithy4sVersion)
     val awsParsed = io.circe.parser.parse(awsVersion)
     // Paste str into a text editor for debugging
@@ -119,7 +71,11 @@ class AwsSuite extends munit.FunSuite:
         |}
         |""".stripMargin
 
-    singleShapeEquivalence(shapeName, smithy)
+    val defs = Some(Set[ShapeId](ShapeId(ns, "Location"), ShapeId(ns, "Person") ))
+    singleShapeEquivalence("Company", smithy, defs)
+
+    val defs2 = Some(Set[ShapeId](ShapeId(ns, "Location"), ShapeId(ns, "Company") ))
+    singleShapeEquivalence("Person", smithy, defs2)
   }
 
   test("string enum") {
@@ -191,36 +147,28 @@ class AwsSuite extends munit.FunSuite:
   }
 
   test("recursive definitions ") {
+    val shapeName = "Person"
     val smithy = s"""$$version: "2"
         |namespace $ns
         |
         |string PersonId
         |
         |
-        |structure Person {
+        |structure $shapeName {
         |    @documentation("The id of this person") @required id: PersonId,
-        |    mother: Person,
-        |    father: Person,
+        |    mother: $shapeName,
+        |    father: $shapeName,
         |    @documentation("Childeren of this person") childeren: People
         |}
         |
         |list People {
-        |    member: Person
+        |    member: $shapeName
         |}
         |
         |
         |""".stripMargin
 
-    val awsVersion = awsSmithyToSchema(ns, smithy, "Person")
-
-    val smithy4sVersion = smithy4sToSchema(ns, smithy, "Person")
-    val smithyParsed = io.circe.parser.parse(smithy4sVersion)
-    // TODO : defs?
-    // It's interesting, that AWS resulits are not self-contained.
-    val awsParsed = io.circe.parser.parse(awsVersion.replace("/definitions/Person", ""))
-
-    assertEquals(smithyParsed, awsParsed)
-
+    singleShapeEquivalence(shapeName, smithy)
   }
 
   test("defaults and simple types") {

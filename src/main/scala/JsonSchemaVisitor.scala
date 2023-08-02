@@ -117,7 +117,7 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
       override val hints: Hints = Hints.empty
       override val shapeIdJ: Option[ShapeId] = None
       val refineMe = target
-      override val make: Map[String, Document] = refineMe.make
+      override def make(defs: Set[ShapeId]): Map[String, Document] = refineMe.makeWithDefs(defs)
     end new
   end refine
 

@@ -46,7 +46,7 @@ end extractDocHint
 
  */
 
- val defRoot = "defs"
+val defRoot = "definitions"
 trait JsonSchema[A]:
   val hints: Hints
   val shapeIdJ: Option[ShapeId]
@@ -54,7 +54,16 @@ trait JsonSchema[A]:
 
   def desc = description.map(d => Map("description" -> Document.fromString(d))).getOrElse(emptyMap)
 
-  def make: Map[String, Document] =
+  def makeWithDefs(defs: Set[ShapeId]): Map[String, Document] =
+    shapeIdJ match
+        case None => this.make(defs)
+        case Some(shapeId) =>
+          defs.contains(shapeId) match
+            case true =>  new DefinitionSchema[A](shapeIdJ){}.make(Set())
+            case false => this.make(defs)
+  end makeWithDefs
+
+  protected def make(defs: Set[ShapeId]): Map[String, Document] =
     emptyMap ++
       desc
   end make
@@ -81,9 +90,9 @@ end JsonSchemaPrimitive
 trait MayHaveDefault[A] extends JsonSchema[A]:
   lazy val defalt = hints.get(smithy.api.Default).map(d => d.value)
 
-  override def make: Map[String, Document] =
+  override def make(defs: Set[ShapeId]): Map[String, Document] =
     val defal = defalt.map(d => Map("default" -> d)).getOrElse(emptyMap)
-    super.make ++ defal
+    super.make(defs) ++ defal
   end make
 end MayHaveDefault
 
@@ -122,8 +131,8 @@ trait PrimitiveSchemaIR[A](override val hints: Hints) extends JsonSchema[A] with
     case JsonSchemaPrimitive.Document => emptyMap
     case _                            => Map("type" -> Document.fromString(typ.toString.toLowerCase()))
 
-  override def make: Map[String, Document] =
-    super.make ++
+  override def make(defs: Set[ShapeId]): Map[String, Document] =
+    super.make(defs) ++
       typAdd ++
       fmt ++
       pattern ++
@@ -159,12 +168,12 @@ end NonPrimitiveSchemaIR
 trait StructSchemaIR[S](override val hints: Hints) extends NonPrimitiveSchemaIR[S]:
   val fields: Map[String, JsonSchema[?]]
   val required: Set[String]
-  override def make: Map[String, Document] =
+  override def make(defs: Set[ShapeId]): Map[String, Document] =
     val anyRequired = required.isEmpty match
       case false => Map("required" -> Document.DArray(required.map(Document.fromString).toIndexedSeq))
       case true  => emptyMap
-    val fieldsJ = fields.map { case (k, v) => k -> Document.DObject(v.make) }
-    super.make ++ Map(
+    val fieldsJ = fields.map { case (k, v) => k -> Document.DObject(v.makeWithDefs(defs)) }
+    super.make(defs) ++ Map(
       "type" -> Document.fromString("object"),
       "properties" -> Document.DObject(fieldsJ)
     ) ++ anyRequired
@@ -175,32 +184,34 @@ end StructSchemaIR
 trait ListJsonSchemaIR[A](override val hints: Hints) extends NonPrimitiveSchemaIR[A] with MayHaveDefault[A]:
   val child: JsonSchema[?]
   lazy val unique = hints.get(smithy.api.UniqueItems)
-  override def make: Map[String, Document] =
-    super.make ++ Map(
+  override def make(defs: Set[ShapeId]): Map[String, Document] =
+    super.make(defs) ++ Map(
       "type" -> Document.fromString("array"),
-      "items" -> Document.DObject(child.make)
+      "items" -> Document.DObject(child.makeWithDefs(defs))
     ) ++ unique.map(_ => Map("uniqueItems" -> Document.fromBoolean(true))).getOrElse(emptyMap)
 end ListJsonSchemaIR
 
 trait BijectionJsonSchema[A](val bijectTarget: JsonSchema[?], override val hints: Hints)
     extends NonPrimitiveSchemaIR[A]:
 
-  override def make: Map[String, Document] =
-    super.make ++ bijectTarget.make
+  override def make(defs: Set[ShapeId]): Map[String, Document] =
+    super.make(defs) ++ bijectTarget.makeWithDefs(defs)
 
 end BijectionJsonSchema
 
 // case class JsonSchemaRecord(nested: Map[ShapeId, Document], surface: Document.DObject)
 
-trait DefinitionSchema[A](override val shapeIdJ: Option[ShapeId]  ) extends JsonSchema[A]:
+trait DefinitionSchema[A](override val shapeIdJ: Option[ShapeId]) extends JsonSchema[A]:
   override val hints: Hints = null // ooooof
-  override def make: Map[String, Document] =
-    val shapeId = shapeIdJ.get.toString
+  override def make(s: Set[ShapeId]): Map[String, Document] =
+    val shapeId = shapeIdJ.get.name
     Map(
       "$ref" -> Document.fromString(s"#/$defRoot/$shapeId")
     )
+  end make
 
 end DefinitionSchema
+
 
 trait EnumSchema[A](override val hints: Hints) extends JsonSchema[A]:
   val tag: EnumTag
@@ -216,16 +227,16 @@ trait EnumSchema[A](override val hints: Hints) extends JsonSchema[A]:
         "enum" -> Document.DArray(values.toIndexedSeq.map(v => Document.fromString(v.stringValue)))
       )
 
-  override def make: Map[String, Document] = super.make ++ makeEnum
+  override def make(defs: Set[ShapeId]): Map[String, Document] = super.make(defs) ++ makeEnum
 
 end EnumSchema
 
 trait UntaggedUnionSchema[A](override val hints: Hints) extends JsonSchema[A]:
   val alts: Vector[JsonSchema[?]]
 
-  override def make: Map[String, Document] =
-    super.make ++ Map(
-      "oneOf" -> Document.DArray(alts.map(a => Document.DObject(a.make)).toIndexedSeq)
+  override def make(defs: Set[ShapeId]): Map[String, Document] =
+    super.make(defs) ++ Map(
+      "oneOf" -> Document.DArray(alts.map(a => Document.DObject(a.makeWithDefs(defs))).toIndexedSeq)
     )
 
 end UntaggedUnionSchema
@@ -233,8 +244,8 @@ end UntaggedUnionSchema
 trait TaggedUnionSchema[A](override val hints: Hints) extends JsonSchema[A]:
   val alts: Vector[(String, JsonSchema[?])]
 
-  override def make: Map[String, Document] =
-    super.make ++ Map(
+  override def make(defs: Set[ShapeId]): Map[String, Document] =
+    super.make(defs) ++ Map(
       "oneOf" -> Document.DArray(
         alts
           .map(a =>
@@ -244,7 +255,7 @@ trait TaggedUnionSchema[A](override val hints: Hints) extends JsonSchema[A]:
                 "required" -> Document.DArray(IndexedSeq(Document.fromString(a._1))),
                 "properties" -> Document.DObject(
                   Map(
-                    a._1 -> Document.DObject(a._2.make)
+                    a._1 -> Document.DObject(a._2.makeWithDefs(defs))
                   )
                 ),
                 "title" -> Document.fromString(a._1)
@@ -260,10 +271,10 @@ end TaggedUnionSchema
 trait MapSchema[K, V](override val hints: Hints) extends JsonSchema[Map[K, V]]:
   val value: JsonSchema[V]
 
-  override def make: Map[String, Document] =
-    super.make ++ Map(
+  override def make(defs: Set[ShapeId]): Map[String, Document] =
+    super.make(defs) ++ Map(
       "type" -> Document.fromString("object"),
-      "additionalProperties" -> Document.DObject(value.make),
+      "additionalProperties" -> Document.DObject(value.makeWithDefs(defs)),
       "propertyNames" -> Document.DObject(Map("type" -> Document.fromString("string")))
     )
 
