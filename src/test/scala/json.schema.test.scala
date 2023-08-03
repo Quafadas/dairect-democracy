@@ -17,6 +17,17 @@ import smithy4s.schema.Schema
 import smithy4s.Schema
 import smithy4s.dynamic.DynamicSchemaIndex
 import java.net.URL
+import smithy4s.schema.Field
+import smithy4s.schema.Alt
+import smithy4s.Refinement
+import smithy4s.Hints
+import smithy4s.schema.EnumValue
+import smithy4s.Bijection
+import smithy4s.schema.EnumTag
+import smithy4s.schema.Alt.Dispatcher
+import smithy4s.schema.Primitive
+import smithy4s.Lazy
+import smithy4s.schema.CollectionTag
 
 class IntegrationSuite extends munit.FunSuite:
 
@@ -96,8 +107,22 @@ class IntegrationSuite extends munit.FunSuite:
     println(naive)
     //println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(naive)(jc) )
 
+    val schemaforVisitor = new JsonSchemaVisitorForShape(ShapeId("test", "Company")){}
+    schemaforVisitor(schemaUnderTest)
+    println(schemaforVisitor.found)
+
     // A slower, more explanatory approach.
     // We need a way, to decide what is a def, and what is not.
+
+    println("------AWS Version-------------")
+    println("defs")
+    println(awsSmithyCompleteSchema(ns, smithy))
+    println(" ")
+    println("Shape ")
+    println(awsSmithyToSchema(ns, smithy, shapeName))
+    println("------END AWS Version-------------")
+
+
     val shapeCounts = new ShapeCountSchemaVisitor{}
     shapeCounts(schemaUnderTest)
     val countResult = shapeCounts.getCounts
@@ -110,6 +135,10 @@ class IntegrationSuite extends munit.FunSuite:
 
     println(proposedDefs)
 
+    println("smithy defs")
+    println(makeDefs(proposedDefs, schemaUnderTest))
+
+
     // The below mechanism implicitly represents an "eject" possibility. If we've totally borked something up,
     // then one can always make up the defs (some other way) and use those definitions instead.
     // The generation here simply respects what it's told on that front...
@@ -120,6 +149,7 @@ class IntegrationSuite extends munit.FunSuite:
     println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedJsonSchema)(jc) )
 
     // Now our generated schemna respects the defs, but we don't have any defs defined right now!
+
     val x = 1
 
     assert(false)

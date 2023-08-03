@@ -10,14 +10,6 @@ import cats.syntax.option.*
 import smithy4s.Document.DNull
 import cats.syntax.option.*
 
-object RecursionBustingJsonSchemaVisitor:
-
-  def make(startShape: ShapeId) =
-    val start = scala.collection.mutable.Map(startShape -> 0)
-    new RecursionBustingJsonSchemaVisitor(start) {}
-  end make
-
-end RecursionBustingJsonSchemaVisitor
 
 trait RecursionBustingCountSchemaVisitor(val busted: scala.collection.mutable.Map[ShapeId, Double])
     extends ShapeCountSchemaVisitor:

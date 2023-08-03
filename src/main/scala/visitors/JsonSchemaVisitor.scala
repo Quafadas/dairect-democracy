@@ -15,28 +15,6 @@ import alloy.Discriminated
 import smithy4s.schema.Primitive.PDocument
 import smithy4s.schema.Primitive.PBlob
 
-
-/*
-  This visitor is supposed to extract everything needed to produce a JsonSchema from a smithy schema.
-
-  Apparently Working
-  - Primitive types
-  - Document hint (descriptions)
-  - Structs
-  - packed inputs
-  - bijection
-  - Recursion
-  - enumerations
-  - List
-  - Maps
-  - Unions
-
-  Currently not looked at
-
-  - many shape restrictions / hints (e.g. string with a regex)
-
- */
-
 trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
 
   override def nullable[A](schema: Schema[A]): JsonSchema[Option[A]] = ???

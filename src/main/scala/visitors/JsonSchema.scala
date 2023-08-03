@@ -70,6 +70,19 @@ trait JsonSchema[A]:
 
 end JsonSchema
 
+trait EmptySchema[A] extends JsonSchema[A]:
+
+   val hints: smithy4s.Hints = Hints.empty
+   val shapeIdJ: Option[smithy4s.ShapeId] = None
+
+   override protected def make(defs: Set[ShapeId]) = emptyMap
+
+end EmptySchema
+
+object EmptySchema:
+  def apply[A] = new EmptySchema[A]{}
+end EmptySchema
+
 /*
 
 JSON schema has, apparently, these primitives:
