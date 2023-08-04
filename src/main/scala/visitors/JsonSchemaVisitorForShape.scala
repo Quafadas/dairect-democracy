@@ -24,7 +24,7 @@ import smithy4s.schema.Schema.NullableSchema
 import smithy4s.schema.Schema.CollectionSchema
 import java.awt.Shape
 
-trait JsonSchemaVisitorForShape(val forShape: ShapeId) extends ShapeCountSchemaVisitor:
+class JsonSchemaFinderForShape(val forShape: ShapeId) extends ShapeCountSchemaVisitor:
   var seen = Set[ShapeId]()
   var found: Option[Schema[?]] = None
   override def apply[A](schema: Schema[A]) =
@@ -45,4 +45,4 @@ trait JsonSchemaVisitorForShape(val forShape: ShapeId) extends ShapeCountSchemaV
     end if
   end lazily
 
-end JsonSchemaVisitorForShape
+end JsonSchemaFinderForShape

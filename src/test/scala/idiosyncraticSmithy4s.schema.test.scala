@@ -23,7 +23,7 @@ class IdiosyncraticSmithy4s extends munit.FunSuite:
 
   val ns = "test"
 
-  test("simple struct") {
+  test("Untagged unions") {
     val shapeName = "FooUntaggedUnion"
     val smithy = s"""namespace $ns
         |

@@ -20,21 +20,11 @@ import scala.collection.immutable
 import cats.syntax.all.*
 import cats.kernel.Semigroup
 
-val countMe = new ShapeCountSchemaVisitor {}
+class FindStructsVisitor extends SchemaVisitor[Noop]:
 
-trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
+  private var structs: Set[ShapeId] = Set.empty
 
-  private def incrementObserved(shapeId: ShapeId) =
-    observed.updateWith(shapeId)(currentCount =>
-      currentCount match
-        case None        => Some(1)
-        case Some(value) => Some(value + 1)
-    )
-
-  // Should be Map[ShapeId, Double]
-  private var observed: Map[ShapeId, Double] = Map.empty
-
-  def getCounts: scala.collection.immutable.Map[ShapeId, Double] = observed.toMap
+  def getStructs: Set[ShapeId] = structs
 
   override def enumeration[E](
       shapeId: ShapeId,
@@ -43,7 +33,6 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
       values: List[EnumValue[E]],
       total: E => EnumValue[E]
   ): Noop[E] =
-    incrementObserved(shapeId)
     Noop()
   end enumeration
 
@@ -54,7 +43,6 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
       member: Schema[A]
   ): Noop[C[A]] =
     this(member)
-    incrementObserved(shapeId)
     Noop[C[A]]()
   end collection
 
@@ -64,18 +52,16 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
       key: Schema[K],
       value: Schema[V]
   ): Noop[scala.collection.immutable.Map[K, V]] =
-    this(key)
     this(value)
-    incrementObserved(shapeId)
     Noop()
   end map
 
   override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): Noop[P] =
-    incrementObserved(shapeId)
     Noop()
   end primitive
 
-  override def biject[A, B](schema: Schema[A], bijection: Bijection[A, B]): Noop[B] = ???
+  override def biject[A, B](schema: Schema[A], bijection: Bijection[A, B]): Noop[B] = Noop[B]()
+
 
   override def struct[S](
       shapeId: ShapeId,
@@ -83,28 +69,19 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
       fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
       make: IndexedSeq[Any] => S
   ): Noop[S] =
+    structs = structs ++ Set(shapeId)
     fields.foreach(field => this(field.instance))
-    incrementObserved(shapeId)
     Noop()
   end struct
 
-  override def refine[A, B](schema: Schema[A], refinement: Refinement[A, B]): Noop[B] = ???
+  override def refine[A, B](schema: Schema[A], refinement: Refinement[A, B]): Noop[B] = Noop[B]()
 
   override def lazily[A](suspend: Lazy[Schema[A]]): Noop[A] =
-
-    def optionCombine[A: Semigroup](a: A, opt: Option[A]): A =
-      opt.map(a |+| _).getOrElse(a)
-
-    def mergeMap[K, V: Semigroup](lhs: Map[K, V], rhs: Map[K, V]): Map[K, V] =
-      lhs.foldLeft(rhs) { case (acc, (k, v)) =>
-        acc.updated(k, optionCombine(v, acc.get(k)))
-      }
-
-    val otherFields = RecursionBustingCountSchemaVisitor.make(suspend.value.shapeId)
-    otherFields(suspend.value)
-    val counts = otherFields.getCounts
-    val newMap = mergeMap(observed, counts.to(scala.collection.mutable.Map) )
-    observed += (suspend.value.shapeId -> Double.PositiveInfinity)
+    val lzySchema = suspend.value
+    if !structs.contains(lzySchema.shapeId) then
+      structs = structs ++ Set(lzySchema.shapeId)
+      super.apply(lzySchema)
+    end if
     Noop()
   end lazily
 
@@ -115,16 +92,9 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
       dispatch: Dispatcher[smithy4s.schema.Schema, U]
   ): Noop[U] =
     alternatives.foreach(alt => this(alt.instance))
-    incrementObserved(shapeId)
     Noop[U]()
   end union
 
   override def nullable[A](schema: Schema[A]): Noop[Option[A]] = ???
 
-end ShapeCountSchemaVisitor
-
-trait Noop[A] {}
-
-object Noop:
-  def apply[A]() = new Noop[A] {}
-end Noop
+end FindStructsVisitor

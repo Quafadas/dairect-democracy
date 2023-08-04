@@ -28,6 +28,7 @@ import smithy4s.schema.Alt.Dispatcher
 import smithy4s.schema.Primitive
 import smithy4s.Lazy
 import smithy4s.schema.CollectionTag
+import java.awt.Shape
 
 class IntegrationSuite extends munit.FunSuite:
 
@@ -49,7 +50,7 @@ class IntegrationSuite extends munit.FunSuite:
     )
   }
 
-  test("def generation") {
+  test("example generation") {
 
     val shapeName = "Game" // Change this \\ Game, Person, Company, Eye, Location
     val smithy = s"""namespace $ns
@@ -102,57 +103,62 @@ class IntegrationSuite extends munit.FunSuite:
     val buildModel = DynamicSchemaIndex.loadModel(myModel).toTry.get
     val schemaUnderTest = buildModel.getSchema(ShapeId(ns, shapeName)).get
 
-    // naive headline grabbing... but perhaps not useful useful 1 liner
-    val naive = Document.DObject(new JsonSchemaVisitor{}.apply(schemaUnderTest).makeWithDefs(Set[ShapeId]()))
-    println(naive)
-    //println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(naive)(jc) )
+    // An explanatory approach. Could this be packaged up and PR'ed?
+    // Firstly, let's see what AWS things JSON schema looks like.
 
-    val schemaforVisitor = new JsonSchemaVisitorForShape(ShapeId("test", "Company")){}
-    schemaforVisitor(schemaUnderTest)
-    println(schemaforVisitor.found)
-
-    // A slower, more explanatory approach.
-    // We need a way, to decide what is a def, and what is not.
+    val awsDefs = awsSmithyCompleteSchema(ns, smithy)
+    val awsShape = awsSmithyToSchema(ns, smithy, shapeName)
 
     println("------AWS Version-------------")
     println("defs")
-    println(awsSmithyCompleteSchema(ns, smithy))
+    println(awsDefs)
     println(" ")
     println("Shape ")
-    println(awsSmithyToSchema(ns, smithy, shapeName))
+    println(awsShape)
     println("------END AWS Version-------------")
 
+    // For ourselves, we need a way, to know what are defs, and what are not.
+    // We assume (!), that in the first instance, all structs are defs.
+    val structFinder = FindStructsVisitor()
+    structFinder(schemaUnderTest)
+    val proposedDefs = structFinder.getStructs
 
-    val shapeCounts = new ShapeCountSchemaVisitor{}
-    shapeCounts(schemaUnderTest)
-    val countResult = shapeCounts.getCounts
-    println(countResult)
+    // Now that we have a proposal for our defs... let's see what it looks like.
+    // It'll accept any Set of ShapeIds
+    val defs = makeDefs(proposedDefs, schemaUnderTest)
+    val defsJson = com.github.plokhotnyuk.jsoniter_scala.core.writeToString(defs)(jc)
 
-    val proposedDefs = countResult
-      .filterNot((shape, _) => shape.namespace == "smithy.api" )
-      .filter((_, count) => count > 1 )
-      .keySet
-
-    println(proposedDefs)
-
-    println("smithy defs")
-    println(makeDefs(proposedDefs, schemaUnderTest))
-
-
-    // The below mechanism implicitly represents an "eject" possibility. If we've totally borked something up,
-    // then one can always make up the defs (some other way) and use those definitions instead.
-    // The generation here simply respects what it's told on that front...
     val schemaVisitor = new JsonSchemaVisitor {}
     val internalRep = schemaVisitor(schemaUnderTest)
     val generatedJsonSchema: Document = Document.DObject(internalRep.makeWithDefs(proposedDefs))
-    println(generatedJsonSchema)
+
+    println("------Smithy4s Version-------------")
+    println("defs")
+    println(defsJson)
+    println(" ")
+    println("Shape ")
     println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedJsonSchema)(jc) )
+    println("------END Smithy4s Version-------------")
 
-    // Now our generated schemna respects the defs, but we don't have any defs defined right now!
+    // Compare the generated defs with the AWS defs
+    val smithyDefsParsed = io.circe.parser.parse(defsJson )
+    val awsDefsParsed = io.circe.parser.parse(awsDefs)
+    val defCompStr = s"[$awsDefs, $defsJson]"
+    println(defCompStr)
+    assertEquals(awsDefsParsed, smithyDefsParsed)
 
-    val x = 1
+    // Compare the generated shape with the AWS shape
+    val smithyShapeParsed = io.circe.parser.parse(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedJsonSchema)(jc))
+    val awsShapeParsed = io.circe.parser.parse(awsShape)
+    val shapeCompStr = s"[$awsShapeParsed, $smithyShapeParsed]"
+    println(defCompStr)
+    assertEquals(awsDefsParsed, smithyDefsParsed)
 
-    assert(false)
+
+    // naive headline grabbing... but perhaps not useful useful 1 liner
+    //val naive = Document.DObject(new JsonSchemaVisitor{}.apply(schemaUnderTest).makeWithDefs(Set[ShapeId]()))
+    //println(naive)
+    //println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(naive)(jc) )
 
   }
 

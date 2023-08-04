@@ -11,24 +11,23 @@ import smithy4s.internals.DocumentEncoder
 import smithy4s.Document
 import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
+import smithy4s.schema.Schema.LazySchema
 
 def makeDefs(forShapes: Set[ShapeId], schema: Schema[?]) =
-  val jsonSchemas = for (shape <- forShapes) yield {
+  val jsonSchemas = for (shape <- forShapes) yield
 
     val defsForThisShape = forShapes - shape
-    val schemaforShapeVisitor = new JsonSchemaVisitorForShape(shape){}
+    val schemaforShapeVisitor = JsonSchemaFinderForShape(shape)
     schemaforShapeVisitor(schema)
     val found = schemaforShapeVisitor.found
 
     val typCheck = found.map(subSchema =>
-      println(subSchema.shapeId)
-      val schemaVisitor = new JsonSchemaVisitor {}
+      val schemaVisitor = new RecursionBustingJsonSchemaVisitor(scala.collection.mutable.Map(shape -> 0)) {}
       val internalRep = schemaVisitor(subSchema)
-      Map( shape.name  -> Document.DObject(internalRep.makeWithDefs(defsForThisShape)))
+      Map(shape.name -> Document.DObject(internalRep.makeWithDefs(defsForThisShape)))
     )
     typCheck
-  }
 
   val hasSchema = jsonSchemas.flatten.fold(emptyMap)(_ ++ _)
-  Map("definitions" -> hasSchema )
-
+  Document.DObject(Map("definitions" -> Document.DObject(hasSchema)))
+end makeDefs

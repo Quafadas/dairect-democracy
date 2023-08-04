@@ -17,7 +17,7 @@ import smithy4s.Schema
 import smithy4s.dynamic.DynamicSchemaIndex
 import java.net.URL
 
-class AwsSuite extends munit.FunSuite:
+class CompareSimpleShapesToAwsJsonSchemaSuite extends munit.FunSuite:
 
   implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
@@ -355,4 +355,4 @@ class AwsSuite extends munit.FunSuite:
   //   singleShapeEquivalence(shapeName, smithys)
   // }
 
-end AwsSuite
+end CompareSimpleShapesToAwsJsonSchemaSuite
