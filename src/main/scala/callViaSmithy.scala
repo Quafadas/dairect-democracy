@@ -116,38 +116,23 @@ object SmithyModelled extends IOApp.Simple:
   //     name = functionName.some
   //   )
 
-  // def assistentMessageFctCall(in: ChatCompletionResponseMessage): ChatCompletionRequestMessage =
-  //   ChatCompletionRequestMessage(
-  //     role = ChatCompletionRequestMessageRole.assistant,
-  //     content = "",
-  //     name = in.function_call.get.name,
-  //     function_call = in.function_call.map(m =>
-  //       ChatCompletionRequestMessageFunctionCall(
-  //         name = m.name.get,
-  //         arguments = m.arguments.get
-  //       )
-  //     )
-  //   )
+  def assistentMessageFctCall(result: String): AiMessage =
+    AiMessage(
+      role = "assistant",
+      content = result
+    )
 
   val promptStr = List[String](
-    "Get the weather for Zurich, Switzerland"
-    // "Get the weeather at latitude 47.3769 and longditude 8.5417",
+    // "Tell me the the weather for Zurich, Switzerland"
+    "Get the weather at latitude 47.3769 and longditude 8.5417"
     // "Get the weather at latitude 47.3769 and longditude 8.5417, use the packed tool"
   )
 
   val prompts = promptStr.map(userMsg)
 
-  val logger = (cIn: Client[IO]) =>
-    Logger(
-      logBody = true,
-      logHeaders = false,
-      name => name.toString.toLowerCase.contains("token"),
-      Some((x: String) => IO.println(x))
-    )(cIn)
-
   val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
     EmberClientBuilder.default[IO].build // .map(logger(_))
-
+  val gpt3Turbo = "gpt-3.5-turbo-0613"
   def run: IO[Unit] =
     App.aiResource.use: (openAI) =>
 
@@ -175,51 +160,46 @@ object SmithyModelled extends IOApp.Simple:
 
             openAI
               .chat(
-                model = "gpt-3.5-turbo",
+                model = gpt3Turbo,
                 temperature = Some(0.0),
                 messages = startMessages,
                 functions = Some(functions4Bot)
               )
               .flatMap { response =>
-                IO.println(response)
+                val botChoices = response.choices.head
+                val responseMsg = botChoices.message
+                botChoices.finish_reason match
+                  case None =>
+                    IO.println("-----------------") >>
+                      IO.println("Don't want to be here") >>
+                      IO.println(response) >>
+                      IO.pure(None)
+                  case Some(value) =>
+                    val fctCall = botChoices.message.function_call.get
+                    val fctResult = smithyDispatcher.apply(fctCall)
+                    val fctName = fctCall.name
+                    fctResult.map(s =>
+                      Some(
+                        List(
+                          assistentMessageFctCall(smithy4s.json.Json.writeDocumentAsPrettyString(s))
+                        )
+                      )
+                    )
+                end match
               }
-            //   val botChoices = response.choices.head
-            //   val responseMsg = botChoices.message
-            //   botChoices.finish_reason match
-            //     case None =>
-            //       IO.println("-----------------") >>
-            //         IO.println("Don't want to be here") >>
-            //         IO.println(response) >>
-            //         IO.pure(None)
-            //     case Some(value) =>
-            //       val fctCall = botChoices.message.function_call.get
-            //       val fctResult = smithyDispatcher.apply(fctCall)
-            //       val fctName = fctCall.name.get
-            //       fctResult.map(s =>
-            //         Some(
-            //           List(
-            //             assistentMessageFctCall(botChoices.message.get),
-            //             functionMessage(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(s), fctName)
-            //           )
-            //         )
-            //       )
-            //   end match
-            // }
-            // .flatMap((in: Option[List[ChatCompletionRequestMessage]]) =>
-            //   in match
-            //     case None => IO.println("Done")
-            //     case Some(ccm) =>
-            //       val newMessages = startMessages ++ ccm
-            //       openAI
-            //         .createChatCompletion(
-            //           CreateChatCompletionRequest(
-            //             model = "gpt-3.5-turbo-0613",
-            //             temperature = 0.0.some,
-            //             messages = newMessages
-            //           )
-            //         )
-            //         .flatMap(IO.println)
-            // )
+              .flatMap((in: Option[List[AiMessage]]) =>
+                in match
+                  case None => IO.println("Done")
+                  case Some(ccm) =>
+                    val newMessages = startMessages ++ ccm
+                    openAI
+                      .chat(
+                        model = gpt3Turbo,
+                        temperature = 0.0.some,
+                        messages = newMessages
+                      )
+                      .flatMap(IO.println)
+              )
 
       sendMe.sequence.void
     // end resourced

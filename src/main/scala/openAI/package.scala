@@ -20,12 +20,21 @@ import cats.effect.IOApp
 import cats.effect.ExitCode
 import ciris.*
 import cats.effect.kernel.Resource
+import org.http4s.client.middleware.Logger
 
 @experimental
 object App extends IOApp:
   import openai.App.AiMessage
   import openai.App.ChatCompletionResponseMessageFunctionCall
   import openai.App.FunctionCall
+
+  val logger = (cIn: Client[IO]) =>
+    Logger(
+      logBody = true,
+      logHeaders = false,
+      name => name.toString.toLowerCase.contains("token"),
+      Some((x: String) => IO.println(x))
+    )(cIn)
 
   extension (s: String)
     def userMsg = AiMessage(
@@ -87,7 +96,7 @@ object App extends IOApp:
 
   val aiResource = EmberClientBuilder.default[IO].build.flatMap { httpClient =>
     SimpleRestJsonBuilder(API.service[OpenAiService])
-      .client[IO](authMiddleware(apikey)(httpClient))
+      .client[IO](logger(authMiddleware(apikey)(httpClient)))
       .uri(uri"https://api.openai.com/")
       .resource
       .map(_.unliftService)
@@ -96,7 +105,6 @@ object App extends IOApp:
   case class AiMessage(
       role: String,
       content: String,
-      name: Option[String] = None,
       function_call: Option[FunctionCall] = None
   ) derives Schema
 
@@ -104,7 +112,7 @@ object App extends IOApp:
 
   case class AiChoice(message: AiAnswer, finish_reason: Option[String]) derives Schema
 
-  case class AiAnswer(role: String, content: String) derives Schema
+  case class AiAnswer(role: String, content: Option[String], function_call: Option[FunctionCall]) derives Schema
 
   case class AiResponseFormat(`type`: String) derives Schema
 

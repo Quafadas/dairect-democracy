@@ -39,6 +39,7 @@ import io.circe.Json
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonCodec
 import openai.App.ChatCompletionResponseMessageFunctionCall
 import scala.annotation.experimental
+import openai.App.FunctionCall
 
 /** These are toy interpreters that turn services into json-in/json-out functions, and vice versa.
   *
@@ -134,15 +135,15 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
   @experimental
   def openAiSmithyFunctionDispatch[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
-  )(implicit S: Service[Alg]): ChatCompletionResponseMessageFunctionCall => F[Document] =
+  )(implicit S: Service[Alg]): FunctionCall => F[Document] =
     val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
     val jsonEndpoints =
       S.endpoints.map(ep => ep.name -> toLowLevel(transformation, ep)).toMap
 
-    (m: ChatCompletionResponseMessageFunctionCall) =>
+    (m: FunctionCall) =>
       val fctConfig: Document = smithy4s.json.Json.readDocument(m.arguments.get).getOrElse(???)
       println(fctConfig)
-      val ep = jsonEndpoints.get(m.name.get)
+      val ep = jsonEndpoints.get(m.name)
 
       ep match
         case Some(jsonEndpoint) =>
@@ -150,7 +151,7 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
           fctResult.map(r =>
             Document.obj(
               "role" -> Document.fromString("function"),
-              "name" -> Document.fromString(m.name.get),
+              "name" -> Document.fromString(m.name),
               "content" -> r
             )
           )
