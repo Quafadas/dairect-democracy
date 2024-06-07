@@ -35,20 +35,16 @@ import smithy4s.schema.Primitive.*
 import cats.Id
 import java.util.UUID
 import io.circe.Json
-import smithy4s.http.json.JCodec
-import openAI.ChatCompletionFunctionParameters
-import openAI.ChatCompletionFunctions
-import openAI.ChatCompletionRequestMessageFunctionCall
-import openAI.ChatCompletionResponseMessageFunctionCall
+
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonCodec
+import openai.App.ChatCompletionResponseMessageFunctionCall
+import scala.annotation.experimental
 
 /** These are toy interpreters that turn services into json-in/json-out functions, and vice versa.
   *
   * Created for testing purposes.
   */
 class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
-
-  // needed for document parsing
-  implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
   // def dummy[Alg[_[_, _, _, _, _]]](
   //     service: Service[Alg]
@@ -135,6 +131,7 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
   //     end match
   // end openAiFunctionDispatch
 
+  @experimental
   def openAiSmithyFunctionDispatch[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
   )(implicit S: Service[Alg]): ChatCompletionResponseMessageFunctionCall => F[Document] =
@@ -143,7 +140,7 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
       S.endpoints.map(ep => ep.name -> toLowLevel(transformation, ep)).toMap
 
     (m: ChatCompletionResponseMessageFunctionCall) =>
-      val fctConfig: Document = com.github.plokhotnyuk.jsoniter_scala.core.readFromString(m.arguments.get)
+      val fctConfig: Document = smithy4s.json.Json.readDocument(m.arguments.get).getOrElse(???)
       println(fctConfig)
       val ep = jsonEndpoints.get(m.name.get)
 
@@ -154,7 +151,7 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
             Document.obj(
               "role" -> Document.fromString("function"),
               "name" -> Document.fromString(m.name.get),
-              "content" -> Document.fromString(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(r))
+              "content" -> r
             )
           )
         case None => F.raiseError(NotFound)
@@ -167,6 +164,7 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
     directly by openAI, in the hope that it will delegate tasks it is not good at, or has no data for,
     to smithy simpleRestJson operations.
    */
+  @experimental
   def toJsonSchema[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
   )(implicit S: Service[Alg]): Document =
@@ -188,9 +186,9 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
         val epDesc = Map[String, Document](
           "name" -> Document.fromString(ep.name)
         ) ++ description
-        val shapeCounts = new ShapeCountSchemaVisitor{}
+        val shapeCounts = new ShapeCountSchemaVisitor {}
         ep.input.compile(shapeCounts)
-        //val schema = ep.input.withId()
+        // val schema = ep.input.withId()
         println(shapeCounts.getCounts)
         val endpointfields = ep.input.compile(new JsonSchemaVisitor {})
         val schema = epDesc ++
@@ -204,16 +202,17 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
     Document.DArray(s)
   end toJsonSchema
 
+  @experimental
   def openAiApiFunctions[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
-  )(implicit S: Service[Alg]): List[ChatCompletionFunctions] =
+  )(implicit S: Service[Alg]): List[openai.ChatCompletionFunctions] =
     val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
 
     val serviceName = S.id.name
     // val hints = S.service.hints
     // val docHint = hints.get(smithy.api.Documentation)
 
-    S.endpoints
+    S.endpoints.toList
       .map((ep: Endpoint[S.Operation, ?, ?, ?, ?, ?]) =>
         val t = smithy.api.Pattern
         val docHint = ep.hints.get(smithy.api.Documentation)
@@ -228,10 +227,10 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
         val defs = Set[ShapeId]()
         val paramsDoc = Document.DObject(endpointfields.makeWithDefs(defs))
 
-        ChatCompletionFunctions(
+        openai.ChatCompletionFunctions(
           name = ep.name,
           description = docHint.map(_.toString()),
-          parameters = ChatCompletionFunctionParameters(paramsDoc)
+          parameters = paramsDoc // may need to be wrapped in JSON object
         )
       )
 
@@ -295,9 +294,9 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
     implicit val decoderI = Document.Decoder.fromSchema(endpoint.input)
     implicit val encoderO = Document.Encoder.fromSchema(endpoint.output)
     implicit val encoderE: Document.Encoder[E] =
-      endpoint.errorable match
+      endpoint.errorschema match
         case Some(errorableE) =>
-          Document.Encoder.fromSchema(errorableE.error)
+          Document.Encoder.fromSchema(errorableE.schema)
         case None =>
           new Document.Encoder[E]:
             def encode(e: E): Document = Document.DNull

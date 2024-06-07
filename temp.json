@@ -1,0 +1,173 @@
+[
+  {
+    "definitions": {
+      "AgeMap": {
+        "type": "object",
+        "additionalProperties": { "$ref": "#/definitions/Eye" },
+        "propertyNames": { "type": "string" }
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "employees": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Person" }
+          },
+          "headquarters": { "$ref": "#/definitions/Location" },
+          "i": { "type": "number" },
+          "name": { "type": "string" },
+          "u": { "$ref": "#/definitions/MyUnion" }
+        }
+      },
+      "Eye": {
+        "type": "object",
+        "properties": {
+          "colour": { "type": "string" },
+          "side": { "type": "string" }
+        }
+      },
+      "Game": {
+        "type": "object",
+        "properties": {
+          "at": { "$ref": "#/definitions/Location" },
+          "n": { "type": "string" },
+          "with": { "$ref": "#/definitions/Person" }
+        }
+      },
+      "Location": {
+        "type": "object",
+        "properties": {
+          "company": { "$ref": "#/definitions/Company" },
+          "country": { "type": "string" }
+        }
+      },
+      "MyUnion": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["i"],
+            "properties": { "i": { "$ref": "#/definitions/AgeMap" } },
+            "title": "i"
+          },
+          {
+            "type": "object",
+            "required": ["s"],
+            "properties": {
+              "s": { "type": "array", "items": { "type": "string" } }
+            },
+            "title": "s"
+          },
+          {
+            "type": "object",
+            "required": ["u"],
+            "properties": { "u": { "$ref": "#/definitions/Location" } },
+            "title": "u"
+          }
+        ]
+      },
+      "Person": {
+        "type": "object",
+        "required": ["s"],
+        "properties": {
+          "birthLoc": { "type": "string" },
+          "children": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Person" }
+          },
+          "e1": { "$ref": "#/definitions/Eye" },
+          "e2": { "$ref": "#/definitions/Eye" },
+          "employer": { "$ref": "#/definitions/Company" },
+          "loc": { "type": "string" },
+          "s": { "type": "string" },
+          "spouse": { "$ref": "#/definitions/Person" }
+        }
+      }
+    }
+  },
+  {
+    "definitions": {
+      "Location": {
+        "type": "object",
+        "properties": {
+          "country": { "type": "string" },
+          "company": { "$ref": "#/definitions/Company" }
+        }
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "u": { "$ref": "#/definitions/MyUnion" },
+          "employees": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Person" }
+          },
+          "i": { "type": "number" },
+          "headquarters": { "$ref": "#/definitions/Location" }
+        }
+      },
+      "Eye": {
+        "type": "object",
+        "properties": {
+          "side": { "type": "string" },
+          "colour": { "type": "string" }
+        }
+      },
+      "Game": {
+        "type": "object",
+        "properties": {
+          "n": { "type": "string" },
+          "with": { "$ref": "#/definitions/Person" },
+          "at": { "$ref": "#/definitions/Location" }
+        }
+      },
+      "Person": {
+        "type": "object",
+        "properties": {
+          "e1": { "$ref": "#/definitions/Eye" },
+          "birthLoc": { "type": "string" },
+          "spouse": { "$ref": "#/definitions/Person" },
+          "employer": { "$ref": "#/definitions/Company" },
+          "loc": { "type": "string" },
+          "e2": { "$ref": "#/definitions/Eye" },
+          "s": { "type": "string" },
+          "children": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Person" }
+          }
+        },
+        "required": ["s"]
+      },
+      "MyUnion": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["i"],
+            "properties": {
+              "i": {
+                "type": "object",
+                "additionalProperties": { "$ref": "#/definitions/Eye" },
+                "propertyNames": { "type": "string" }
+              }
+            },
+            "title": "i"
+          },
+          {
+            "type": "object",
+            "required": ["s"],
+            "properties": {
+              "s": { "type": "array", "items": { "type": "string" } }
+            },
+            "title": "s"
+          },
+          {
+            "type": "object",
+            "required": ["u"],
+            "properties": { "u": { "$ref": "#/definitions/Location" } },
+            "title": "u"
+          }
+        ]
+      }
+    }
+  }
+]

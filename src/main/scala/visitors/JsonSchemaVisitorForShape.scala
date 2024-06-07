@@ -20,7 +20,6 @@ import smithy4s.schema.Schema.EnumerationSchema
 import smithy4s.schema.Schema.UnionSchema
 import smithy4s.schema.Schema.RefinementSchema
 import smithy4s.schema.Schema.LazySchema
-import smithy4s.schema.Schema.NullableSchema
 import smithy4s.schema.Schema.CollectionSchema
 import java.awt.Shape
 

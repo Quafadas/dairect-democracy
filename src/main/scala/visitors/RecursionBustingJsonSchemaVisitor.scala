@@ -18,9 +18,9 @@ This sets out to prevent looping in a visitor.
 trait RecursionBustingJsonSchemaVisitor(val busted: scala.collection.mutable.Map[ShapeId, Int])
     extends JsonSchemaVisitor:
 
-    /*
+  /*
     When a shape passes through here we note that it would enter a loop.
-    */
+   */
   override def lazily[A](suspend: Lazy[Schema[A]]): JsonSchema[A] =
     val lzySchema = suspend.value
     if !busted.keySet.contains(lzySchema.shapeId) then
@@ -33,14 +33,14 @@ trait RecursionBustingJsonSchemaVisitor(val busted: scala.collection.mutable.Map
     this(lzySchema)
   end lazily
 
-    /*
+  /*
     Count the number of times we've seen a potentially looping shape.
     We want to visit it once.
-    */
+   */
   override def struct[S](
       shapeId: ShapeId,
       hints: Hints,
-      fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
+      fields: Vector[smithy4s.schema.Field[S, ?]],
       make: IndexedSeq[Any] => S
   ): JsonSchema[S] =
     if busted.keySet.contains(shapeId) then

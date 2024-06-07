@@ -17,7 +17,14 @@ import smithy4s.schema.Primitive.PBlob
 
 trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
 
-  override def nullable[A](schema: Schema[A]): JsonSchema[Option[A]] = ???
+  override def option[A](schema: Schema[A]): JsonSchema[Option[A]] = ???
+
+  // def struct[S](
+  //     shapeId: ShapeId,
+  //     hints: Hints,
+  //     fields: Vector[Field[smithy4s.schema.Schema[?], S]],
+  //     make: IndexedSeq[Any] => S
+  // ): JsonSchema[S] = ???
 
   override def map[K, V](shapeId1: ShapeId, hintsIn: Hints, key: Schema[K], value: Schema[V]): JsonSchema[Map[K, V]] =
 
@@ -37,7 +44,7 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
   override def struct[S](
       shapeId: ShapeId,
       hints: Hints,
-      fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
+      fields: Vector[Field[S, ?]],
       make: IndexedSeq[Any] => S
   ): JsonSchema[S] =
     val expandFields: Map[String, JsonSchema[?]] = fields.map { field =>
@@ -56,12 +63,12 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
   override def enumeration[E](
       shapeIdIn: ShapeId,
       hintsIn: Hints,
-      tagIn: EnumTag,
+      tagIn: EnumTag[E],
       valuesIn: List[EnumValue[E]],
       total: E => EnumValue[E]
   ): JsonSchema[E] =
     new EnumSchema[E](hintsIn):
-      override val tag: EnumTag = tagIn
+      override val tag: EnumTag[E] = tagIn
       override val values: List[EnumValue[E]] = valuesIn
       override val shapeIdJ: Option[ShapeId] = shapeIdIn.some
     end new
@@ -70,8 +77,8 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
   override def union[U](
       shapeId: ShapeId,
       hints: Hints,
-      alternatives: Vector[Alt[smithy4s.schema.Schema, U, ?]],
-      dispatch: Dispatcher[smithy4s.schema.Schema, U]
+      alternatives: Vector[Alt[U, ?]],
+      dispatch: Dispatcher[U]
   ): JsonSchema[U] =
     hints match
       case Untagged.hint(_) =>
@@ -79,13 +86,15 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
         new UntaggedUnionSchema[U](hints):
           override val shapeIdJ: Option[ShapeId] = shapeId.some
           override val alts: Vector[JsonSchema[?]] = altSchemas
+        end new
       case Discriminated.hint(d) =>
         ???
-      case _                     =>
+      case _ =>
         val altSchemas = alternatives.map(alt => (alt.label, this(alt.instance)))
         new TaggedUnionSchema[U](hints):
           override val shapeIdJ: Option[ShapeId] = shapeId.some
           override val alts = altSchemas
+        end new
     end match
   end union
 
@@ -137,10 +146,11 @@ trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
 
       case Primitive.PUUID =>
         PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn, formatIn = "uuid".some)
-      case Primitive.PTimestamp => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn, formatIn = "date-time".some)
-      case Primitive.PString    => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn)
-      case PDocument => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Document, shapeId.some, hintsIn)
-      case _                    => throw new Exception("This is not a primitive shape - we shouldn't get here")
+      case Primitive.PTimestamp =>
+        PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn, formatIn = "date-time".some)
+      case Primitive.PString => PrimitiveSchemaIR[P](JsonSchemaPrimitive.String, shapeId.some, hintsIn)
+      case PDocument         => PrimitiveSchemaIR[P](JsonSchemaPrimitive.Document, shapeId.some, hintsIn)
+      case _                 => throw new Exception("This is not a primitive shape - we shouldn't get here")
     end match
   end primitive
 end JsonSchemaVisitor

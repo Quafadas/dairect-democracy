@@ -17,6 +17,8 @@ import smithy4s.http.matchPath
 import smithy4s.schema.EnumTag.IntEnum
 import smithy4s.schema.EnumTag.StringEnum
 import smithy4s.schema.Schema.MapSchema
+import smithy4s.schema.EnumTag.ClosedStringEnum
+import smithy4s.schema.EnumTag.ClosedIntEnum
 
 /*
   ++ emptyMap is the no-op for building our JSON schema
@@ -56,11 +58,11 @@ trait JsonSchema[A]:
 
   def makeWithDefs(defs: Set[ShapeId]): Map[String, Document] =
     shapeIdJ match
-        case None => this.make(defs)
-        case Some(shapeId) =>
-          defs.contains(shapeId) match
-            case true =>  new DefinitionSchema[A](shapeIdJ){}.make(Set())
-            case false => this.make(defs)
+      case None => this.make(defs)
+      case Some(shapeId) =>
+        defs.contains(shapeId) match
+          case true  => new DefinitionSchema[A](shapeIdJ) {}.make(Set())
+          case false => this.make(defs)
   end makeWithDefs
 
   protected def make(defs: Set[ShapeId]): Map[String, Document] =
@@ -72,15 +74,15 @@ end JsonSchema
 
 trait EmptySchema[A] extends JsonSchema[A]:
 
-   val hints: smithy4s.Hints = Hints.empty
-   val shapeIdJ: Option[smithy4s.ShapeId] = None
+  val hints: smithy4s.Hints = Hints.empty
+  val shapeIdJ: Option[smithy4s.ShapeId] = None
 
-   override protected def make(defs: Set[ShapeId]) = emptyMap
+  override protected def make(defs: Set[ShapeId]) = emptyMap
 
 end EmptySchema
 
 object EmptySchema:
-  def apply[A] = new EmptySchema[A]{}
+  def apply[A] = new EmptySchema[A] {}
 end EmptySchema
 
 /*
@@ -225,20 +227,21 @@ trait DefinitionSchema[A](override val shapeIdJ: Option[ShapeId]) extends JsonSc
 
 end DefinitionSchema
 
-
 trait EnumSchema[A](override val hints: Hints) extends JsonSchema[A]:
-  val tag: EnumTag
+  val tag: EnumTag[?]
   val values: List[EnumValue[A]]
 
   def makeEnum = tag match
-    case IntEnum =>
-      Map(
-        "enum" -> Document.DArray(values.toIndexedSeq.map(v => Document.fromInt(v.intValue)))
-      )
-    case StringEnum =>
+    case ClosedStringEnum =>
       Map(
         "enum" -> Document.DArray(values.toIndexedSeq.map(v => Document.fromString(v.stringValue)))
       )
+    case ClosedIntEnum =>
+      Map(
+        "enum" -> Document.DArray(values.toIndexedSeq.map(v => Document.fromInt(v.intValue)))
+      )
+    case smithy4s.schema.EnumTag.OpenStringEnum(_) => ???
+    case smithy4s.schema.EnumTag.OpenIntEnum(_)    => ???
 
   override def make(defs: Set[ShapeId]): Map[String, Document] = super.make(defs) ++ makeEnum
 

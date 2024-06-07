@@ -10,7 +10,6 @@ import cats.syntax.option.*
 import smithy4s.Document.DNull
 import cats.syntax.option.*
 
-
 trait RecursionBustingCountSchemaVisitor(val busted: scala.collection.mutable.Map[ShapeId, Double])
     extends ShapeCountSchemaVisitor:
 
@@ -26,7 +25,7 @@ trait RecursionBustingCountSchemaVisitor(val busted: scala.collection.mutable.Ma
   override def struct[S](
       shapeId: ShapeId,
       hints: Hints,
-      fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
+      fields: Vector[Field[S, ?]],
       make: IndexedSeq[Any] => S
   ): Noop[S] =
     if busted.get(shapeId).getOrElse(0.0).isFinite then super.struct(shapeId, hints, fields, make)

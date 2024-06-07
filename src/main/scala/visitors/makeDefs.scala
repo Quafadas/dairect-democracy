@@ -9,7 +9,6 @@ import cats.effect.IO
 import cats.Id
 import smithy4s.internals.DocumentEncoder
 import smithy4s.Document
-import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
 import smithy4s.schema.Schema.LazySchema
 

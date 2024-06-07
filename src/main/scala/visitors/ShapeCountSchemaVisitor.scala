@@ -39,7 +39,7 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
   override def enumeration[E](
       shapeId: ShapeId,
       hints: Hints,
-      tag: EnumTag,
+      tag: EnumTag[E],
       values: List[EnumValue[E]],
       total: E => EnumValue[E]
   ): Noop[E] =
@@ -80,7 +80,7 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
   override def struct[S](
       shapeId: ShapeId,
       hints: Hints,
-      fields: Vector[Field[smithy4s.schema.Schema, S, ?]],
+      fields: Vector[smithy4s.schema.Field[S, ?]],
       make: IndexedSeq[Any] => S
   ): Noop[S] =
     fields.foreach(field => this(field.instance))
@@ -103,7 +103,7 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
     val otherFields = RecursionBustingCountSchemaVisitor.make(suspend.value.shapeId)
     otherFields(suspend.value)
     val counts = otherFields.getCounts
-    val newMap = mergeMap(observed, counts.to(scala.collection.mutable.Map) )
+    val newMap = mergeMap(observed, counts.to(scala.collection.mutable.Map))
     observed += (suspend.value.shapeId -> Double.PositiveInfinity)
     Noop()
   end lazily
@@ -111,15 +111,15 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
   override def union[U](
       shapeId: ShapeId,
       hints: Hints,
-      alternatives: Vector[Alt[smithy4s.schema.Schema, U, ?]],
-      dispatch: Dispatcher[smithy4s.schema.Schema, U]
+      alternatives: Vector[Alt[U, ?]],
+      dispatch: Dispatcher[U]
   ): Noop[U] =
     alternatives.foreach(alt => this(alt.instance))
     incrementObserved(shapeId)
     Noop[U]()
   end union
 
-  override def nullable[A](schema: Schema[A]): Noop[Option[A]] = ???
+  override def option[A](schema: Schema[A]): Noop[Option[A]] = ???
 
 end ShapeCountSchemaVisitor
 
