@@ -7,6 +7,7 @@
 //> using dep tech.neander::smithy4s-deriving::0.0.2
 //> using plugin tech.neander::smithy4s-deriving-compiler::0.0.2
 //> using option -experimental
+//> using dep software.amazon.smithy:smithy-jsonschema:latest.release
 
 //// Use circe to avoid ordering issues in schema testing
 

@@ -9,7 +9,6 @@ import cats.effect.IO
 import cats.Id
 import smithy4s.internals.DocumentEncoder
 import smithy4s.Document
-import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
 
 //import smithy4s.dynamic.DynamicSchemaIndex
@@ -18,8 +17,6 @@ import smithy4s.dynamic.DynamicSchemaIndex
 import java.net.URL
 
 class CompareSimpleShapesToAwsJsonSchemaSuite extends munit.FunSuite:
-
-  implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
   val ns = "test"
 
@@ -71,10 +68,10 @@ class CompareSimpleShapesToAwsJsonSchemaSuite extends munit.FunSuite:
         |}
         |""".stripMargin
 
-    val defs = Some(Set[ShapeId](ShapeId(ns, "Location"), ShapeId(ns, "Person") ))
+    val defs = Some(Set[ShapeId](ShapeId(ns, "Location"), ShapeId(ns, "Person")))
     singleShapeEquivalence("Company", smithy, defs)
 
-    val defs2 = Some(Set[ShapeId](ShapeId(ns, "Location"), ShapeId(ns, "Company") ))
+    val defs2 = Some(Set[ShapeId](ShapeId(ns, "Location"), ShapeId(ns, "Company")))
     singleShapeEquivalence("Person", smithy, defs2)
   }
 

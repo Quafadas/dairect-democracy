@@ -18,6 +18,11 @@ import smithy4s.schema.Primitive.PBlob
 trait JsonSchemaVisitor extends SchemaVisitor[JsonSchema]:
 
   override def option[A](schema: Schema[A]): JsonSchema[Option[A]] = ???
+  //   val target: JsonSchema[A] = this(schema)
+  //   new OptionalSchema[A](target):
+  //     override val shapeIdJ: Option[ShapeId] = schema.shapeId.some
+  //   end new
+  // end option
 
   // def struct[S](
   //     shapeId: ShapeId,

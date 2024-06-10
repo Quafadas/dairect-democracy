@@ -137,16 +137,9 @@ object SmithyModelled extends IOApp.Simple:
     App.aiResource.use: (openAI) =>
 
       val testJiggy = new JsonProtocolF[IO]
-      val functions4Bot = testJiggy.openAiApiFunctions(API[WeatherService].liftService {
-        new WeatherService():
-          def getWeatherLatLong(lat: Double, long: Double): IO[WeatherOut] =
-            IO.pure(WeatherOut(s"Lovely weather at $lat, $long"))
-      })
-      val smithyDispatcher = testJiggy.openAiSmithyFunctionDispatch(API[WeatherService].liftService {
-        new WeatherService():
-          def getWeatherLatLong(lat: Double, long: Double): IO[WeatherOut] =
-            IO.pure(WeatherOut(s"Lovely weather at $lat, $long"))
-      })
+      val functions4Bot = testJiggy.openAiApiFunctions(API[WeatherService].liftService(weather.weatherImpl))
+      val smithyDispatcher =
+        testJiggy.openAiSmithyFunctionDispatch(API[WeatherService].liftService(weather.weatherImpl))
 
       val sendMe =
         for (aPrompt <- prompts)

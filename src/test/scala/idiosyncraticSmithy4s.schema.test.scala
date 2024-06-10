@@ -9,7 +9,6 @@ import cats.effect.IO
 import cats.Id
 import smithy4s.internals.DocumentEncoder
 import smithy4s.Document
-import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
 
 //import smithy4s.dynamic.DynamicSchemaIndex
@@ -18,8 +17,6 @@ import smithy4s.dynamic.DynamicSchemaIndex
 import java.net.URL
 
 class IdiosyncraticSmithy4s extends munit.FunSuite:
-
-  implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
   val ns = "test"
 
@@ -44,6 +41,5 @@ class IdiosyncraticSmithy4s extends munit.FunSuite:
 
     assert(false)
   }
-
 
 end IdiosyncraticSmithy4s

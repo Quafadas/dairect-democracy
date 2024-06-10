@@ -9,7 +9,6 @@ import cats.effect.IO
 import cats.Id
 import smithy4s.internals.DocumentEncoder
 import smithy4s.Document
-import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
 
 //import smithy4s.dynamic.DynamicSchemaIndex
@@ -19,8 +18,6 @@ import java.net.URL
 import java.awt.Shape
 
 class FindStructsSuite extends munit.FunSuite:
-
-  implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
   val ns = "test"
 
@@ -64,17 +61,17 @@ class FindStructsSuite extends munit.FunSuite:
         |""".stripMargin
 
     val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel)
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
     val findStructs = FindStructsVisitor()
     findStructs(mySchema)
     val found = findStructs.getStructs.toList.sortBy(_.name)
 
-    val shouldBew = List(shapeName, shapeName2, shapeName3, shapeName4, shapeName5, shapeName6).map(ShapeId(ns, _)).sortBy(_.name)
+    val shouldBew =
+      List(shapeName, shapeName2, shapeName3, shapeName4, shapeName5, shapeName6).map(ShapeId(ns, _)).sortBy(_.name)
 
     assertEquals(found, shouldBew)
 
   }
-
 
 end FindStructsSuite

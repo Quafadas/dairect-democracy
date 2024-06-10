@@ -119,7 +119,7 @@ trait ShapeCountSchemaVisitor extends SchemaVisitor[Noop]:
     Noop[U]()
   end union
 
-  override def option[A](schema: Schema[A]): Noop[Option[A]] = ???
+  override def option[A](schema: Schema[A]): Noop[Option[A]] = new Noop[Option[A]] {}
 
 end ShapeCountSchemaVisitor
 

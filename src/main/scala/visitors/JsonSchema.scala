@@ -295,3 +295,13 @@ trait MapSchema[K, V](override val hints: Hints) extends JsonSchema[Map[K, V]]:
     )
 
 end MapSchema
+
+trait OptionalSchema[A](override val hints: Hints) extends NonPrimitiveSchemaIR[Option[A]]:
+  val child: JsonSchema[A]
+
+  override def make(defs: Set[ShapeId]): Map[String, Document] =
+    super.make(defs) ++ Map(
+      "type" -> Document.DArray(IndexedSeq(Document.fromString("null"), Document.DObject(child.makeWithDefs(defs))))
+    )
+
+end OptionalSchema

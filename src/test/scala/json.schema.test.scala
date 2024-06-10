@@ -1,6 +1,5 @@
 package smithyOpenAI
 
-
 import software.amazon.smithy.jsonschema.JsonSchemaConverter
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.node.Node
@@ -10,7 +9,6 @@ import cats.effect.IO
 import cats.Id
 import smithy4s.internals.DocumentEncoder
 import smithy4s.Document
-import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
 
 //import smithy4s.dynamic.DynamicSchemaIndex
@@ -29,18 +27,20 @@ import smithy4s.schema.Primitive
 import smithy4s.Lazy
 import smithy4s.schema.CollectionTag
 import java.awt.Shape
+import smithy4s.json.Json
+import weather.WeatherService
+import smithy4s.deriving.API
 
 class IntegrationSuite extends munit.FunSuite:
-
-  implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
   val ns = "test"
 
   test("weather schema") {
-    val generatedSchema = JsonProtocolF[IO].toJsonSchema(weather.weatherServiceImpl)
-    val stringSchema = com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedSchema)
+    val generatedSchema = JsonProtocolF[IO].toJsonSchema(API[WeatherService].liftService(weather.weatherImpl))
+    val stringSchema = Json.writeDocumentAsPrettyString(generatedSchema)
 
-    val shouldBe = """[{"name":"GetWeather","description":"Get the weather for a city","parameters":{"type":"object","properties":{"location":{"description":"The name of the city","type":"string"}},"required":["location"]}},{"name":"GetWeatherLatLong","description":"Get the weather for a city given a latitude and longitude","parameters":{"type":"object","properties":{"lat":{"description":"Latitude","type":"number"},"long":{"description":"Longditude","type":"number"}},"required":["lat","long"]}},{"name":"GetWeatherLatLongPacked","description":"Get the weather for a city given a latitude and longitude, but pack the inputs together","parameters":{"type":"object","properties":{"lat":{"description":"Latitude","type":"number"},"long":{"description":"Longditude","type":"number"}},"required":["lat","long"]}}]"""
+    val shouldBe =
+      """[{"name":"GetWeather","description":"Get the weather for a city","parameters":{"type":"object","properties":{"location":{"description":"The name of the city","type":"string"}},"required":["location"]}},{"name":"GetWeatherLatLong","description":"Get the weather for a city given a latitude and longitude","parameters":{"type":"object","properties":{"lat":{"description":"Latitude","type":"number"},"long":{"description":"Longditude","type":"number"}},"required":["lat","long"]}},{"name":"GetWeatherLatLongPacked","description":"Get the weather for a city given a latitude and longitude, but pack the inputs together","parameters":{"type":"object","properties":{"lat":{"description":"Latitude","type":"number"},"long":{"description":"Longditude","type":"number"}},"required":["lat","long"]}}]"""
 
     val compareStr = s"[$shouldBe, $stringSchema]"
 
@@ -100,7 +100,7 @@ class IntegrationSuite extends munit.FunSuite:
         |""".stripMargin
 
     val myModel = toModel(ns, smithy)
-    val buildModel = DynamicSchemaIndex.loadModel(myModel).toTry.get
+    val buildModel = DynamicSchemaIndex.loadModel(myModel)
     val schemaUnderTest = buildModel.getSchema(ShapeId(ns, shapeName)).get
 
     // An explanatory approach. Could this be packaged up and PR'ed?
@@ -126,7 +126,7 @@ class IntegrationSuite extends munit.FunSuite:
     // Now that we have a proposal for our defs... let's see what it looks like.
     // It'll accept any Set of ShapeIds
     val defs = makeDefs(proposedDefs, schemaUnderTest)
-    val defsJson = com.github.plokhotnyuk.jsoniter_scala.core.writeToString(defs)(jc)
+    val defsJson = Json.writeDocumentAsPrettyString(defs)
 
     val schemaVisitor = new JsonSchemaVisitor {}
     val internalRep = schemaVisitor(schemaUnderTest)
@@ -137,31 +137,29 @@ class IntegrationSuite extends munit.FunSuite:
     println(defsJson)
     println(" ")
     println("Shape ")
-    println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedJsonSchema)(jc) )
+    println(Json.writeDocumentAsPrettyString((generatedJsonSchema)))
     println("------END Smithy4s Version-------------")
 
     // Compare the generated defs with the AWS defs
-    val smithyDefsParsed = io.circe.parser.parse(defsJson )
+    val smithyDefsParsed = io.circe.parser.parse(defsJson)
     val awsDefsParsed = io.circe.parser.parse(awsDefs)
     val defCompStr = s"[$awsDefs, $defsJson]"
     println(defCompStr)
     assertEquals(awsDefsParsed, smithyDefsParsed)
 
     // Compare the generated shape with the AWS shape
-    val smithyShapeParsed = io.circe.parser.parse(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(generatedJsonSchema)(jc))
+    val smithyShapeParsed =
+      io.circe.parser.parse(Json.writeDocumentAsPrettyString(generatedJsonSchema))
     val awsShapeParsed = io.circe.parser.parse(awsShape)
     val shapeCompStr = s"[$awsShapeParsed, $smithyShapeParsed]"
     println(defCompStr)
     assertEquals(awsDefsParsed, smithyDefsParsed)
 
-
     // naive headline grabbing... but perhaps not useful useful 1 liner
-    //val naive = Document.DObject(new JsonSchemaVisitor{}.apply(schemaUnderTest).makeWithDefs(Set[ShapeId]()))
-    //println(naive)
-    //println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(naive)(jc) )
+    // val naive = Document.DObject(new JsonSchemaVisitor{}.apply(schemaUnderTest).makeWithDefs(Set[ShapeId]()))
+    // println(naive)
+    // println(com.github.plokhotnyuk.jsoniter_scala.core.writeToString(naive)(jc) )
 
   }
-
-
 
 end IntegrationSuite

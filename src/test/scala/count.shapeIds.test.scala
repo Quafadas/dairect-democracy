@@ -9,7 +9,6 @@ import cats.effect.IO
 import cats.Id
 import smithy4s.internals.DocumentEncoder
 import smithy4s.Document
-import smithy4s.http.json.JCodec
 import smithy4s.schema.Schema
 
 //import smithy4s.dynamic.DynamicSchemaIndex
@@ -18,8 +17,6 @@ import smithy4s.dynamic.DynamicSchemaIndex
 import java.net.URL
 
 class CountShapeIds extends munit.FunSuite:
-
-  implicit val jc: JCodec[Document] = JCodec.fromSchema(Schema.document)
 
   val ns = "test"
 
@@ -44,7 +41,7 @@ class CountShapeIds extends munit.FunSuite:
         |""".stripMargin
 
     val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel) // .getSchema(ShapeId(ns, "Foo"))
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName2)).get
     val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
@@ -71,7 +68,7 @@ class CountShapeIds extends munit.FunSuite:
         |""".stripMargin
 
     val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel) // .getSchema(ShapeId(ns, "Foo"))
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, "Suit")).get
     val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
@@ -93,7 +90,7 @@ class CountShapeIds extends munit.FunSuite:
         |""".stripMargin
 
     val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel) // .getSchema(ShapeId(ns, "Foo"))
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
     val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
@@ -125,7 +122,7 @@ class CountShapeIds extends munit.FunSuite:
         |""".stripMargin
 
     val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get // .getSchema(ShapeId(ns, "Foo"))
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel) // .getSchema(ShapeId(ns, "Foo"))
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
     val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
@@ -149,7 +146,7 @@ class CountShapeIds extends munit.FunSuite:
         |""".stripMargin
 
     val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel)
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
     val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)
@@ -160,7 +157,6 @@ class CountShapeIds extends munit.FunSuite:
     assert(countVisitor.getCounts(s) == 1.0)
     assert(countVisitor.getCounts(i) == 1.0)
   }
-
 
   // test("Something messy") {
 
@@ -244,7 +240,7 @@ class CountShapeIds extends munit.FunSuite:
         |
         |""".stripMargin
     val myModel = toModel(ns, smithy)
-    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel).toTry.get
+    val schemaUnderTest = DynamicSchemaIndex.loadModel(myModel)
     val mySchema = schemaUnderTest.getSchema(ShapeId(ns, shapeName)).get
     val countVisitor = new ShapeCountSchemaVisitor {}
     countVisitor(mySchema)

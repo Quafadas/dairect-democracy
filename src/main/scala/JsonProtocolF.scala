@@ -40,12 +40,58 @@ import com.github.plokhotnyuk.jsoniter_scala.core.JsonCodec
 import openai.App.ChatCompletionResponseMessageFunctionCall
 import scala.annotation.experimental
 import openai.App.FunctionCall
+import smithyOpenAI.schemaFromModel.InlineVisitor
 
 /** These are toy interpreters that turn services into json-in/json-out functions, and vice versa.
   *
   * Created for testing purposes.
   */
 class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
+
+  @experimental
+  def toJsonSchema2[Alg[_[_, _, _, _, _]]](
+      alg: FunctorAlgebra[Alg, F]
+  )(implicit S: Service[Alg]): Document =
+    // val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
+    // val serviceName = S.id.name
+    // val hints = S.service.hints
+    // val docHint = hints.get(smithy.api.Documentation)
+    // val model = S.S.service
+
+    val s: IndexedSeq[Document] = S.endpoints
+      .map((ep: Endpoint[S.Operation, ?, ?, ?, ?, ?]) =>
+
+        // val s = ep.input.compile(schemaFromModel.InlineVisitor(ep.input))
+
+        // s.input.compile()
+
+        val defs = Set[ShapeId]()
+        // val t = smithy.api.Pattern
+        val hints = ep.hints.get(smithy.api.Documentation)
+        val docHint = ep.hints.get(smithy.api.Documentation)
+        val description = docHint
+          .map(desc => Map("description" -> Document.fromString(desc.toString())))
+          .getOrElse(Map.empty[String, Document])
+
+        val epDesc = Map[String, Document](
+          "name" -> Document.fromString(ep.name)
+        ) ++ description
+        val shapeCounts = new ShapeCountSchemaVisitor {}
+        // ep.input.compile(shapeCounts)
+        // val schema = ep.input.withId()
+        // println(shapeCounts.getCounts)
+        val endpointfields = ep.input.compile(new JsonSchemaVisitor {})
+
+        val schema = epDesc ++
+          Map(
+            "parameters" -> Document.DObject(endpointfields.makeWithDefs(defs))
+          )
+
+        Document.DObject(schema)
+      )
+      .toIndexedSeq
+    Document.DArray(s)
+  end toJsonSchema2
 
   // def dummy[Alg[_[_, _, _, _, _]]](
   //     service: Service[Alg]
@@ -169,7 +215,7 @@ class JsonProtocolF[F[_]](implicit F: MonadThrow[F]):
   def toJsonSchema[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
   )(implicit S: Service[Alg]): Document =
-    val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
+    // val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
     val serviceName = S.id.name
     val hints = S.service.hints
     val docHint = hints.get(smithy.api.Documentation)

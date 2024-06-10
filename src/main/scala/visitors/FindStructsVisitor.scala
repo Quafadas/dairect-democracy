@@ -94,6 +94,6 @@ class FindStructsVisitor extends SchemaVisitor[Noop]:
     Noop[U]()
   end union
 
-  override def option[A](schema: Schema[A]): Noop[Option[A]] = ???
+  override def option[A](schema: Schema[A]): Noop[Option[A]] = Noop[Option[A]]()
 
 end FindStructsVisitor
