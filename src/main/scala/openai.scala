@@ -45,11 +45,11 @@ object App extends IOApp:
       role = "system",
       content = s
     )
-    def functionMsg(functionResult: String, functionName: String, args: Option[String] = None) = AiMessage(
-      role = "function",
-      content = functionResult,
-      function_call = Some(FunctionCall(name = functionName, arguments = args))
-    )
+    // def functionMsg(functionResult: String, functionName: String, args: Option[String] = None) = AiMessage(
+    //   role = "function",
+    //   content = functionResult,
+    //   function_call = Some(FunctionCall(name = functionName, arguments = args))
+    // )
   end extension
 
   /** This test only that you are hooked into openAI
@@ -112,9 +112,11 @@ object App extends IOApp:
 
   case class AiChoice(message: AiAnswer, finish_reason: Option[String]) derives Schema
 
-  case class AiAnswer(role: String, content: Option[String], function_call: Option[FunctionCall]) derives Schema
+  case class AiAnswer(role: String, content: Option[String], tool_calls: Option[List[ToolCall]]) derives Schema
 
   case class AiResponseFormat(`type`: String) derives Schema
+
+  case class ToolCall(id: String, `type`: String, function: FunctionCall) derives Schema
 
   case class FunctionCall(name: String, arguments: Option[String]) derives Schema
 
@@ -140,7 +142,7 @@ object App extends IOApp:
         // responseFormat: AiResponseFormat,
         temperature: Option[Double],
         // functions: Option[List[ChatCompletionFunctions]] = None
-        functions: Option[Document] = None
+        tools: Option[Document] = None
     ): IO[ChatResponse] = ???
   end OpenAiService
 

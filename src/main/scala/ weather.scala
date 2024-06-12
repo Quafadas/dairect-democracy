@@ -1,4 +1,4 @@
-package weather
+package openai
 
 import smithy4s.*
 import smithy4s.deriving.{given, *}
@@ -34,19 +34,19 @@ end WeatherService
 
 case class WeatherOut(weather: String) derives Schema
 
+val osImpl = new OsService() {}
+
 @experimental
-@simpleRestJson
-@hints(smithy.api.Documentation("Dad Joke Service"))
+@hints(smithy.api.Documentation("Os lib service"))
 /** Get the weather for a city given a latitude and longitude
   */
-object DadJokeService derives API:
+trait OsService derives API:
   @readonly
-  @httpGet("/weather/{lat}/{long}")
-  @hints(smithy.api.Documentation("Get the weather at lat long"))
-  def getWeatherLatLong(
-      @hints(Documentation("Latitude")) @httpLabel lat: Double,
-      @hints(Documentation("Longditude")) @httpLabel long: Double
-  ): IO[WeatherOut] // = IO(WeatherOut(s"Lovely weather at $lat, $long"))
-end WeatherService
-
-case class WeatherOut(weather: String) derives Schema
+  def makeTempDir(dirPrefix: String): IO[String] =
+    IO.blocking {
+      println("Creating a temporary directory")
+      val outDir = os.temp.dir(deleteOnExit = false, prefix = dirPrefix).toString
+      println(outDir)
+      outDir.toString
+    }
+end OsService

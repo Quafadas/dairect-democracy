@@ -32,21 +32,19 @@ import smithy4s.*
 import smithy4s.deriving.{given, *}
 import smithy4s.deriving.aliases.* // for syntactically pleasant annotations
 
-import weather.WeatherService
-import weather.WeatherOut
 import scala.annotation.experimental
 import openai.App.FunctionCall
 import openai.App.AiMessage
 
 @experimental
-object SmithyModelled extends IOApp.Simple:
+object Showcase extends IOApp.Simple:
 
   val prompts = List[String](
     "Get the weather at latitude 47.3769 and longditude 8.5417" // use with the weather service
   )
 
   val osPrompt = List[String](
-    "create a temporary directory. Once tell me it's path." // use with the os service
+    "create a temporary directory, prefixed with `bob`. Once tell me it's path." // use with the os service
   )
 
   val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
@@ -55,13 +53,13 @@ object SmithyModelled extends IOApp.Simple:
   def run: IO[Unit] =
     App.aiResource.use: (openAI) =>
 
-      val testJiggy = new SmithyOpenAIUtil[IO]
-      val functions4Bot = testJiggy.toJsonSchema(API[WeatherService].liftService(weather.weatherImpl))
+      val smithyKitForAI = new SmithyOpenAIUtil[IO]
+      val functions4Bot = smithyKitForAI.toJsonSchema(API[OsService].liftService(osImpl))
       val smithyDispatcher =
-        testJiggy.openAiSmithyFunctionDispatch(API[WeatherService].liftService(weather.weatherImpl))
+        smithyKitForAI.openAiSmithyFunctionDispatch(API[OsService].liftService(osImpl))
 
       val sendMe =
-        for (aPrompt <- prompts.map(userMsg))
+        for (aPrompt <- osPrompt.map(userMsg))
           yield
             val startMessages: List[AiMessage] = List(
               AiMessage(
@@ -75,7 +73,7 @@ object SmithyModelled extends IOApp.Simple:
                 model = gpt3Turbo,
                 temperature = Some(0.0),
                 messages = startMessages,
-                functions = Some(functions4Bot)
+                tools = Some(functions4Bot)
               )
               .flatMap { response =>
                 val botChoices = response.choices.head
@@ -87,13 +85,18 @@ object SmithyModelled extends IOApp.Simple:
                       IO.println(response) >>
                       IO.pure(None)
                   case Some(value) =>
-                    val fctCall = botChoices.message.function_call.get
-                    val fctResult = smithyDispatcher.apply(fctCall)
-                    val fctName = fctCall.name
+                    println(botChoices)
+                    val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
+                    val fctResult = fctCalls.traverse(fct =>
+                      smithyDispatcher.apply(fct.function).map { result =>
+                        Document.DObject(Map("id" -> Document.fromString(fct.id), "result" -> result))
+                      }
+                    )
+                    // val fctName = fctCall.name
                     fctResult.map(s =>
                       Some(
                         List(
-                          assistentMessageFctCall(smithy4s.json.Json.writeDocumentAsPrettyString(s))
+                          assistentMessageFctCall(smithy4s.json.Json.writeDocumentAsPrettyString(Document.array(s)))
                         )
                       )
                     )
@@ -125,11 +128,11 @@ object SmithyModelled extends IOApp.Simple:
       role = "system",
       content = s
     )
-    def functionMsg(functionResult: String, functionName: String, args: Option[String] = None) = AiMessage(
-      role = "function",
-      content = functionResult,
-      function_call = Some(FunctionCall(name = functionName, arguments = args))
-    )
+    // def functionMsg(functionResult: String, functionName: String, args: Option[String] = None) = AiMessage(
+    //   role = "function",
+    //   content = functionResult,
+    //   function_call = Some(FunctionCall(name = functionName, arguments = args))
+    // )
   end extension
 
   def assistentMessageFctCall(result: String): AiMessage =
@@ -138,4 +141,4 @@ object SmithyModelled extends IOApp.Simple:
       content = result
     )
 
-end SmithyModelled
+end Showcase

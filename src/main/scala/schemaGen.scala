@@ -16,8 +16,6 @@ import smithy4s.dynamic.DynamicSchemaIndex
 import scala.jdk.CollectionConverters.*
 import software.amazon.smithy.model.Model
 import smithy4s.dynamic.*
-import weather.weatherImpl
-import weather.WeatherService
 import smithy4s.deriving.API
 import smithy4s.Service
 import scala.util.chaining.*
@@ -56,7 +54,7 @@ def testy() =
   //                      |""".stripMargin
 
   // val model = getModelForShape("foo.smithy", modelString)
-  val weatherApi = API[WeatherService]
+  val weatherApi = API[openai.WeatherService]
   val unvalidatedModel = DynamicSchemaIndex.builder.addAll(Service[weatherApi.Free]).build().toSmithyModel
   val openaiSchema = schemaFromModel(unvalidatedModel)
   println(Node.prettyPrintJson(openaiSchema))
@@ -137,6 +135,7 @@ object schemaFromModel:
     val input: Shape = model.expectShape(operationShape.getInputShape())
     val inputNode =
       jsonSchemaConverter.convertShape(input).toNode().accept(InlineVisitor(jsonSchema))
+
     Node
       .objectNodeBuilder()
       .withMember("type", "function")
