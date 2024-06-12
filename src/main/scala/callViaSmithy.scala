@@ -85,14 +85,12 @@ object Showcase extends IOApp.Simple:
                       IO.println(response) >>
                       IO.pure(None)
                   case Some(value) =>
-                    println(botChoices)
                     val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
                     val fctResult = fctCalls.traverse(fct =>
                       smithyDispatcher.apply(fct.function).map { result =>
                         Document.DObject(Map("id" -> Document.fromString(fct.id), "result" -> result))
                       }
                     )
-                    // val fctName = fctCall.name
                     fctResult.map(s =>
                       Some(
                         List(
