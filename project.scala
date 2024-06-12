@@ -8,6 +8,7 @@
 //> using dep com.disneystreaming.smithy4s::smithy4s-dynamic::0.18.21,
 //> using dep tech.neander::smithy4s-deriving::0.0.2
 //> using dep software.amazon.smithy:smithy-jsonschema:latest.release
+//> using dep co.fs2::fs2-core::3.10.2
 
 //> using plugin tech.neander::smithy4s-deriving-compiler::0.0.2
 //> using option -experimental

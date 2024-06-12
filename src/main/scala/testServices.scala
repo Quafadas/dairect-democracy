@@ -49,4 +49,18 @@ trait OsService derives API:
       println(outDir)
       outDir.toString
     }
+
+  def createFileInDir(dir: String, fileName: String, contents: Option[String]): IO[String] =
+    IO.println(s"Creating a file in $dir") >>
+      IO.blocking {
+        val filePath = os.Path(dir) / fileName
+        os.write(filePath, "Hello, world!")
+        filePath.toString
+      }
+
+  def askHuman(question: String): IO[String] =
+    IO.println(s"Human, please answer: $question") *>
+      IO.blocking {
+        scala.io.StdIn.readLine()
+      }
 end OsService

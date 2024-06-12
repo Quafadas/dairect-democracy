@@ -43,9 +43,8 @@ object Showcase extends IOApp.Simple:
     "Get the weather at latitude 47.3769 and longditude 8.5417" // use with the weather service
   )
 
-  val osPrompt = List[String](
-    "create a temporary directory, prefixed with `bob`. Once tell me it's path." // use with the os service
-  )
+  val osPrompt =
+    "create a temporary directory, once that's done, confirm with a human, then create a file in it, with the the text `hello world`. Then stop" // use with the os service
 
   val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
     EmberClientBuilder.default[IO].build
@@ -58,63 +57,63 @@ object Showcase extends IOApp.Simple:
       val smithyDispatcher =
         smithyKitForAI.openAiSmithyFunctionDispatch(API[OsService].liftService(osImpl))
 
-      val sendMe =
-        for (aPrompt <- osPrompt.map(userMsg))
-          yield
-            val startMessages: List[AiMessage] = List(
-              AiMessage(
-                role = "system",
-                content = "You are a helpful assistent."
-              )
-            ) :+ aPrompt
+      val startMessages: List[AiMessage] = List(
+        AiMessage(
+          role = "system",
+          content = "You are a helpful assistent."
+        )
+      ) :+ osPrompt.userMsg
 
-            openAI
-              .chat(
-                model = gpt3Turbo,
-                temperature = Some(0.0),
-                messages = startMessages,
-                tools = Some(functions4Bot)
-              )
-              .flatMap { response =>
-                val botChoices = response.choices.head
-                val responseMsg = botChoices.message
-                botChoices.finish_reason match
-                  case None =>
-                    IO.println("-----------------") >>
-                      IO.println("Don't want to be here") >>
-                      IO.println(response) >>
-                      IO.pure(None)
-                  case Some(value) =>
-                    val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
-                    val fctResult = fctCalls.traverse(fct =>
-                      smithyDispatcher.apply(fct.function).map { result =>
-                        Document.DObject(Map("id" -> Document.fromString(fct.id), "result" -> result))
-                      }
-                    )
-                    fctResult.map(s =>
-                      Some(
-                        List(
-                          assistentMessageFctCall(smithy4s.json.Json.writeDocumentAsPrettyString(Document.array(s)))
+      val talkToAi = fs2.Stream
+        .unfoldLoopEval[IO, List[AiMessage], Unit](startMessages) { startMessages =>
+          openAI
+            .chat(
+              model = gpt3Turbo,
+              temperature = Some(0.0),
+              messages = startMessages,
+              tools = Some(functions4Bot)
+            )
+            .flatMap { response =>
+              println(response)
+              val botChoices = response.choices.last
+              val responseMsg = botChoices.message
+              botChoices.finish_reason match
+                case None =>
+                  IO.raiseError(
+                    new Exception("No finish reason provided. Bot should always provide a finish reason")
+                  )
+                case Some(value) =>
+                  value match
+                    case "tool_calls" =>
+                      val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
+                      val fctResult = fctCalls.traverse(fct =>
+                        smithyDispatcher.apply(fct.function).map { result =>
+                          Document.DObject(Map("id" -> Document.fromString(fct.id), "result" -> result))
+                        }
+                      )
+                      fctResult.map { s =>
+                        val msgs = List(
+                          assistentMessageFctCall(
+                            smithy4s.json.Json.writeDocumentAsPrettyString(Document.array(s))
+                          )
                         )
-                      )
-                    )
-                end match
-              }
-              .flatMap((in: Option[List[AiMessage]]) =>
-                in match
-                  case None => IO.println("Done")
-                  case Some(ccm) =>
-                    val newMessages = startMessages ++ ccm
-                    openAI
-                      .chat(
-                        model = gpt3Turbo,
-                        temperature = 0.0.some,
-                        messages = newMessages
-                      )
-                      .flatMap(IO.println)
-              )
+                        ((), Some(startMessages ++ msgs))
+                      }
 
-      sendMe.sequence.void
+                    case "stop" =>
+                      IO.println("Done") >>
+                        IO.pure(((), None))
+                    case _ =>
+                      IO.println("Bot finished with unknown finish reason") >>
+                        IO.println(response) >>
+                        IO.raiseError(new Exception("Bot finished with unknown finish reason"))
+
+              end match
+            }
+
+        }
+
+      talkToAi.compile.drain
   end run
 
   extension (s: String)
