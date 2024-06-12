@@ -5,7 +5,7 @@ import smithy4s.deriving.{given, *}
 import smithy4s.deriving.aliases.*
 import cats.effect.IO
 import scala.annotation.experimental
-import smithy.api.* // if you want to use hints from the official smithy standard library
+import smithy.api.Documentation // if you want to use hints from the official smithy standard library
 import alloy.* // if you want to use hints from the alloy library
 
 // @error("execution error")
@@ -19,11 +19,13 @@ val weatherImpl = new WeatherService():
 
 @experimental
 @simpleRestJson
-@hints(Documentation("Get the weather at lat long"))
+@hints(smithy.api.Documentation("weather service"))
+/** Get the weather for a city given a latitude and longitude
+  */
 trait WeatherService() derives API:
-
   @readonly
   @httpGet("/weather/{lat}/{long}")
+  @hints(smithy.api.Documentation("Get the weather at lat long"))
   def getWeatherLatLong(
       @hints(Documentation("Latitude")) @httpLabel lat: Double,
       @hints(Documentation("Longditude")) @httpLabel long: Double
@@ -32,5 +34,19 @@ end WeatherService
 
 case class WeatherOut(weather: String) derives Schema
 
-case class LatLong(
-) derives Schema
+@experimental
+@simpleRestJson
+@hints(smithy.api.Documentation("Dad Joke Service"))
+/** Get the weather for a city given a latitude and longitude
+  */
+object DadJokeService derives API:
+  @readonly
+  @httpGet("/weather/{lat}/{long}")
+  @hints(smithy.api.Documentation("Get the weather at lat long"))
+  def getWeatherLatLong(
+      @hints(Documentation("Latitude")) @httpLabel lat: Double,
+      @hints(Documentation("Longditude")) @httpLabel long: Double
+  ): IO[WeatherOut] // = IO(WeatherOut(s"Lovely weather at $lat, $long"))
+end WeatherService
+
+case class WeatherOut(weather: String) derives Schema

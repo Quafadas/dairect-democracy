@@ -12,52 +12,55 @@ import software.amazon.smithy.jsonschema.SchemaDocument
 import scala.util.chaining.*
 import software.amazon.smithy.jsonschema.Schema
 import software.amazon.smithy.model.loader.ModelDiscovery
+import smithy4s.dynamic.DynamicSchemaIndex
+import scala.jdk.CollectionConverters.*
+import software.amazon.smithy.model.Model
+import smithy4s.dynamic.*
+import weather.weatherImpl
+import weather.WeatherService
+import smithy4s.deriving.API
+import smithy4s.Service
+import scala.util.chaining.*
 // import smithy4s.dynamic.DynamicSchemaIndex
 
 @main
 def testy() =
 
-  ModelDiscovery.findModels().asScala.foreach {
-    println
-  }
+  // def getModelForShape(modelName: String, smithyString: String) = Model
+  //   .assembler()
+  //   .addUnparsedModel(modelName, smithyString)
+  //   .assemble()
+  //   .unwrap()
 
-  def getModelForShape(modelName: String, smithyString: String) = Model
-    .assembler()
-    .addUnparsedModel(modelName, smithyString)
-    .assemble()
-    .unwrap()
+  // val modelString = """|$version: "2"
+  //                      |
+  //                      |namespace foo
+  //                      |
+  //                      |@documentation("some Foo operation")
+  //                      |operation Foo {
+  //                      |  input := {
+  //                      |    @required
+  //                      |    query: Query
+  //                      |  }
+  //                      |  output := {
+  //                      |    @required
+  //                      |    result: String
+  //                      |  }
+  //                      |}
+  //                      |
+  //                      |structure Query {
+  //                     |@documentation("a query")
+  //                      |  @required
+  //                      |  text: String
+  //                      |}
+  //                      |""".stripMargin
 
-  val modelString = """|$version: "2"
-                       |
-                       |namespace foo
-                       |
-                       |/// some Foo operation
-                       |operation Foo {
-                       |  input := {
-                       |    @required
-                       |    query: Query
-                       |  }
-                       |  output := {
-                       |    @required
-                       |    result: String
-                       |  }
-                       |}
-                       |
-                       |structure Query {
-                       |  @required
-                       |  text: String
-                       |}
-                       |""".stripMargin
+  // val model = getModelForShape("foo.smithy", modelString)
+  val weatherApi = API[WeatherService]
+  val unvalidatedModel = DynamicSchemaIndex.builder.addAll(Service[weatherApi.Free]).build().toSmithyModel
+  val openaiSchema = schemaFromModel(unvalidatedModel)
+  println(Node.prettyPrintJson(openaiSchema))
 
-  val model = getModelForShape("foo.smithy", modelString)
-
-  val openaiSchema = schemaFromModel(model)
-  // println(Node.prettyPrintJson(openaiSchema))
-
-  ModelDiscovery.findModels().asScala.foreach {
-    println
-  }
-  ()
 end testy
 
 object schemaFromModel:
@@ -74,21 +77,13 @@ object schemaFromModel:
     )
   end apply
 
-  def apply(schema: SchemaDocument) = ???
-  // val definitions = schema.getDefinitions().asScala.toMap
-  // Node.fromNodes(
-  //   model
-  //     .getOperationShapes()
-  //     .asScala
-  //     .map(shape => openaiOperation(shape, model, jsonSchemaConverter, jsonSchema))
-  //     .toSeq*
-  // )
-  end apply
-
   def prepareForInterogation(model: Model) = JsonSchemaConverter
     .builder()
-    .model(model)
-    .build()
+    .pipe { b =>
+      // b.config(jsc)
+      b.model(model)
+      b.build()
+    }
     .pipe { converter =>
       val schema = converter.convert()
       (converter, schema, schema.getDefinitions().asScala.toMap)

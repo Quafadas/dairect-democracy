@@ -139,7 +139,8 @@ object App extends IOApp:
         messages: List[AiMessage],
         // responseFormat: AiResponseFormat,
         temperature: Option[Double],
-        functions: Option[List[ChatCompletionFunctions]] = None
+        // functions: Option[List[ChatCompletionFunctions]] = None
+        functions: Option[Document] = None
     ): IO[ChatResponse] = ???
   end OpenAiService
 
