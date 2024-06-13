@@ -76,13 +76,7 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
       ep match
         case Some(jsonEndpoint) =>
           val fctResult = jsonEndpoint(fctConfig)
-          fctResult.map(r =>
-            Document.obj(
-              "role" -> Document.fromString("function"),
-              "name" -> Document.fromString(m.name),
-              "content" -> r
-            )
-          )
+          fctResult
         case None => F.raiseError(NotFound)
       end match
 

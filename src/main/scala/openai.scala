@@ -21,12 +21,21 @@ import cats.effect.ExitCode
 import ciris.*
 import cats.effect.kernel.Resource
 import org.http4s.client.middleware.Logger
+import javax.xml.namespace.QName
+
+import openai.App.ChatCompletionResponseMessageFunctionCall
+import openai.App.FunctionCall
+import smithy4s.deriving.internals.Meta
 
 @experimental
 object App extends IOApp:
-  import openai.App.AiMessage
-  import openai.App.ChatCompletionResponseMessageFunctionCall
-  import openai.App.FunctionCall
+
+  given [BaseAiMessage: Schema]: Schema[List[BaseAiMessage]] =
+    val schemaA = summon[Schema[BaseAiMessage]]
+    val idA = schemaA.shapeId
+    val id = idA.copy(name = idA.name + "List")
+    Schema.list(schemaA).withId(id)
+  end given
 
   val logger = (cIn: Client[IO]) =>
     Logger(
@@ -35,22 +44,6 @@ object App extends IOApp:
       name => name.toString.toLowerCase.contains("token"),
       Some((x: String) => IO.println(x))
     )(cIn)
-
-  extension (s: String)
-    def userMsg = AiMessage(
-      role = "user",
-      content = s
-    )
-    def systemMsg = AiMessage(
-      role = "system",
-      content = s
-    )
-    // def functionMsg(functionResult: String, functionName: String, args: Option[String] = None) = AiMessage(
-    //   role = "function",
-    //   content = functionResult,
-    //   function_call = Some(FunctionCall(name = functionName, arguments = args))
-    // )
-  end extension
 
   /** This test only that you are hooked into openAI
     *
@@ -62,7 +55,7 @@ object App extends IOApp:
         aiService
           .chat(
             "gpt-3.5-turbo",
-            List(AiMessage("user", "Hello, I am cow. Who are you?")),
+            List(AiMessage.user("Hello, I am cow. Who are you?")),
             None
           )
           .flatMap(IO.println)
@@ -104,8 +97,59 @@ object App extends IOApp:
 
   case class AiMessage(
       role: String,
+      content: Option[String] = None,
+      tool_calls: Option[List[ToolCall]] = None,
+      tool_call_id: Option[String] = None
+  ) derives Schema
+
+  object AiMessage:
+    // Sent by us to the AI
+    def user(content: String): AiMessage =
+      AiMessage("user", Some(content))
+
+    // Seeds the conversation with the AI
+    def system(content: String): AiMessage = AiMessage("system", Some(content))
+
+    // A message from the AI to us
+    def assistant(content: Option[String], tool_calls: List[ToolCall]): AiMessage =
+      (content, tool_calls) match
+        case (None, x :: xs) =>
+          AiMessage("assistant", None, Some(tool_calls))
+        case (Some(content), Nil) =>
+          AiMessage("assistant", Some(content), Some(tool_calls))
+        case _ => throw new Exception("Assistant message must have only one of content OR tool calls")
+
+    // A message from a tool to the AI
+    def tool(content: String, tool_call_id: String): AiMessage =
+      AiMessage("tool", Some(content), None, Some(tool_call_id))
+
+  end AiMessage
+
+  // https: // platform.openai.com/docs/api-reference/chat
+  type BaseAiMessage = SystemMessage | UserMessage | BotMessage | ToolMessage
+
+  case class SystemMessage(
       content: String,
-      function_call: Option[FunctionCall] = None
+      role: String = "system",
+      name: Option[String] = None
+  ) derives Schema
+
+  case class UserMessage(
+      role: String = "user",
+      content: String,
+      name: Option[String] = None
+  ) derives Schema
+
+  case class BotMessage(
+      role: String = "assistant",
+      content: Option[String],
+      tool_calls: String
+  ) derives Schema
+
+  case class ToolMessage(
+      role: String = "tool",
+      content: String,
+      tool_call_id: String
   ) derives Schema
 
   val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
@@ -118,7 +162,7 @@ object App extends IOApp:
 
   case class ToolCall(id: String, `type`: String, function: FunctionCall) derives Schema
 
-  case class FunctionCall(name: String, arguments: Option[String]) derives Schema
+  case class FunctionCall(name: String, description: Option[String], arguments: Option[String]) derives Schema
 
   def authMiddleware(tokResource: Resource[IO, String]): org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
     Client { req =>

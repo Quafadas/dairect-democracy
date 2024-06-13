@@ -34,6 +34,14 @@ import smithy4s.deriving.aliases.* // for syntactically pleasant annotations
 
 import scala.annotation.experimental
 import openai.App.FunctionCall
+
+import smithy4s.json.Json
+import openai.App.AiChoice
+import openai.App.SystemMessage
+import openai.App.BaseAiMessage
+import openai.App.BotMessage
+import openai.App.ToolMessage
+import openai.App.UserMessage
 import openai.App.AiMessage
 
 @experimental
@@ -44,7 +52,9 @@ object Showcase extends IOApp.Simple:
   )
 
   val osPrompt =
-    "create a temporary directory, once that's done, confirm with a human, then create a file in it, with the the text `hello world`. Then stop" // use with the os service
+    AiMessage.user(
+      "create a temporary directory, once that's done create file in it, with the the text `hello world`. Then ask for further instructions"
+    ) // use with the os service
 
   val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
     EmberClientBuilder.default[IO].build
@@ -58,24 +68,22 @@ object Showcase extends IOApp.Simple:
         smithyKitForAI.openAiSmithyFunctionDispatch(API[OsService].liftService(osImpl))
 
       val startMessages: List[AiMessage] = List(
-        AiMessage(
-          role = "system",
-          content = "You are a helpful assistent."
-        )
-      ) :+ osPrompt.userMsg
+        AiMessage.system("You are a helpful assistent.")
+      ) :+ osPrompt
 
       val talkToAi = fs2.Stream
-        .unfoldLoopEval[IO, List[AiMessage], Unit](startMessages) { startMessages =>
+        .unfoldEval[IO, List[AiMessage], Unit](startMessages) { allMessages =>
+          IO.println(allMessages)
           openAI
             .chat(
               model = gpt3Turbo,
               temperature = Some(0.0),
-              messages = startMessages,
+              messages = allMessages,
               tools = Some(functions4Bot)
             )
             .flatMap { response =>
               println(response)
-              val botChoices = response.choices.last
+              val botChoices = response.choices.head
               val responseMsg = botChoices.message
               botChoices.finish_reason match
                 case None =>
@@ -86,23 +94,24 @@ object Showcase extends IOApp.Simple:
                   value match
                     case "tool_calls" =>
                       val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
-                      val fctResult = fctCalls.traverse(fct =>
-                        smithyDispatcher.apply(fct.function).map { result =>
-                          Document.DObject(Map("id" -> Document.fromString(fct.id), "result" -> result))
-                        }
-                      )
-                      fctResult.map { s =>
-                        val msgs = List(
-                          assistentMessageFctCall(
-                            smithy4s.json.Json.writeDocumentAsPrettyString(Document.array(s))
-                          )
+                      val newMessages = fctCalls
+                        .traverse(fct =>
+                          smithyDispatcher.apply(fct.function).map { result =>
+                            AiMessage.tool(
+                              tool_call_id = fct.id,
+                              content = Json.writeDocumentAsPrettyString(result)
+                            )
+                          }
                         )
-                        ((), Some(startMessages ++ msgs))
-                      }
+                        .map { msgs =>
+                          println(allMessages ++ botChoices.toMessage ++ msgs)
+                          Some((), allMessages ++ botChoices.toMessage ++ msgs)
+                        }
+                      newMessages
 
                     case "stop" =>
                       IO.println("Done") >>
-                        IO.pure(((), None))
+                        IO.pure(None)
                     case _ =>
                       IO.println("Bot finished with unknown finish reason") >>
                         IO.println(response) >>
@@ -116,13 +125,20 @@ object Showcase extends IOApp.Simple:
       talkToAi.compile.drain
   end run
 
+  extension (aic: AiChoice)
+    def toMessage: List[AiMessage] =
+      List(
+        AiMessage.assistant(
+          content = aic.message.content,
+          tool_calls = aic.message.tool_calls.getOrElse(List.empty)
+        )
+      )
+
   extension (s: String)
-    def userMsg = AiMessage(
-      role = "user",
+    def userMsg = UserMessage(
       content = s
     )
-    def systemMsg = AiMessage(
-      role = "system",
+    def systemMsg = SystemMessage(
       content = s
     )
     // def functionMsg(functionResult: String, functionName: String, args: Option[String] = None) = AiMessage(
@@ -131,11 +147,5 @@ object Showcase extends IOApp.Simple:
     //   function_call = Some(FunctionCall(name = functionName, arguments = args))
     // )
   end extension
-
-  def assistentMessageFctCall(result: String): AiMessage =
-    AiMessage(
-      role = "assistant",
-      content = result
-    )
 
 end Showcase

@@ -54,7 +54,7 @@ trait OsService derives API:
     IO.println(s"Creating a file in $dir") >>
       IO.blocking {
         val filePath = os.Path(dir) / fileName
-        os.write(filePath, "Hello, world!")
+        os.write(filePath, contents.getOrElse(""))
         filePath.toString
       }
 
