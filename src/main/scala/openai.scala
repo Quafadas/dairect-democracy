@@ -96,13 +96,8 @@ object Agent:
 
                   case "stop" =>
                     IO.println("Done") >>
-                      response.choices.head.message.tool_calls match
-                      case Some(toolCalls) =>
-                        toolCalls.traverse()
-                      case None => IO.println(response.choices)
-                    end match
-
-                    IO.pure(None)
+                      IO.println(response.choices) >>
+                      IO.pure(None)
                   case _ =>
                     IO.println("Bot finished with unknown finish reason") >>
                       IO.println(response) >>
