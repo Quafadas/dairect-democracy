@@ -48,9 +48,8 @@ import org.http4s.syntax.all.uri
 import io.github.quafadas.dairect.Agent.ChatGptConfig
 
 @experimental
-object Showcase extends IOApp.Simple:
+object ScalaCliTest extends IOApp.Simple:
 
-  val random = Random.scalaUtilRandom[IO].toResource
   val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
     EmberClientBuilder.default[IO].build
 
@@ -58,7 +57,7 @@ object Showcase extends IOApp.Simple:
 
   val osPrompt =
     AiMessage.user(
-      "create a temporary directory, once that's done create file in it, with the the text `hello world` in it. Ask if more help is needed, until you get a negative response. Once you've finished please create a summary of the work you've done."
+      "Compile the code in this directory; /var/folders/b7/r2s8sm653rj8w9krmxd2748w0000gn/T/temp14386784565594745538. Once successfully compiled, run it and provide a summary of your work."
     )
 
   val gpt3Turbo = "gpt-3.5-turbo-0613"
@@ -83,9 +82,9 @@ object Showcase extends IOApp.Simple:
         temperature = 0.0.some
       )
 
-      Agent.startAgent(agent, startMessages, params, API[OsTool].liftService(osImpl)).void
+      Agent.startAgent(agent, startMessages, params, API[ScalaCliTool].liftService(scalaCliImpl)).void
     }
 
   end run
 
-end Showcase
+end ScalaCliTest

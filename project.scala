@@ -11,6 +11,7 @@
 //> using dep co.fs2::fs2-core::3.10.2
 //> using dep co.fs2::fs2-io::3.10.2
 //> using dep org.sqids::sqids:0.5.0
+//> using dep com.outr::scribe-cats::3.15.0
 
 //> using plugin tech.neander::smithy4s-deriving-compiler::0.0.2
 //> using option -experimental

@@ -8,6 +8,9 @@ import scala.annotation.experimental
 import smithy.api.Documentation // if you want to use hints from the official smithy standard library
 import alloy.* // if you want to use hints from the alloy library
 import cats.effect.std.Console
+import fs2.io.process.ProcessBuilder
+import fs2.text
+import cats.syntax.all.*
 
 // @error("execution error")
 case class LocationNotRecognised(errorMessage: String) extends Throwable derives Schema:
@@ -36,6 +39,89 @@ end WeatherService
 case class WeatherOut(weather: String) derives Schema
 
 val osImpl = new OsTool() {}
+val scalaCliImpl = new ScalaCliTool() {}
+
+val autoCodeable = new AutoCode {}
+
+// Note the explicit references below... can't do better for now... move on.
+trait AutoCode extends OsTool with ScalaCliTool derives API:
+  def compileScalaDir(dir: String): IO[String] = scalaCliImpl.compile(dir)
+  def runScalaDir(dir: String): IO[String] = scalaCliImpl.run(dir)
+  override def makeTempDir(dirPrefix: String): IO[String] = osImpl.makeTempDir(dirPrefix)
+  override def createOrOverwriteFileInDir(dir: String, fileName: String, contents: Option[String]): IO[String] =
+    osImpl.createOrOverwriteFileInDir(dir, fileName, contents)
+end AutoCode
+
+// trait AutoCode(using os: OsTool, scalaCliTool: ScalaCliTool) derives API:
+//   def compile(dir: String): IO[String] = scalaCliTool.compile(dir)
+//   def runScalaDir(dir: String): IO[String] = scalaCliTool.run(dir)
+//   def makeTempDir(dirPrefix: String): IO[String] = os.makeTempDir(dirPrefix)
+//   def createOrOverwriteFileInDir(dir: String, fileName: String, contents: Option[String]): IO[String] =
+//     os.createOrOverwriteFileInDir(dir, fileName, contents)
+// end AutoCode
+
+trait ScalaCliTool derives API:
+  def compile(dir: String): IO[String] =
+    val asPath = fs2.io.file.Path(dir)
+    val scalaCliArgs = List(
+      "compile",
+      dir
+    )
+    ProcessBuilder(
+      "scala-cli",
+      scalaCliArgs
+    ).withWorkingDirectory(asPath)
+      .spawn[IO]
+      .use { p =>
+        val stdout = p.stdout
+          .through(text.utf8.decode)
+          .compile
+          .toList
+          .map(_.mkString)
+
+        val stdError = p.stderr
+          .through(text.utf8.decode)
+          .compile
+          .toList
+          .map(_.mkString)
+
+        stdout.both(stdError).map { (out, err) =>
+          s"stdout: $out\nstderr: $err"
+        }
+      }
+  end compile
+
+  def run(dir: String): IO[String] =
+    val asPath = fs2.io.file.Path(dir)
+    val scalaCliArgs = List(
+      "run",
+      dir
+    )
+    ProcessBuilder(
+      "scala-cli",
+      scalaCliArgs
+    ).withWorkingDirectory(asPath)
+      .spawn[IO]
+      .use { p =>
+        val stdout = p.stdout
+          .through(text.utf8.decode)
+          .compile
+          .toList
+          .map(_.mkString)
+
+        val stdError = p.stderr
+          .through(text.utf8.decode)
+          .compile
+          .toList
+          .map(_.mkString)
+
+        stdout.both(stdError).map { (out, err) =>
+          s"stdout: $out\nstderr: $err"
+        }
+      }
+  end run
+
+end ScalaCliTool
 
 @experimental
 @hints(smithy.api.Documentation("Local file and os operations"))
@@ -51,11 +137,11 @@ trait OsTool derives API:
         outDir.toString
       }
 
-  def createFileInDir(dir: String, fileName: String, contents: Option[String]): IO[String] =
+  def createOrOverwriteFileInDir(dir: String, fileName: String, contents: Option[String]): IO[String] =
     IO.println(s"Creating a file in $dir") >>
       IO.blocking {
         val filePath = os.Path(dir) / fileName
-        os.write(filePath, contents.getOrElse(""))
+        os.write.over(filePath, contents.getOrElse(""))
         filePath.toString
       }
 

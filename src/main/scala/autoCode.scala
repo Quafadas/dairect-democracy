@@ -48,9 +48,8 @@ import org.http4s.syntax.all.uri
 import io.github.quafadas.dairect.Agent.ChatGptConfig
 
 @experimental
-object Showcase extends IOApp.Simple:
+object AutoCodeExample extends IOApp.Simple:
 
-  val random = Random.scalaUtilRandom[IO].toResource
   val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
     EmberClientBuilder.default[IO].build
 
@@ -58,7 +57,7 @@ object Showcase extends IOApp.Simple:
 
   val osPrompt =
     AiMessage.user(
-      "create a temporary directory, once that's done create file in it, with the the text `hello world` in it. Ask if more help is needed, until you get a negative response. Once you've finished please create a summary of the work you've done."
+      "Write a scala script to download data from https://raw.githubusercontent.com/uwdata/draco/master/data/cars.csv to a temporary directory. Tell me the first 5 rows of the data."
     )
 
   val gpt3Turbo = "gpt-3.5-turbo-0613"
@@ -75,7 +74,9 @@ object Showcase extends IOApp.Simple:
 
     agent.use { agent =>
       val startMessages: List[AiMessage] = List(
-        AiMessage.system("You are a helpful assistent.")
+        AiMessage.system(
+          "You are a helpful assistent. You write code in scala to solve problems. You have access to scala-cli via the compileScalaDir and runScalaDir functions, which will compile and run scala code in a given directory"
+        )
       ) :+ osPrompt
 
       val params = ChatGptConfig(
@@ -83,9 +84,9 @@ object Showcase extends IOApp.Simple:
         temperature = 0.0.some
       )
 
-      Agent.startAgent(agent, startMessages, params, API[OsTool].liftService(osImpl)).void
+      Agent.startAgent(agent, startMessages, params, API[AutoCode].liftService(autoCodeable)).void
     }
 
   end run
 
-end Showcase
+end AutoCodeExample
