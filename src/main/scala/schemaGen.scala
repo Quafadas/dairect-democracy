@@ -1,4 +1,4 @@
-package smithyOpenAI
+package io.github.quafadas.dairect
 
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.jsonschema.JsonSchemaConverter
@@ -19,47 +19,47 @@ import smithy4s.dynamic.*
 import smithy4s.deriving.API
 import smithy4s.Service
 import scala.util.chaining.*
-// import smithy4s.dynamic.DynamicSchemaIndex
+// // import smithy4s.dynamic.DynamicSchemaIndex
 
-@main
-def testy() =
+// @main
+// def testy() =
 
-  // def getModelForShape(modelName: String, smithyString: String) = Model
-  //   .assembler()
-  //   .addUnparsedModel(modelName, smithyString)
-  //   .assemble()
-  //   .unwrap()
+//   // def getModelForShape(modelName: String, smithyString: String) = Model
+//   //   .assembler()
+//   //   .addUnparsedModel(modelName, smithyString)
+//   //   .assemble()
+//   //   .unwrap()
 
-  // val modelString = """|$version: "2"
-  //                      |
-  //                      |namespace foo
-  //                      |
-  //                      |@documentation("some Foo operation")
-  //                      |operation Foo {
-  //                      |  input := {
-  //                      |    @required
-  //                      |    query: Query
-  //                      |  }
-  //                      |  output := {
-  //                      |    @required
-  //                      |    result: String
-  //                      |  }
-  //                      |}
-  //                      |
-  //                      |structure Query {
-  //                     |@documentation("a query")
-  //                      |  @required
-  //                      |  text: String
-  //                      |}
-  //                      |""".stripMargin
+//   // val modelString = """|$version: "2"
+//   //                      |
+//   //                      |namespace foo
+//   //                      |
+//   //                      |@documentation("some Foo operation")
+//   //                      |operation Foo {
+//   //                      |  input := {
+//   //                      |    @required
+//   //                      |    query: Query
+//   //                      |  }
+//   //                      |  output := {
+//   //                      |    @required
+//   //                      |    result: String
+//   //                      |  }
+//   //                      |}
+//   //                      |
+//   //                      |structure Query {
+//   //                     |@documentation("a query")
+//   //                      |  @required
+//   //                      |  text: String
+//   //                      |}
+//   //                      |""".stripMargin
 
-  // val model = getModelForShape("foo.smithy", modelString)
-  val weatherApi = API[openai.WeatherService]
-  val unvalidatedModel = DynamicSchemaIndex.builder.addAll(Service[weatherApi.Free]).build().toSmithyModel
-  val openaiSchema = schemaFromModel(unvalidatedModel)
-  println(Node.prettyPrintJson(openaiSchema))
+//   // val model = getModelForShape("foo.smithy", modelString)
+//   val weatherApi = API[openai.WeatherService]
+//   val unvalidatedModel = DynamicSchemaIndex.builder.addAll(Service[weatherApi.Free]).build().toSmithyModel
+//   val openaiSchema = schemaFromModel(unvalidatedModel)
+//   println(Node.prettyPrintJson(openaiSchema))
 
-end testy
+// end testy
 
 object schemaFromModel:
 

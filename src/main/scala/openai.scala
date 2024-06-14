@@ -1,11 +1,15 @@
-package openai
+package io.github.quafadas.dairect
 
 import smithy4s.*
+import smithy4s.Document.*
+import smithy4s.json.Json
+import smithy4s.schema.*
+import smithy4s.schema.Primitive.*
+
 import smithy4s.deriving.{given, *}
 import smithy4s.deriving.aliases.{*, given}
 import cats.effect.IO
 import scala.annotation.experimental
-import org.http4s.ember.client.EmberClientBuilder
 import smithy.api.*
 import smithy.api.NonEmptyString.asBijection
 import smithy4s.http4s.SimpleRestJsonBuilder
@@ -23,45 +27,94 @@ import cats.effect.kernel.Resource
 import org.http4s.client.middleware.Logger
 import javax.xml.namespace.QName
 
-import openai.App.ChatCompletionResponseMessageFunctionCall
-import openai.App.FunctionCall
+import Agent.ChatCompletionResponseMessageFunctionCall
+import Agent.FunctionCall
 import smithy4s.deriving.internals.Meta
+import cats.effect.std.Random
+import org.http4s.Uri
+import io.github.quafadas.dairect.Agent.AiMessage.tool
+import cats.syntax.traverse.toTraverseOps
+import cats.instances.list.*
+import smithy4s.kinds.FunctorAlgebra
 
 @experimental
-object App extends IOApp:
+object Agent:
 
-  given [BaseAiMessage: Schema]: Schema[List[BaseAiMessage]] =
-    val schemaA = summon[Schema[BaseAiMessage]]
-    val idA = schemaA.shapeId
-    val id = idA.copy(name = idA.name + "List")
-    Schema.list(schemaA).withId(id)
-  end given
-
-  val logger = (cIn: Client[IO]) =>
-    Logger(
-      logBody = true,
-      logHeaders = false,
-      name => name.toString.toLowerCase.contains("token"),
-      Some((x: String) => IO.println(x))
-    )(cIn)
-
-  /** This test only that you are hooked into openAI
-    *
-    * *
+  /** @param model
+    *   \- An implementation of the ChatGpt service. There is not a "single" one of these, as it is anticipated that
+    *   people may wish to configure different middle (logging et al) for individual agents.
+    * @param seedMessages
+    *   \- The messages that will seed the conversation with this agent.
+    * @param modelParams
+    *   \- Params to call chatGPT with.
+    * @return
     */
-  def run(args: List[String]) =
-    aiResource
-      .use { aiService =>
-        aiService
+  def startAgent[Alg[_[_, _, _, _, _]]](
+      model: ChatGpt,
+      seedMessages: List[AiMessage],
+      modelParams: ChatGptConfig,
+      toolkit: FunctorAlgebra[Alg, IO]
+  )(implicit S: Service[Alg]) =
+    val functions = ioToolGen.toJsonSchema(toolkit)
+    val functionDispatcher = ioToolGen.openAiSmithyFunctionDispatch(toolkit)
+    fs2.Stream
+      .unfoldEval[IO, List[AiMessage], List[AiMessage]](seedMessages) { allMessages =>
+        model
           .chat(
-            "gpt-3.5-turbo",
-            List(AiMessage.user("Hello, I am cow. Who are you?")),
-            None
+            model = modelParams.model,
+            temperature = modelParams.temperature,
+            messages = allMessages,
+            tools = Some(functions)
           )
-          .flatMap(IO.println)
-          .handleErrorWith(IO.println)
+          .flatMap { response =>
+            // println(response)
+            val botChoices = response.choices.head
+            val responseMsg = botChoices.message
+            botChoices.finish_reason match
+              case None =>
+                IO.raiseError(
+                  new Exception("No finish reason provided. Bot should always provide a finish reason")
+                )
+              case Some(value) =>
+                value match
+                  case "tool_calls" =>
+                    val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
+                    val newMessages = fctCalls
+                      .traverse(fct =>
+                        functionDispatcher.apply(fct.function).map { result =>
+                          AiMessage.tool(
+                            tool_call_id = fct.id,
+                            content = Json.writeDocumentAsPrettyString(result)
+                          )
+                        }
+                      )
+                      .map { msgs =>
+                        // val newMessages =
+                        Some(allMessages ++ botChoices.toMessage ++ msgs, allMessages ++ botChoices.toMessage ++ msgs)
+                      }
+                    newMessages
+
+                  case "stop" =>
+                    IO.println("Done") >>
+                      IO.pure(None)
+                  case _ =>
+                    IO.println("Bot finished with unknown finish reason") >>
+                      IO.println(response) >>
+                      IO.raiseError(new Exception("Bot finished with unknown finish reason"))
+
+            end match
+          }
+
       }
-      .as(ExitCode.Success)
+      .compile
+      .lastOrError
+
+  end startAgent
+
+  case class ChatGptConfig(
+      model: String,
+      temperature: Option[Double]
+  ) derives Schema
 
   /** The name and arguments of a function that should be called, as generated by the model.
     * @param name
@@ -86,14 +139,6 @@ object App extends IOApp:
       model: String,
       choices: List[AiChoice]
   ) derives Schema
-
-  val aiResource = EmberClientBuilder.default[IO].build.flatMap { httpClient =>
-    SimpleRestJsonBuilder(API.service[OpenAiService])
-      .client[IO](logger(authMiddleware(apikey)(httpClient)))
-      .uri(uri"https://api.openai.com/")
-      .resource
-      .map(_.unliftService)
-  }
 
   case class AiMessage(
       role: String,
@@ -152,8 +197,6 @@ object App extends IOApp:
       tool_call_id: String
   ) derives Schema
 
-  val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
-
   case class AiChoice(message: AiAnswer, finish_reason: Option[String]) derives Schema
 
   case class AiAnswer(role: String, content: Option[String], tool_calls: Option[List[ToolCall]]) derives Schema
@@ -164,20 +207,9 @@ object App extends IOApp:
 
   case class FunctionCall(name: String, description: Option[String], arguments: Option[String]) derives Schema
 
-  def authMiddleware(tokResource: Resource[IO, String]): org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
-    Client { req =>
-      tokResource.flatMap { tok =>
-        client.run(
-          req.withHeaders(
-            req.headers ++ Headers(Authorization(Credentials.Token(AuthScheme.Bearer, tok)))
-          )
-        )
-      }
-    }
-
   @experimental
   @simpleRestJson
-  class OpenAiService() derives API:
+  trait ChatGpt derives API:
 
     @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/chat/completions"), 200))
     def chat(
@@ -188,13 +220,30 @@ object App extends IOApp:
         // functions: Option[List[ChatCompletionFunctions]] = None
         tools: Option[Document] = None
     ): IO[ChatResponse] = ???
-  end OpenAiService
+  end ChatGpt
 
-end App
+  object ChatGpt:
+    def apply(client: Client[IO], baseUrl: Uri): Resource[IO, ChatGpt] = SimpleRestJsonBuilder(API.service[ChatGpt])
+      .client[IO](client)
+      .uri(baseUrl)
+      .resource
+      .map(_.unliftService)
 
-@experimental
-case class ChatCompletionFunctions(
-    name: String,
-    parameters: Document,
-    description: Option[String] = None
-) derives Schema
+  end ChatGpt
+
+  extension (aic: AiChoice)
+    def toMessage: List[AiMessage] =
+      List(
+        AiMessage.assistant(
+          content = aic.message.content,
+          tool_calls = aic.message.tool_calls.getOrElse(List.empty)
+        )
+      )
+
+  case class ChatCompletionFunctions(
+      name: String,
+      parameters: Document,
+      description: Option[String] = None
+  ) derives Schema
+
+end Agent
