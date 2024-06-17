@@ -1,40 +1,11 @@
 package io.github.quafadas.dairect
 
-import cats.effect.kernel.Resource
-import org.http4s.client.Client
-import cats.effect.IOApp
 import cats.effect.IO
-import smithy4s.schema.Schema
-import smithy4s.Document
-import org.http4s.client.middleware.Logger
-import org.http4s.ember.client.EmberClientBuilder
-import ciris.*
-import smithy4s.http4s.SimpleRestJsonBuilder
-import org.http4s.Uri
-import org.http4s.headers.Authorization
-import org.http4s.Credentials
-import org.http4s.AuthScheme
-import smithy4s.deriving.*
-
-import cats.syntax.option.*
-
-import org.http4s.Headers
-import org.http4s.Header
-import org.typelevel.ci.CIStringSyntax
-import org.http4s.headers.Accept
-import org.http4s.headers.Authorization
-import org.http4s.MediaRange
-import cats.syntax.all.*
-import cats.instances.function
-import scala.language.experimental
-import smithy4s.*
-import smithy4s.deriving.{given, *}
-import smithy4s.deriving.aliases.* // for syntactically pleasant annotations
+import cats.effect.IOApp
 
 import scala.annotation.experimental
-import Agent.FunctionCall
 
-import smithy4s.json.Json
+import Agent.FunctionCall
 import Agent.AiChoice
 import Agent.SystemMessage
 import Agent.BaseAiMessage
@@ -42,10 +13,9 @@ import Agent.BotMessage
 import Agent.ToolMessage
 import Agent.UserMessage
 import Agent.AiMessage
-import cats.effect.std.Random
 import Agent.ChatGpt
-import org.http4s.syntax.all.uri
-import io.github.quafadas.dairect.Agent.ChatGptConfig
+import Agent.ChatGptConfig
+import smithy4s.deriving.API
 
 @experimental
 object Showcase extends IOApp.Simple:
@@ -61,7 +31,7 @@ object Showcase extends IOApp.Simple:
 
     val params = ChatGptConfig(
       model = "gpt-3.5-turbo-0613",
-      temperature = 0.0.some
+      temperature = Some(0.0)      
     )
 
     agent.use { agent =>
