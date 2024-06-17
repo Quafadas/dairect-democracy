@@ -16,12 +16,14 @@ import Agent.AiMessage
 import Agent.ChatGpt
 import Agent.ChatGptConfig
 import smithy4s.deriving.API
+import fs2.io.file.Path
+import cats.effect.kernel.Resource
 
 @experimental
 object Showcase extends IOApp.Simple:
   def run: IO[Unit] =
-    val logFile = fs2.io.file.Path("log.txt")    
-    val agent = ChatGpt.defaultAuthLogToFile(logFile)
+    val logFile: Path = fs2.io.file.Path("log.txt")    
+    val agent: Resource[IO, ChatGpt] = ChatGpt.defaultAuthLogToFile(logFile)
     val startMessages: List[AiMessage] = List(        
       AiMessage.system("You are a helpful assistent."),
       AiMessage.user(
@@ -29,7 +31,7 @@ object Showcase extends IOApp.Simple:
       )
     )
 
-    val params = ChatGptConfig(
+    val params: ChatGptConfig = ChatGptConfig(
       model = "gpt-3.5-turbo-0613",
       temperature = Some(0.0)      
     )
