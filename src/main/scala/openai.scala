@@ -241,12 +241,30 @@ object Agent:
   end ChatGpt
 
   object ChatGpt:
+    /**
+      * 
+      *
+      * @param client - An http4s client - apply your middleware to it
+      * @param baseUrl - The base url of the openAi service see [[ChatGpt]]
+      * @return
+      */
     def apply(client: Client[IO], baseUrl: Uri): Resource[IO, ChatGpt] = SimpleRestJsonBuilder(API.service[ChatGpt])
       .client[IO](client)
       .uri(baseUrl)
       .resource
       .map(_.unliftService)
 
+    /**
+      * This agent will write all in and outgoing messages to the file specified (no headers). It is assumed, that an environment variable OPEN_AI_API_TOKEN is set with a valid token, to openai's api. 
+      * 
+      * It ought to be rather easy to customize this to your needs by:
+      *  - changing the logPath to a different path ( per agent perhaps )
+      *  - using a different URL (if your corp wraps the endpoint seperately)
+      *  - Adding other http4s client middleware
+      *
+      * @param logPath - The path to the log file
+      * @return
+      */
     def defaultAuthLogToFile(logPath: fs2.io.file.Path): Resource[IO, ChatGpt] = 
       val clientR = EmberClientBuilder.default[IO].build
       val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
