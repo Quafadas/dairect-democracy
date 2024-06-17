@@ -36,9 +36,15 @@ import io.github.quafadas.dairect.Agent.AiMessage.tool
 import cats.syntax.traverse.toTraverseOps
 import cats.instances.list.*
 import smithy4s.kinds.FunctorAlgebra
+import cats.collections.syntax.all
 
 @experimental
 object Agent:
+
+  enum ContinueFold:
+    case Stop
+    case Continue
+  end ContinueFold
 
   /** @param model
     *   \- An implementation of the ChatGpt service. There is not a "single" one of these, as it is anticipated that
@@ -58,58 +64,60 @@ object Agent:
     val functions = ioToolGen.toJsonSchema(toolkit)
     val functionDispatcher = ioToolGen.openAiSmithyFunctionDispatch(toolkit)
     fs2.Stream
-      .unfoldEval[IO, List[AiMessage], List[AiMessage]](seedMessages) { allMessages =>
-        model
-          .chat(
-            model = modelParams.model,
-            temperature = modelParams.temperature,
-            messages = allMessages,
-            tools = Some(functions)
-          )
-          .flatMap { response =>
-            // println(response)
-            val botChoices = response.choices.head
-            val responseMsg = botChoices.message
-            botChoices.finish_reason match
-              case None =>
-                IO.raiseError(
-                  new Exception("No finish reason provided. Bot should always provide a finish reason")
-                )
-              case Some(value) =>
-                value match
-                  case "tool_calls" =>
-                    val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
-                    val newMessages = fctCalls
-                      .traverse(fct =>
-                        functionDispatcher.apply(fct.function).map { result =>
-                          AiMessage.tool(
-                            tool_call_id = fct.id,
-                            content = Json.writeDocumentAsPrettyString(result)
+      .unfoldEval[IO, (ContinueFold, List[AiMessage]), List[AiMessage]]((ContinueFold.Continue, seedMessages)) { (continue, allMessages) =>
+
+        continue match
+          case ContinueFold.Stop => IO.pure(None)
+          case ContinueFold.Continue =>
+            model
+              .chat(
+                model = modelParams.model,
+                temperature = modelParams.temperature,
+                messages = allMessages,
+                tools = Some(functions)
+              )
+              .flatMap { response =>
+                // println(response)
+                val botChoices = response.choices.head
+                val responseMsg = botChoices.message
+                botChoices.finish_reason match
+                  case None =>
+                    IO.raiseError(
+                      new Exception("No finish reason provided. Bot should always provide a finish reason")
+                    )
+                  case Some(value) =>
+                    value match
+                      case "tool_calls" =>
+                        val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
+                        val newMessages = fctCalls
+                          .traverse(fct =>
+                            functionDispatcher.apply(fct.function).map { result =>
+                              AiMessage.tool(
+                                tool_call_id = fct.id,
+                                content = Json.writeDocumentAsPrettyString(result)
+                              )
+                            }
                           )
-                        }
-                      )
-                      .map { msgs =>
-                        // val newMessages =
-                        Some(allMessages ++ botChoices.toMessage ++ msgs, allMessages ++ botChoices.toMessage ++ msgs)
-                      }
-                    newMessages
+                          .map { msgs =>                        
+                            allMessages ++ botChoices.toMessage ++ msgs
+                          }
+                        newMessages.map(msgs => Some((msgs, (ContinueFold.Continue, msgs))))
 
-                  case "stop" =>
-                    IO.println("Done") >>
-                      IO.println(response.choices) >>
-                      IO.pure(None)
-                  case _ =>
-                    IO.println("Bot finished with unknown finish reason") >>
-                      IO.println(response) >>
-                      IO.raiseError(new Exception("Bot finished with unknown finish reason"))
+                      case "stop" =>                        
+                          val finalMessages = allMessages ++ botChoices.toMessage
+                          IO.pure(Some((finalMessages, (ContinueFold.Stop, finalMessages))))
+                      case _ =>
+                        IO.println("Bot finished with unknown finish reason") >>
+                          IO.println(response) >>
+                          IO.raiseError(new Exception("Bot finished with unknown finish reason"))
 
-            end match
+                end match
+              }
+
           }
-
-      }
-      .compile
-      .lastOrError
-
+          .compile
+          .lastOrError
+        
   end startAgent
 
   case class ChatGptConfig(
@@ -138,7 +146,14 @@ object Agent:
       id: String,
       created: Int,
       model: String,
-      choices: List[AiChoice]
+      choices: List[AiChoice],
+      usage: AiTokenUsage
+  ) derives Schema
+
+  case class AiTokenUsage(
+      completion_tokens: Int,
+      prompt_tokens: Int,
+      total_tokens: Int
   ) derives Schema
 
   case class AiMessage(
@@ -202,24 +217,25 @@ object Agent:
 
   case class AiAnswer(role: String, content: Option[String], tool_calls: Option[List[ToolCall]]) derives Schema
 
-  case class AiResponseFormat(`type`: String) derives Schema
+  // case class AiResponseFormat(`type`: String) derives Schema
 
-  case class ToolCall(id: String, `type`: String, function: FunctionCall) derives Schema
+  case class ToolCall(id: String, `type`: String = "function", function: FunctionCall) derives Schema
 
   case class FunctionCall(name: String, description: Option[String], arguments: Option[String]) derives Schema
 
   @experimental
   @simpleRestJson
   trait ChatGpt derives API:
-
+    /**
+      * https://platform.openai.com/docs/api-reference/chat
+      */  
     @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/chat/completions"), 200))
     def chat(
         model: String,
-        messages: List[AiMessage],
-        // responseFormat: AiResponseFormat,
-        temperature: Option[Double],
-        // functions: Option[List[ChatCompletionFunctions]] = None
-        tools: Option[Document] = None
+        messages: List[AiMessage],        
+        temperature: Option[Double],        
+        tools: Option[Document] = None,
+        responseFormat: Option[AiResponseFormat] = None,
     ): IO[ChatResponse] = ???
   end ChatGpt
 
@@ -246,5 +262,10 @@ object Agent:
       parameters: Document,
       description: Option[String] = None
   ) derives Schema
+
+  enum AiResponseFormat derives Schema:
+    case json_object
+    case text
+
 
 end Agent

@@ -56,7 +56,7 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
 
     (m: FunctionCall) =>
       val fctConfig: Document = smithy4s.json.Json.readDocument(m.arguments.get).getOrElse(???)
-      println(fctConfig)
+      
       val ep = jsonEndpoints.get(m.name)
 
       ep match
