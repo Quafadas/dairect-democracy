@@ -37,6 +37,7 @@ import cats.syntax.traverse.toTraverseOps
 import cats.instances.list.*
 import smithy4s.kinds.FunctorAlgebra
 import cats.collections.syntax.all
+import org.http4s.ember.client.EmberClientBuilder
 
 @experimental
 object Agent:
@@ -245,6 +246,17 @@ object Agent:
       .uri(baseUrl)
       .resource
       .map(_.unliftService)
+
+    def defaultAuthLogToFile(logPath: fs2.io.file.Path): Resource[IO, ChatGpt] = 
+      val clientR = EmberClientBuilder.default[IO].build
+      val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
+      val logger = fileLogger(logPath)
+      for
+        _ <- makeLogFile(logPath).toResource        
+        client <- clientR
+        authdClient = authMiddleware(apikey)(logger(client))
+        chatGpt <- ChatGpt.apply((authdClient), uri"https://api.openai.com/")
+      yield chatGpt      
 
   end ChatGpt
 

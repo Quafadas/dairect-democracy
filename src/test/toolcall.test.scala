@@ -111,7 +111,7 @@ class ToolCallSuite extends CatsEffectSuite {
   test("Tool can called by the AI") {
       
         val startAgent = Agent.startAgent(fakeAi, List(firstMessage), fakeParams, API[FakeTool].liftService(fakeTool))
-        startAgent.flatMap(IO.println) >>
+        // startAgent.flatMap(IO.println) >>
         assertIO(startAgent.map(_.length), 4) >>
         assertIO(startAgent.map(_.head.content), Some("call a fake tool")) >>
         assertIO(startAgent.map( l => l(1).content), None) >>

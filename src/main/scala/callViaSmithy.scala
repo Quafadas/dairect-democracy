@@ -49,42 +49,24 @@ import io.github.quafadas.dairect.Agent.ChatGptConfig
 
 @experimental
 object Showcase extends IOApp.Simple:
-
-  val random = Random.scalaUtilRandom[IO].toResource
-  val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
-    EmberClientBuilder.default[IO].build
-
-  val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
-
-  val osPrompt =
-    AiMessage.user(
+  def run: IO[Unit] =
+    val logFile = fs2.io.file.Path("log.txt")    
+    val agent = ChatGpt.defaultAuthLogToFile(logFile)
+    val startMessages: List[AiMessage] = List(        
+      AiMessage.system("You are a helpful assistent."),
+      AiMessage.user(
       "create a temporary directory, once that's done create file in it, with the the text `hello world` in it. Ask if more help is needed, until you get a negative response. Once you've finished please create a summary of the work you've done."
+      )
     )
 
-  val gpt3Turbo = "gpt-3.5-turbo-0613"
-  def run: IO[Unit] =
-    val logFile = fs2.io.file.Path("log.txt")
-    val logger = fileLogger(logFile)
-
-    val agent = for
-      _ <- makeLogFile(logFile).toResource
-      client <- clientR
-      authdClient = authMiddleware(apikey)(logger(client))
-      chatGpt <- ChatGpt.apply((authdClient), uri"https://api.openai.com/")
-    yield chatGpt
+    val params = ChatGptConfig(
+      model = "gpt-3.5-turbo-0613",
+      temperature = 0.0.some
+    )
 
     agent.use { agent =>
-      val startMessages: List[AiMessage] = List(
-        AiMessage.system("You are a helpful assistent.")
-      ) :+ osPrompt
-
-      val params = ChatGptConfig(
-        model = gpt3Turbo,
-        temperature = 0.0.some
-      )
-
       Agent.startAgent(agent, startMessages, params, API[OsTool].liftService(osImpl)).void
-    }
+    }.flatMap(IO.println)
 
   end run
 
