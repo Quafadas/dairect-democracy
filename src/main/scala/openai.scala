@@ -54,6 +54,8 @@ object Agent:
     *   \- The messages that will seed the conversation with this agent.
     * @param modelParams
     *   \- Params to call chatGPT with.
+    * @param toolkit
+    *  \- This is a smithy4s 'API' or 'Service'. This agent will be able to call the Operations exposed by this service, as tool calls.
     * @return
     */
   def startAgent[Alg[_[_, _, _, _, _]]](
