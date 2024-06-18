@@ -59,9 +59,8 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
       smithy4s.json.Json.readDocument(m.arguments.get) match
         case Left(error) =>
           F.raiseError(new Throwable(s"Failed to parse arguments for $m .\n Error: $error"))
-        case Right(fctConfig) =>
-          val ep = jsonEndpoints.get(m.name)
-          ep match
+        case Right(fctConfig) =>          
+          jsonEndpoints.get(m.name) match
             case Some(jsonEndpoint) =>
               jsonEndpoint(fctConfig)
             case None => F.raiseError(new Throwable(s"Function $m not found"))
@@ -85,12 +84,20 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
           new Document.Encoder[E]:
             def encode(e: E): Document = Document.DNull
     (document: Document) =>
+      // println(Json.writeDocumentAsPrettyString(document))
       for
         input <- document.decode[I].liftTo[F]
         op = endpoint.wrap(input)
-        output <- (polyFunction(op): F[O]).map(encoderO.encode).recover { case endpoint.Error((_, e)) =>
+        output <- (polyFunction(op): F[O]).map{in =>           
+          encoderO.encode(in) match 
+            case Document.DObject(fields) => fields.get("value").getOrElse(???)
+            case _ => ???
+
+        }.recover { case endpoint.Error((_, e)) =>
           Document.obj("error" -> encoderE.encode(e))
         }
-      yield output
+      yield 
+        // println(Json.writeDocumentAsPrettyString(output))
+        output
   end toLowLevel
 end SmithyOpenAIUtil

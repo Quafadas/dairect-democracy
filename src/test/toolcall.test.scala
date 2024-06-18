@@ -108,17 +108,15 @@ class ToolCallSuite extends CatsEffectSuite {
     temperature = Some(0.0)    
   )
 
-  test("Tool can called by the AI") {
-      
+  test("Tool can called by the AI") {      
         val startAgent = Agent.startAgent(fakeAi, List(firstMessage), fakeParams, API[FakeTool].liftService(fakeTool))
         // startAgent.flatMap(IO.println) >>
         assertIO(startAgent.map(_.length), 4) >>
         assertIO(startAgent.map(_.head.content), Some("call a fake tool")) >>
         assertIO(startAgent.map( l => l(1).content), None) >>
         assertIO(startAgent.map( l => l(1).tool_calls.size), 1) >>
-        assertIO(startAgent.map(l => l(2).content ), Some("{\n  \"value\": 3\n}")) >>        
-        assertIO(startAgent.map(_.last.content), Some("Finished"))
-              
+        assertIO(startAgent.map(l => l(2).content ), Some("3")) >>        
+        assertIO(startAgent.map(_.last.content), Some("Finished"))              
   }
 
 }

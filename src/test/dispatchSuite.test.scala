@@ -6,6 +6,7 @@ import cats.effect.IO
 import smithy4s.json.Json
 import io.github.quafadas.dairect.Agent.FunctionCall
 import munit.CatsEffectSuite
+import smithy4s.Document
 
 class FunctionCallSuite extends CatsEffectSuite:
 
@@ -23,15 +24,12 @@ class FunctionCallSuite extends CatsEffectSuite:
       name = "fakeFunctionName",
       description = None,
       arguments = Some("""{"a": 1, "b": 2}""")
-    )
+    )    
 
     assertIO(
       simpleTool(call).map(Json.writeDocumentAsPrettyString),
-      """{
-     3
-  """
+      "3"
     )
-
   }
 
 end FunctionCallSuite
