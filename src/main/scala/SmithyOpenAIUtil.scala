@@ -28,6 +28,7 @@ import Agent.FunctionCall
 import smithy4s.dynamic.DynamicSchemaIndex
 import smithy4s.deriving.API
 import cats.effect.IO
+import smithy4s.internals.DocumentEncoder
 
 /** These are toy interpreters that turn services into json-in/json-out functions, and vice versa.
   *
@@ -55,15 +56,17 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
       S.endpoints.map(ep => ep.name -> toLowLevel(transformation, ep)).toMap
 
     (m: FunctionCall) =>
-      val fctConfig: Document = smithy4s.json.Json.readDocument(m.arguments.get).getOrElse(???)
-      
-      val ep = jsonEndpoints.get(m.name)
+      smithy4s.json.Json.readDocument(m.arguments.get) match
+        case Left(error) =>
+          F.raiseError(new Throwable(s"Failed to parse arguments for $m .\n Error: $error"))
+        case Right(fctConfig) =>
+          val ep = jsonEndpoints.get(m.name)
+          ep match
+            case Some(jsonEndpoint) =>
+              jsonEndpoint(fctConfig)
+            case None => F.raiseError(new Throwable(s"Function $m not found"))
+          end match
 
-      ep match
-        case Some(jsonEndpoint) =>
-          val fctResult = jsonEndpoint(fctConfig)
-          fctResult
-        case None => F.raiseError(NotFound)
       end match
 
   end openAiSmithyFunctionDispatch
@@ -72,9 +75,9 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
       polyFunction: PolyFunction5[Op, Kind1[F]#toKind5],
       endpoint: Endpoint[Op, I, E, O, SI, SO]
   ): Document => F[Document] =
-    implicit val decoderI = Document.Decoder.fromSchema(endpoint.input)
-    implicit val encoderO = Document.Encoder.fromSchema(endpoint.output)
-    implicit val encoderE: Document.Encoder[E] =
+    given decoderI: Decoder[I] = Document.Decoder.fromSchema(endpoint.input)
+    given encoderO: Encoder[O] = Document.Encoder.fromSchema(endpoint.output)
+    given encoderE: Document.Encoder[E] =
       endpoint.errorschema match
         case Some(errorableE) =>
           Document.Encoder.fromSchema(errorableE.schema)
@@ -90,6 +93,4 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
         }
       yield output
   end toLowLevel
-
-  case object NotFound extends Throwable
 end SmithyOpenAIUtil

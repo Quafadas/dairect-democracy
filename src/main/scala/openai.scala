@@ -55,7 +55,8 @@ object Agent:
     * @param modelParams
     *   \- Params to call chatGPT with.
     * @param toolkit
-    *  \- This is a smithy4s 'API' or 'Service'. This agent will be able to call the Operations exposed by this service, as tool calls.
+    *   \- This is a smithy4s 'API' or 'Service'. This agent will be able to call the Operations exposed by this
+    *   service, as tool calls.
     * @return
     */
   def startAgent[Alg[_[_, _, _, _, _]]](
@@ -67,60 +68,61 @@ object Agent:
     val functions = ioToolGen.toJsonSchema(toolkit)
     val functionDispatcher = ioToolGen.openAiSmithyFunctionDispatch(toolkit)
     fs2.Stream
-      .unfoldEval[IO, (ContinueFold, List[AiMessage]), List[AiMessage]]((ContinueFold.Continue, seedMessages)) { (continue, allMessages) =>
-
-        continue match
-          case ContinueFold.Stop => IO.pure(None)
-          case ContinueFold.Continue =>
-            model
-              .chat(
-                model = modelParams.model,
-                temperature = modelParams.temperature,
-                messages = allMessages,
-                tools = Some(functions)
-              )
-              .flatMap { response =>
-                // println(response)
-                val botChoices = response.choices.head
-                val responseMsg = botChoices.message
-                botChoices.finish_reason match
-                  case None =>
-                    IO.raiseError(
-                      new Exception("No finish reason provided. Bot should always provide a finish reason")
-                    )
-                  case Some(value) =>
-                    value match
-                      case "tool_calls" =>
-                        val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
-                        val newMessages = fctCalls
-                          .traverse(fct =>
-                            functionDispatcher.apply(fct.function).map { result =>
-                              AiMessage.tool(
-                                tool_call_id = fct.id,
-                                content = Json.writeDocumentAsPrettyString(result)
-                              )
+      .unfoldEval[IO, (ContinueFold, List[AiMessage]), List[AiMessage]]((ContinueFold.Continue, seedMessages)) {
+        (continue, allMessages) =>
+          continue match
+            case ContinueFold.Stop => IO.pure(None)
+            case ContinueFold.Continue =>
+              model
+                .chat(
+                  model = modelParams.model,
+                  temperature = modelParams.temperature,
+                  messages = allMessages,
+                  tools = Some(functions)
+                )
+                .flatMap { response =>
+                  // println(response)
+                  val botChoices = response.choices.head
+                  val responseMsg = botChoices.message
+                  botChoices.finish_reason match
+                    case None =>
+                      IO.raiseError(
+                        new Exception("No finish reason provided. Bot should always provide a finish reason")
+                      )
+                    case Some(value) =>
+                      value match
+                        case "tool_calls" =>
+                          val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
+                          val newMessages = fctCalls
+                            .traverse(fct =>
+                              functionDispatcher.apply(fct.function).map { result =>
+                                // println(result)
+                                AiMessage.tool(
+                                  tool_call_id = fct.id,
+                                  content = Json.writeDocumentAsPrettyString(result)
+                                )
+                              }
+                            )
+                            .map { msgs =>
+                              allMessages ++ botChoices.toMessage ++ msgs
                             }
-                          )
-                          .map { msgs =>                        
-                            allMessages ++ botChoices.toMessage ++ msgs
-                          }
-                        newMessages.map(msgs => Some((msgs, (ContinueFold.Continue, msgs))))
+                          newMessages.map(msgs => Some((msgs, (ContinueFold.Continue, msgs))))
 
-                      case "stop" =>                        
+                        case "stop" =>
                           val finalMessages = allMessages ++ botChoices.toMessage
                           IO.pure(Some((finalMessages, (ContinueFold.Stop, finalMessages))))
-                      case _ =>
-                        IO.println("Bot finished with unknown finish reason") >>
-                          IO.println(response) >>
-                          IO.raiseError(new Exception("Bot finished with unknown finish reason"))
+                        case _ =>
+                          IO.println("Bot finished with unknown finish reason") >>
+                            IO.println(response) >>
+                            IO.raiseError(new Exception("Bot finished with unknown finish reason"))
 
-                end match
-              }
+                  end match
+                }
 
-          }
-          .compile
-          .lastOrError
-        
+      }
+      .compile
+      .lastOrError
+
   end startAgent
 
   case class ChatGptConfig(
@@ -229,25 +231,23 @@ object Agent:
   @experimental
   @simpleRestJson
   trait ChatGpt derives API:
-    /**
-      * https://platform.openai.com/docs/api-reference/chat
-      */  
+    /** https://platform.openai.com/docs/api-reference/chat
+      */
     @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/chat/completions"), 200))
     def chat(
         model: String,
-        messages: List[AiMessage],        
-        temperature: Option[Double],        
+        messages: List[AiMessage],
+        temperature: Option[Double],
         tools: Option[Document] = None,
-        responseFormat: Option[AiResponseFormat] = None,
+        responseFormat: Option[AiResponseFormat] = None
     ): IO[ChatResponse] = ???
   end ChatGpt
 
   object ChatGpt:
-    /**
-      * 
-      *
-      * @param client - An http4s client - apply your middleware to it
-      * @param baseUrl - The base url of the openAi service see [[ChatGpt]]
+    /** @param client
+      *   \- An http4s client - apply your middleware to it
+      * @param baseUrl
+      *   \- The base url of the openAi service see [[ChatGpt]]
       * @return
       */
     def apply(client: Client[IO], baseUrl: Uri): Resource[IO, ChatGpt] = SimpleRestJsonBuilder(API.service[ChatGpt])
@@ -256,27 +256,30 @@ object Agent:
       .resource
       .map(_.unliftService)
 
-    /**
-      * This agent will write all in and outgoing messages to the file specified (no headers). It is assumed, that an environment variable OPEN_AI_API_TOKEN is set with a valid token, to openai's api. 
-      * 
-      * It ought to be rather easy to customize this to your needs by:
-      *  - changing the logPath to a different path ( per agent perhaps )
-      *  - using a different URL (if your corp wraps the endpoint seperately)
-      *  - Adding other http4s client middleware
+    /** This agent will write all in and outgoing messages to the file specified (no headers). It is assumed, that an
+      * environment variable OPEN_AI_API_TOKEN is set with a valid token, to openai's api.
       *
-      * @param logPath - The path to the log file
+      * It ought to be rather easy to customize this to your needs by:
+      *   - changing the logPath to a different path ( per agent perhaps )
+      *   - using a different URL (if your corp wraps the endpoint seperately)
+      *   - Adding other http4s client middleware
+      *
+      * @param logPath
+      *   \- The path to the log file
       * @return
       */
-    def defaultAuthLogToFile(logPath: fs2.io.file.Path): Resource[IO, ChatGpt] = 
+    def defaultAuthLogToFile(logPath: fs2.io.file.Path): Resource[IO, ChatGpt] =
       val clientR = EmberClientBuilder.default[IO].build
       val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
       val logger = fileLogger(logPath)
       for
-        _ <- makeLogFile(logPath).toResource        
+        _ <- makeLogFile(logPath).toResource
         client <- clientR
         authdClient = authMiddleware(apikey)(logger(client))
         chatGpt <- ChatGpt.apply((authdClient), uri"https://api.openai.com/")
-      yield chatGpt      
+      yield chatGpt
+      end for
+    end defaultAuthLogToFile
 
   end ChatGpt
 
@@ -298,6 +301,6 @@ object Agent:
   enum AiResponseFormat derives Schema:
     case json_object
     case text
-
+  end AiResponseFormat
 
 end Agent
