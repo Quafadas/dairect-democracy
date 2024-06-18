@@ -181,9 +181,8 @@ object Agent:
       (content, tool_calls) match
         case (None, x :: xs) =>
           AiMessage("assistant", None, Some(tool_calls))
-        case (Some(content), Nil) =>
-          AiMessage("assistant", Some(content), Some(tool_calls))
-        case _ => throw new Exception("Assistant message must have only one of content OR tool calls")
+        case _ =>
+          AiMessage("assistant", content, Some(tool_calls))        
 
     // A message from a tool to the AI
     def tool(content: String, tool_call_id: String): AiMessage =

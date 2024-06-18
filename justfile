@@ -11,7 +11,8 @@ scala-cli-test:
 autoCode:
   scala-cli run . --main-class io.github.quafadas.dairect.AutoCodeExample
 
-
+autoStockPrices:
+  scala-cli run . --main-class io.github.quafadas.dairect.StockPrices
 
 
 debug:

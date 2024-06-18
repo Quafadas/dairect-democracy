@@ -46,47 +46,63 @@ import cats.effect.std.Random
 import Agent.ChatGpt
 import org.http4s.syntax.all.uri
 import io.github.quafadas.dairect.Agent.ChatGptConfig
+import fs2.io.file.Path
 
 @experimental
 object AutoCodeExample extends IOApp.Simple:
-
-  val clientR: Resource[cats.effect.IO, Client[cats.effect.IO]] =
-    EmberClientBuilder.default[IO].build
-
-  val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
-
-  val osPrompt =
-    AiMessage.user(
-      "Write a scala script to download data from https://raw.githubusercontent.com/uwdata/draco/master/data/cars.csv to a temporary directory. Tell me the first 5 rows of the data."
-    )
-
-  val gpt3Turbo = "gpt-3.5-turbo-0613"
+     
   def run: IO[Unit] =
-    val logFile = fs2.io.file.Path("log.txt")
-    val logger = fileLogger(logFile)
-
-    val agent = for
-      _ <- makeLogFile(logFile).toResource
-      client <- clientR
-      authdClient = authMiddleware(apikey)(logger(client))
-      chatGpt <- ChatGpt.apply((authdClient), uri"https://api.openai.com/")
-    yield chatGpt
+    val logFile: Path = Path("log.txt")    
+    val agent: Resource[IO, ChatGpt] = ChatGpt.defaultAuthLogToFile(logFile)
 
     agent.use { agent =>
       val startMessages: List[AiMessage] = List(
         AiMessage.system(
           "You are a helpful assistent. You write code in scala to solve problems. You have access to scala-cli via the compileScalaDir and runScalaDir functions, which will compile and run scala code in a given directory"
+        ),
+        AiMessage.user(
+          "Write a scala script to download data from https://raw.githubusercontent.com/uwdata/draco/master/data/cars.csv to a temporary directory. Tell me the first 5 rows of the data."
         )
-      ) :+ osPrompt
+      )       
 
       val params = ChatGptConfig(
-        model = gpt3Turbo,
+        model = "gpt-3.5-turbo-0613",
         temperature = 0.0.some
       )
-
       Agent.startAgent(agent, startMessages, params, API[AutoCode].liftService(autoCodeable)).void
     }
 
   end run
 
 end AutoCodeExample
+
+
+@experimental
+object StockPrices extends IOApp.Simple:
+  def run: IO[Unit] =
+    val logFile: Path = Path("log.txt")    
+    val agent: Resource[IO, ChatGpt] = ChatGpt.defaultAuthLogToFile(logFile)
+    val startMessages: List[AiMessage] = List(              
+      AiMessage.system(
+        """
+You are a helpful assistent. You write code in scala to solve problems. 
+You have access to scala-cli via the compileScalaDir and runScalaDir functions, which will compile and run scala code in a given directory.
+Remember to include a project.scala file, which sets out the libraries you need to import.
+Don't forget to wriote
+"""
+      ),
+      AiMessage.user("Write a scala script to find the year-to-date gain for META and TESLA using the Alpha Vantage API (the environment variable ALPHA_VANTAGE_API_KEY has the API key) then compare the year to date returns"),
+    )
+
+    val params: ChatGptConfig = ChatGptConfig(
+      model = "gpt-4o",
+      temperature = Some(0.0)      
+    )
+
+    agent.use { agent =>
+      Agent.startAgent(agent, startMessages, params, API[AutoCode].liftService(autoCodeable))
+    }.flatMap(l => IO.println(l.mkString("\n")))
+
+  end run
+
+end StockPrices
