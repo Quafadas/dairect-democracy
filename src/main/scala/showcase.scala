@@ -37,8 +37,8 @@ object Showcase extends IOApp.Simple:
     )
 
     agent.use { agent =>
-      Agent.startAgent(agent, startMessages, params, API[OsTool].liftService(osImpl)).void
-    }.flatMap(IO.println)
+      Agent.startAgent(agent, startMessages, params, API[OsTool].liftService(osImpl))
+    }.flatMap(l => IO.println(l.mkString("\n")))
 
   end run
 
