@@ -7,20 +7,30 @@ import io.github.quafadas.dairect.ChatGpt.ChatGptConfig
 import smithy4s.Service
 import smithy4s.json.Json
 import smithy4s.kinds.FunctorAlgebra
+import io.github.quafadas.dairect.ChatGpt.SystemMessage
 
-import scala.annotation.experimental
+case class Agent[Alg[_[_, _, _, _, _]]](
+    model: ChatGpt,
+    systemMessage: SystemMessage,
+    seedMessages: List[AiMessage],
+    modelParams: ChatGptConfig,
+    toolkit: FunctorAlgebra[Alg, IO]
+)
 
-@experimental
+extension [Alg[_[_, _, _, _, _]]](agent: Agent[Alg])(using S: Service[Alg])
+  inline def startAgent =
+    Agent.startAgent(agent.model, agent.systemMessage +: agent.seedMessages, agent.modelParams, agent.toolkit)
+
 object Agent:
 
-  enum ContinueFold:
+  private enum ContinueFold:
     case Stop
     case Continue
   end ContinueFold
 
   /** @param model
     *   \- An implementation of the ChatGpt service. There is not a "single" one of these, as it is anticipated that
-    *   people may wish to configure different middle (logging et al) for individual agents.
+    *   people may wish to configure different middleware (logging et al) for individual agents.
     * @param seedMessages
     *   \- The messages that will seed the conversation with this agent.
     * @param modelParams

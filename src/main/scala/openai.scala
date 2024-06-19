@@ -123,13 +123,19 @@ object ChatGpt:
       tool_call_id: Option[String] = None
   ) derives Schema
 
+  type SystemMessage = AiMessage
+
+  type AssisstantMessage = AiMessage
+
+  type ToolMessage = AiMessage
+
   object AiMessage:
     // Sent by us to the AI
     def user(content: String): AiMessage =
       AiMessage("user", Some(content))
 
     // Seeds the conversation with the AI
-    def system(content: String): AiMessage = AiMessage("system", Some(content))
+    def system(content: String): SystemMessage = AiMessage("system", Some(content))
 
     // A message from the AI to us
     def assistant(content: Option[String], tool_calls: List[ToolCall]): AiMessage =
@@ -140,37 +146,37 @@ object ChatGpt:
           AiMessage("assistant", content, Some(tool_calls))
 
     // A message from a tool to the AI
-    def tool(content: String, tool_call_id: String): AiMessage =
+    def tool(content: String, tool_call_id: String): ToolMessage =
       AiMessage("tool", Some(content), None, Some(tool_call_id))
 
   end AiMessage
 
   // https: // platform.openai.com/docs/api-reference/chat
-  type BaseAiMessage = SystemMessage | UserMessage | BotMessage | ToolMessage
+  // type BaseAiMessage = SystemMessage | UserMessage | BotMessage | ToolMessage
 
-  case class SystemMessage(
-      content: String,
-      role: String = "system",
-      name: Option[String] = None
-  ) derives Schema
+  // case class SystemMessage(
+  //     content: String,
+  //     role: String = "system",
+  //     name: Option[String] = None
+  // ) derives Schema
 
-  case class UserMessage(
-      role: String = "user",
-      content: String,
-      name: Option[String] = None
-  ) derives Schema
+  // case class UserMessage(
+  //     role: String = "user",
+  //     content: String,
+  //     name: Option[String] = None
+  // ) derives Schema
 
-  case class BotMessage(
-      role: String = "assistant",
-      content: Option[String],
-      tool_calls: String
-  ) derives Schema
+  // case class BotMessage(
+  //     role: String = "assistant",
+  //     content: Option[String],
+  //     tool_calls: String
+  // ) derives Schema
 
-  case class ToolMessage(
-      role: String = "tool",
-      content: String,
-      tool_call_id: String
-  ) derives Schema
+  // case class ToolMessage(
+  //     role: String = "tool",
+  //     content: String,
+  //     tool_call_id: String
+  // ) derives Schema
 
   case class AiChoice(message: AiAnswer, finish_reason: Option[String]) derives Schema
 
