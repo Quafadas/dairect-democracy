@@ -1,15 +1,8 @@
 package io.github.quafadas.dairect
 
-import smithy4s.Service
-import smithy4s.deriving.API
-import smithy4s.dynamic.*
-import smithy4s.dynamic.DynamicSchemaIndex
-import software.amazon.smithy.jsonschema.JsonSchemaConfig
 import software.amazon.smithy.jsonschema.JsonSchemaConverter
-import software.amazon.smithy.jsonschema.Schema
 import software.amazon.smithy.jsonschema.SchemaDocument
 import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.loader.ModelDiscovery
 import software.amazon.smithy.model.node.*
 import software.amazon.smithy.model.shapes.*
 import software.amazon.smithy.model.traits.DocumentationTrait

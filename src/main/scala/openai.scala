@@ -26,7 +26,6 @@ import smithy4s.schema.*
 
 import scala.annotation.experimental
 import smithy4s.deriving.aliases.simpleRestJson
-import scala.annotation.nowarn
 
 @experimental
 @simpleRestJson
