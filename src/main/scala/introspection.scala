@@ -1,11 +1,10 @@
 package io.github.quafadas.dairect
 
-import org.http4s.client.Client
 import cats.effect.IO
-import org.http4s.client.middleware.Logger
 import fs2.Stream
-import cats.effect.kernel.Resource
 import fs2.io.file.Flags
+import org.http4s.client.Client
+import org.http4s.client.middleware.Logger
 
 val filesIo = fs2.io.file.Files[IO]
 

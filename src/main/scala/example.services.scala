@@ -1,16 +1,16 @@
 package io.github.quafadas.dairect
 
-import smithy4s.*
-import smithy4s.deriving.{given, *}
-import smithy4s.deriving.aliases.*
 import cats.effect.IO
-import scala.annotation.experimental
-import smithy.api.Documentation // if you want to use hints from the official smithy standard library
-import alloy.* // if you want to use hints from the alloy library
 import cats.effect.std.Console
+import cats.syntax.all.*
 import fs2.io.process.ProcessBuilder
 import fs2.text
-import cats.syntax.all.*
+import smithy.api.Documentation
+import smithy4s.*
+import smithy4s.deriving.aliases.*
+import smithy4s.deriving.{*, given}
+
+import scala.annotation.experimental
 
 // @error("execution error")
 case class LocationNotRecognised(errorMessage: String) extends Throwable derives Schema:

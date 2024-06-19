@@ -1,7 +1,6 @@
 package io.github.quafadas.dairect
 
-import smithy4s.deriving.{given, *}
-import smithy4s.deriving.aliases.{*, given}
+import smithy4s.deriving.API
 import cats.effect.IO
 import smithy4s.json.Json
 

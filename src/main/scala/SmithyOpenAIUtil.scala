@@ -5,30 +5,20 @@
 // Is there a world in which at least part of it might be in the public api?
 package io.github.quafadas.dairect
 
+import cats.MonadThrow
+import cats.effect.IO
+import cats.syntax.all.*
 import smithy4s.*
 import smithy4s.Document.*
-import smithy4s.json.Json
-import smithy4s.schema.*
-import smithy4s.schema.Primitive.*
-
-import cats.syntax.all.*
-import cats.MonadThrow
-import smithy4s.kinds.*
-import cats.Applicative
-
-import cats.Id
-import java.util.UUID
-
-import software.amazon.smithy.model.node.Node
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonCodec
-import Agent.ChatCompletionResponseMessageFunctionCall
-import scala.annotation.experimental
-import Agent.FunctionCall
-
 import smithy4s.dynamic.DynamicSchemaIndex
-import smithy4s.deriving.API
-import cats.effect.IO
-import smithy4s.internals.DocumentEncoder
+import smithy4s.json.Json
+import smithy4s.kinds.*
+import smithy4s.schema.*
+import software.amazon.smithy.model.node.Node
+
+import scala.annotation.experimental
+
+import ChatGpt.FunctionCall
 
 /** These are toy interpreters that turn services into json-in/json-out functions, and vice versa.
   *
@@ -59,7 +49,7 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
       smithy4s.json.Json.readDocument(m.arguments.get) match
         case Left(error) =>
           F.raiseError(new Throwable(s"Failed to parse arguments for $m .\n Error: $error"))
-        case Right(fctConfig) =>          
+        case Right(fctConfig) =>
           jsonEndpoints.get(m.name) match
             case Some(jsonEndpoint) =>
               jsonEndpoint(fctConfig)
@@ -88,16 +78,18 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
       for
         input <- document.decode[I].liftTo[F]
         op = endpoint.wrap(input)
-        output <- (polyFunction(op): F[O]).map{in =>           
-          encoderO.encode(in) match 
-            case Document.DObject(fields) => fields.get("value").getOrElse(???)
-            case _ => ???
+        output <- (polyFunction(op): F[O])
+          .map { in =>
+            encoderO.encode(in) match
+              case Document.DObject(fields) => fields.get("value").getOrElse(???)
+              case _                        => ???
 
-        }.recover { case endpoint.Error((_, e)) =>
-          Document.obj("error" -> encoderE.encode(e))
-        }
-      yield 
-        // println(Json.writeDocumentAsPrettyString(output))
-        output
+          }
+          .recover { case endpoint.Error((_, e)) =>
+            Document.obj("error" -> encoderE.encode(e))
+          }
+      yield
+      // println(Json.writeDocumentAsPrettyString(output))
+      output
   end toLowLevel
 end SmithyOpenAIUtil

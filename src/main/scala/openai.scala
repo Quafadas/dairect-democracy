@@ -1,129 +1,85 @@
 package io.github.quafadas.dairect
 
-import smithy4s.*
-import smithy4s.Document.*
-import smithy4s.json.Json
-import smithy4s.schema.*
-import smithy4s.schema.Primitive.*
-
-import smithy4s.deriving.{given, *}
-import smithy4s.deriving.aliases.{*, given}
 import cats.effect.IO
-import scala.annotation.experimental
-import smithy.api.*
-import smithy.api.NonEmptyString.asBijection
-import smithy4s.http4s.SimpleRestJsonBuilder
-import org.http4s.syntax.all.uri
-import org.http4s.client.Client
-import org.http4s.headers.Authorization
-import org.http4s.AuthScheme
-import org.http4s.Headers
-import org.http4s.Credentials
-import smithy.api.Error.CLIENT
-import cats.effect.IOApp
-import cats.effect.ExitCode
-import ciris.*
 import cats.effect.kernel.Resource
-import org.http4s.client.middleware.Logger
-import javax.xml.namespace.QName
-
-import Agent.ChatCompletionResponseMessageFunctionCall
-import Agent.FunctionCall
-import smithy4s.deriving.internals.Meta
-import cats.effect.std.Random
-import org.http4s.Uri
-import io.github.quafadas.dairect.Agent.AiMessage.tool
-import cats.syntax.traverse.toTraverseOps
 import cats.instances.list.*
-import smithy4s.kinds.FunctorAlgebra
-import cats.collections.syntax.all
+import ciris.*
+import io.github.quafadas.dairect.ChatGpt.AiMessage
+import io.github.quafadas.dairect.ChatGpt.AiResponseFormat
+import io.github.quafadas.dairect.ChatGpt.ChatResponse
+
+import org.http4s.Uri
+import org.http4s.client.Client
+
 import org.http4s.ember.client.EmberClientBuilder
 
+import org.http4s.syntax.all.uri
+import smithy.api.*
+
+import smithy4s.*
+import smithy4s.Document.*
+import smithy4s.deriving.internals.Meta
+import smithy4s.deriving.{*, given}
+import smithy4s.http4s.SimpleRestJsonBuilder
+
+import smithy4s.schema.*
+
+import scala.annotation.experimental
+import smithy4s.deriving.aliases.simpleRestJson
+import scala.annotation.nowarn
+
 @experimental
-object Agent:
+@simpleRestJson
+trait ChatGpt derives API:
+  /** https://platform.openai.com/docs/api-reference/chat
+    */
+  @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/chat/completions"), 200))
+  def chat(
+      model: String,
+      messages: List[AiMessage],
+      temperature: Option[Double],
+      tools: Option[Document] = None,
+      responseFormat: Option[AiResponseFormat] = None
+  ): IO[ChatResponse] = ???
+end ChatGpt
 
-  enum ContinueFold:
-    case Stop
-    case Continue
-  end ContinueFold
-
-  /** @param model
-    *   \- An implementation of the ChatGpt service. There is not a "single" one of these, as it is anticipated that
-    *   people may wish to configure different middle (logging et al) for individual agents.
-    * @param seedMessages
-    *   \- The messages that will seed the conversation with this agent.
-    * @param modelParams
-    *   \- Params to call chatGPT with.
-    * @param toolkit
-    *   \- This is a smithy4s 'API' or 'Service'. This agent will be able to call the Operations exposed by this
-    *   service, as tool calls.
+object ChatGpt:
+  /** @param client
+    *   \- An http4s client - apply your middleware to it
+    * @param baseUrl
+    *   \- The base url of the openAi service see [[ChatGpt]]
     * @return
     */
-  def startAgent[Alg[_[_, _, _, _, _]]](
-      model: ChatGpt,
-      seedMessages: List[AiMessage],
-      modelParams: ChatGptConfig,
-      toolkit: FunctorAlgebra[Alg, IO]
-  )(implicit S: Service[Alg]) =
-    val functions = ioToolGen.toJsonSchema(toolkit)
-    val functionDispatcher = ioToolGen.openAiSmithyFunctionDispatch(toolkit)
-    fs2.Stream
-      .unfoldEval[IO, (ContinueFold, List[AiMessage]), List[AiMessage]]((ContinueFold.Continue, seedMessages)) {
-        (continue, allMessages) =>
-          continue match
-            case ContinueFold.Stop => IO.pure(None)
-            case ContinueFold.Continue =>
-              model
-                .chat(
-                  model = modelParams.model,
-                  temperature = modelParams.temperature,
-                  messages = allMessages,
-                  tools = Some(functions)
-                )
-                .flatMap { response =>
-                  // println(response)
-                  val botChoices = response.choices.head
-                  val responseMsg = botChoices.message
-                  botChoices.finish_reason match
-                    case None =>
-                      IO.raiseError(
-                        new Exception("No finish reason provided. Bot should always provide a finish reason")
-                      )
-                    case Some(value) =>
-                      value match
-                        case "tool_calls" =>
-                          val fctCalls = botChoices.message.tool_calls.getOrElse(List.empty)
-                          val newMessages = fctCalls
-                            .traverse(fct =>
-                              functionDispatcher.apply(fct.function).map { result =>
-                                // println(result)
-                                AiMessage.tool(
-                                  tool_call_id = fct.id,
-                                  content = Json.writeDocumentAsPrettyString(result)
-                                )
-                              }
-                            )
-                            .map { msgs =>
-                              allMessages ++ botChoices.toMessage ++ msgs
-                            }
-                          newMessages.map(msgs => Some((msgs, (ContinueFold.Continue, msgs))))
+  def apply(client: Client[IO], baseUrl: Uri): Resource[IO, ChatGpt] = SimpleRestJsonBuilder(API.service[ChatGpt])
+    .client[IO](client)
+    .uri(baseUrl)
+    .resource
+    .map(_.unliftService)
 
-                        case "stop" =>
-                          val finalMessages = allMessages ++ botChoices.toMessage
-                          IO.pure(Some((finalMessages, (ContinueFold.Stop, finalMessages))))
-                        case _ =>
-                          IO.println("Bot finished with unknown finish reason") >>
-                            IO.println(response) >>
-                            IO.raiseError(new Exception("Bot finished with unknown finish reason"))
-
-                  end match
-                }
-
-      }
-      .compile
-      .lastOrError
-
-  end startAgent
+  /** It is assumed, that an environment variable OPEN_AI_API_TOKEN is set with a valid token, to openai's api. This
+    * agent will write all in and outgoing messages to the file specified (no headers).
+    *
+    * It ought to be rather easy to customize this to your needs by:
+    *   - changing the logPath to a different path ( per agent perhaps )
+    *   - using a different URL (if your corp wraps the endpoint seperately)
+    *   - Adding other http4s client middleware
+    *
+    * @param logPath
+    *   \- The path to the log file
+    * @return
+    */
+  def defaultAuthLogToFile(logPath: fs2.io.file.Path): Resource[IO, ChatGpt] =
+    val clientR = EmberClientBuilder.default[IO].build
+    val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
+    val logger = fileLogger(logPath)
+    for
+      _ <- makeLogFile(logPath).toResource
+      client <- clientR
+      authdClient = authMiddleware(apikey)(logger(client))
+      chatGpt <- ChatGpt.apply((authdClient), uri"https://api.openai.com/")
+    yield chatGpt
+    end for
+  end defaultAuthLogToFile
 
   case class ChatGptConfig(
       model: String,
@@ -182,7 +138,7 @@ object Agent:
         case (None, x :: xs) =>
           AiMessage("assistant", None, Some(tool_calls))
         case _ =>
-          AiMessage("assistant", content, Some(tool_calls))        
+          AiMessage("assistant", content, Some(tool_calls))
 
     // A message from a tool to the AI
     def tool(content: String, tool_call_id: String): AiMessage =
@@ -227,61 +183,6 @@ object Agent:
 
   case class FunctionCall(name: String, description: Option[String], arguments: Option[String]) derives Schema
 
-  @experimental
-  @simpleRestJson
-  trait ChatGpt derives API:
-    /** https://platform.openai.com/docs/api-reference/chat
-      */
-    @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/chat/completions"), 200))
-    def chat(
-        model: String,
-        messages: List[AiMessage],
-        temperature: Option[Double],
-        tools: Option[Document] = None,
-        responseFormat: Option[AiResponseFormat] = None
-    ): IO[ChatResponse] = ???
-  end ChatGpt
-
-  object ChatGpt:
-    /** @param client
-      *   \- An http4s client - apply your middleware to it
-      * @param baseUrl
-      *   \- The base url of the openAi service see [[ChatGpt]]
-      * @return
-      */
-    def apply(client: Client[IO], baseUrl: Uri): Resource[IO, ChatGpt] = SimpleRestJsonBuilder(API.service[ChatGpt])
-      .client[IO](client)
-      .uri(baseUrl)
-      .resource
-      .map(_.unliftService)
-
-    /** This agent will write all in and outgoing messages to the file specified (no headers). It is assumed, that an
-      * environment variable OPEN_AI_API_TOKEN is set with a valid token, to openai's api.
-      *
-      * It ought to be rather easy to customize this to your needs by:
-      *   - changing the logPath to a different path ( per agent perhaps )
-      *   - using a different URL (if your corp wraps the endpoint seperately)
-      *   - Adding other http4s client middleware
-      *
-      * @param logPath
-      *   \- The path to the log file
-      * @return
-      */
-    def defaultAuthLogToFile(logPath: fs2.io.file.Path): Resource[IO, ChatGpt] =
-      val clientR = EmberClientBuilder.default[IO].build
-      val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
-      val logger = fileLogger(logPath)
-      for
-        _ <- makeLogFile(logPath).toResource
-        client <- clientR
-        authdClient = authMiddleware(apikey)(logger(client))
-        chatGpt <- ChatGpt.apply((authdClient), uri"https://api.openai.com/")
-      yield chatGpt
-      end for
-    end defaultAuthLogToFile
-
-  end ChatGpt
-
   extension (aic: AiChoice)
     def toMessage: List[AiMessage] =
       List(
@@ -302,4 +203,4 @@ object Agent:
     case text
   end AiResponseFormat
 
-end Agent
+end ChatGpt

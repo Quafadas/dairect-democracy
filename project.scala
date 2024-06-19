@@ -20,3 +20,4 @@
 //> using plugin tech.neander::smithy4s-deriving-compiler::0.0.2
 
 //> using option -experimental
+//> using option -Wunused:imports
