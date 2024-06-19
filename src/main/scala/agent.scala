@@ -1,13 +1,14 @@
 package io.github.quafadas.dairect
 
+import cats.effect.IO
+import cats.syntax.all.toTraverseOps
 import io.github.quafadas.dairect.ChatGpt.AiMessage
 import io.github.quafadas.dairect.ChatGpt.ChatGptConfig
-import scala.annotation.experimental
 import smithy4s.Service
-import cats.effect.IO
-import smithy4s.kinds.FunctorAlgebra
-import cats.syntax.all.toTraverseOps
 import smithy4s.json.Json
+import smithy4s.kinds.FunctorAlgebra
+
+import scala.annotation.experimental
 
 @experimental
 object Agent:

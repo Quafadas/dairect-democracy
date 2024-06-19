@@ -2,15 +2,14 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.IOApp
+import cats.effect.kernel.Resource
+import fs2.io.file.Path
+import smithy4s.deriving.API
 
 import scala.annotation.experimental
 
 import ChatGpt.AiMessage
-
 import ChatGpt.ChatGptConfig
-import smithy4s.deriving.API
-import fs2.io.file.Path
-import cats.effect.kernel.Resource
 
 @experimental
 object Showcase extends IOApp.Simple:
