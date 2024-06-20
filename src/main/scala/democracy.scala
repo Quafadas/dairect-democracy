@@ -3,6 +3,13 @@ package io.github.quafadas.dairect
 import cats.syntax.all.toTraverseOps
 import ChatGpt.AiMessage
 import ChatGpt.AiResponseFormat
+import smithy4s.schema.Schema
+
+import smithy4s.deriving.{*, given}
+
+import smithy4s.schema.*
+import smithy4s.json.Json
+import smithy4s.Blob
 
 object Democracy:
   def collaborate() = ???
@@ -23,15 +30,34 @@ object Democracy:
       |}] but do not take any action - make this plan only""".stripMargin
     )
 
-    agents.traverse(a =>
-      Agent.startAgent(
+    agents.flatTraverse(a =>
+      val response = Agent.startAgent(
         a.model,
         a.seedMessages :+ msg,
         a.modelParams.copy(responseFormat = Some(AiResponseFormat.json)),
         a.toolkit
       )(using a.service)
+
+      response.map { r =>
+        val b = Blob(r.last.content.get)
+        Json
+          .read[Initiatives](b)
+          .fold(
+            e => throw new Exception(s"Failed to parse initiatives: $e"),
+            identity
+          )
+          .initiatives
+      }
     )
 
   end proposeInitiatives
+
+  case class Initiative(
+      id: String,
+      expectedOutcome: String,
+      why: String
+  ) derives Schema
+
+  case class Initiatives(initiatives: List[Initiative]) derives Schema
 
 end Democracy

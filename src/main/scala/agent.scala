@@ -7,7 +7,6 @@ import io.github.quafadas.dairect.ChatGpt.ChatGptConfig
 import smithy4s.Service
 import smithy4s.json.Json
 import smithy4s.kinds.FunctorAlgebra
-import io.github.quafadas.dairect.ChatGpt.SystemMessage
 
 case class Agent[Alg[_[_, _, _, _, _]]](
     model: ChatGpt,
