@@ -11,15 +11,18 @@ import io.github.quafadas.dairect.ChatGpt.SystemMessage
 
 case class Agent[Alg[_[_, _, _, _, _]]](
     model: ChatGpt,
-    systemMessage: SystemMessage,
+    // systemMessage: SystemMessage,
     seedMessages: List[AiMessage],
     modelParams: ChatGptConfig,
-    toolkit: FunctorAlgebra[Alg, IO]
+    toolkit: FunctorAlgebra[Alg, IO],
+    service: Service[Alg]
 )
 
-extension [Alg[_[_, _, _, _, _]]](agent: Agent[Alg])(using S: Service[Alg])
+extension [Alg[_[_, _, _, _, _]]](agent: Agent[Alg])
   inline def startAgent =
-    Agent.startAgent(agent.model, agent.systemMessage +: agent.seedMessages, agent.modelParams, agent.toolkit)
+    Agent.startAgent(agent.model, agent.seedMessages, agent.modelParams, agent.toolkit)(using
+      agent.service
+    )
 
 object Agent:
 
@@ -59,7 +62,8 @@ object Agent:
                   model = modelParams.model,
                   temperature = modelParams.temperature,
                   messages = allMessages,
-                  tools = Some(functions)
+                  tools = Some(functions),
+                  response_format = modelParams.responseFormat
                 )
                 .flatMap { response =>
                   // println(response)
