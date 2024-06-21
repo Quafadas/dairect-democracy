@@ -27,7 +27,7 @@ object TryInitiatives extends IOApp.Simple:
     )
 
     val params: ChatGptConfig = ChatGptConfig(
-      model = "gpt-3.5-turbo",
+      model = "gpt-4-turbo",
       temperature = Some(0.0)
     )
 
@@ -41,7 +41,13 @@ object TryInitiatives extends IOApp.Simple:
           API.service[OsTool]
         )
 
-        Democracy.proposeInitiatives(List(loneWolf))
+        for
+          inits <- Democracy.proposeInitiatives(List(loneWolf))
+          _ <- IO.println(inits.mkString("\n"))
+          votes <- Democracy.vote(List(loneWolf), inits)
+          _ <- IO.println(votes.mkString("\n"))
+        yield votes
+        end for
 
       }
       .flatMap(l => IO.println(l.mkString("\n")))
