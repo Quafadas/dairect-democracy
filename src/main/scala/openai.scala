@@ -67,13 +67,15 @@ object ChatGpt:
     *   \- The path to the log file
     * @return
     */
-  def defaultAuthLogToFile(logPath: fs2.io.file.Path): Resource[IO, ChatGpt] =
-    val clientR = EmberClientBuilder.default[IO].build
+  def defaultAuthLogToFile(
+      logPath: fs2.io.file.Path,
+      provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build
+  ): Resource[IO, ChatGpt] =
     val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
     val logger = fileLogger(logPath)
     for
       _ <- makeLogFile(logPath).toResource
-      client <- clientR
+      client <- provided
       authdClient = authMiddleware(apikey)(logger(client))
       chatGpt <- ChatGpt.apply((authdClient), uri"https://api.openai.com/")
     yield chatGpt

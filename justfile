@@ -20,6 +20,9 @@ initiatives:
 showcase:
   scala-cli run . --main-class io.github.quafadas.dairect.Showcase
 
+research:
+  scala-cli run . --main-class io.github.quafadas.dairect.Researcher
+
 debug:
   scala-cli run . --main-class io.github.quafadas.dairect.Showcase --debug
 

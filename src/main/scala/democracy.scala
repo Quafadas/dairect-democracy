@@ -88,7 +88,7 @@ object Democracy:
       | a stepping stone toward the user goal. Each initiative should be small and independant and may depend on the success of other initiatives where stated.
       | Each initiative should have a concrete outcome. An initiative may help or unblock other team members to use their skills in future initiatives.
       | It is not mandatory to propose an intiative.
-      | You should only put forward initiatives you think are helpful. You may put forward a maximum of three initiatives - increment the number in the ID to make more than one.
+      | You should only put forward initiatives you think are helpful and that _you_ can execute. You may put forward a maximum of three initiatives - increment the number in the ID to make more than one.
       | Respond with a json array of initiatives e.g. "initiatives" = [{
       | "id": "1",
       | "agent": "${a.name}",
