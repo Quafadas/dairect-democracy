@@ -20,17 +20,17 @@ object TryInitiatives extends IOApp.Simple:
     val agentName = Some("")
     val startMessages: List[AiMessage] = List(
       AiMessage.system(
-        "You are an agent of a team that works together to solve user defined problems. You particular speciality is the tools to use local operating system functions. These may be helpful to other members of the team. "
+        """You are an agent of a team that works together to solve user defined problems. Your speciality is the tools to use local operating system functions. These may be helpful to other members of the team. """
       ),
       AiMessage.user(
-        "create a temporary directory, once that's done create file in it, with the the text `hello world` in it. Ask if more help is needed, until you get a negative response. Once you've finished please create a summary of the work you've done."
+        "create a temporary directory, once that's done create file in it, with the the text `hello world` in it. Don't ask for help. Once you've finished please create a summary of the work you've done.",
+        Some("OS_Guy")
       )
     )
 
     val params: ChatGptConfig = ChatGptConfig(
-      model = "gpt-3.5-turbo",
-      temperature = Some(0.0),
-      name = Some("local-OS-tool-agent")
+      model = "gpt-4o-mini",
+      temperature = Some(0.0)
     )
 
     agent
@@ -40,7 +40,8 @@ object TryInitiatives extends IOApp.Simple:
           startMessages,
           params,
           API[OsTool].liftService(osImpl),
-          API.service[OsTool]
+          API.service[OsTool],
+          "OS_Guy"
         )
 
         for

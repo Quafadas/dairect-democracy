@@ -14,7 +14,8 @@ case class Agent[Alg[_[_, _, _, _, _]]](
     seedMessages: List[AiMessage],
     modelParams: ChatGptConfig,
     toolkit: FunctorAlgebra[Alg, IO],
-    service: Service[Alg]
+    service: Service[Alg],
+    name: String
 )
 
 extension [Alg[_[_, _, _, _, _]]](agent: Agent[Alg])
@@ -23,8 +24,8 @@ extension [Alg[_[_, _, _, _, _]]](agent: Agent[Alg])
       agent.service
     )
 
-  def userMessage(msg: String) = AiMessage.user(msg, agent.modelParams.name)
-  def systemMessage(msg: String) = AiMessage.system(msg, agent.modelParams.name)
+  def userMessage(msg: String) = AiMessage.user(msg, Some(agent.name))
+  def systemMessage(msg: String) = AiMessage.system(msg, Some(agent.name))
 end extension
 
 object Agent:
