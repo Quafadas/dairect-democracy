@@ -23,6 +23,10 @@ extension [Alg[_[_, _, _, _, _]]](agent: Agent[Alg])
       agent.service
     )
 
+  def userMessage(msg: String) = AiMessage.user(msg, agent.modelParams.name)
+  def systemMessage(msg: String) = AiMessage.system(msg, agent.modelParams.name)
+end extension
+
 object Agent:
 
   private enum ContinueFold:

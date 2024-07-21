@@ -11,11 +11,7 @@ class FunctionCallSuite extends CatsEffectSuite:
 
   test("simple function is correctly dispatched") {
     val fakeTool = API[FakeTool].liftService(
-      new FakeTool:
-        override def fakeFunctionName(
-            a: Int,
-            b: Int
-        ): IO[Int] = IO(a + b)
+      new FakeTool {}
     )
     val simpleTool = ioToolGen.openAiSmithyFunctionDispatch(fakeTool)
 

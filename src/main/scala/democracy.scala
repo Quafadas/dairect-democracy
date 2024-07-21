@@ -15,18 +15,41 @@ import cats.effect.IO
 object Democracy:
   def collaborate(agents: List[Agent[?]]) = ???
 
+  def delegate(initiatives: List[Initiative], votes: List[(String, Int)], agents: List[Agent[?]]) =
+    votes.sortBy(_._2).map(_._1).headOption match
+      case Some(vote) =>
+        val initiative = initiatives
+          .find(_.id == vote.split("-").head)
+          .getOrElse(throw new Exception(s"Failed to find initiative: $vote"))
+        val agent = agents
+          .find(_.modelParams.name.map(_ == vote.split("-").head).getOrElse(false))
+          .getOrElse(throw new Exception(s"Failed to find agent: $vote"))
+
+        Agent
+          .startAgent(
+            agent.model,
+            agent.seedMessages :+ AiMessage.user(
+              s"Your team has voted for the initiative: $vote. You have been selected to carry out the next initiative. Please read the following and take action" +
+                s"Expected Outcome: ${initiative.expectedOutcome}"
+            ),
+            agent.modelParams.copy(responseFormat = Some(AiResponseFormat.json)),
+            agent.toolkit
+          )(using agent.service)
+
+      case None => IO.raiseError(new Exception("No votes were recieved and there is therefore nothing to do"))
+
   def vote(agents: List[Agent[?]], proposals: List[Initiative]): IO[List[(String, Int)]] =
     val msg = AiMessage.user(
-      """In this iteration, you should not take any action or call any tools. You are asked to vote on the initiatives proposed by your team members to decide which one to do next.
+      s"""In this iteration, you should not take any action or call any tools. You are asked to vote on the initiatives proposed by your team members to decide which one to do next.
       | Initiatives are in the form of {
-      | "id": "{{name}}-{{x}}",
+      | "id": "{{agent.name}}-{{x}}",
       | "expectedOutcome": "I will do X, Y, Z",
       | "why": "A chain of thought on why this might be helpful"
       | }. Read each carefully, and consider which initiative is most helpful to achieve the user goal.
       | You _MUST_ vote for at least one initiative. You vote by including the ID of the initiative in the `votes` array of your response.
       | You should vote for the course of action you believe is most helpful to achieve the user goal. You may vote for your own initiative.
       | Respond with a json array of initiatives you wish to vote in favour of e.g. "votes" = [
-      | "{{name}}-{{x}}"
+      | "{{agent.name}}-{{x}}"
       |]
       |""".stripMargin
     )
@@ -64,7 +87,7 @@ object Democracy:
       | It is not mandatory to propose an intiative.
       | You should only put forward initiatives you think are helpful. You may put forward a maximum of three initiatives - increment the number in the ID to make more than one.
       | Respond with a json array of initiatives e.g. "initiatives" = [{
-      | "id": "{{my-name}}-1",
+      | "id": "1",
       | "expectedOutcome": "I will do X, Y, Z",
       | "why": "A chain of thought on why this might be helpful"
       |}] but do not take any action - make this plan only. If you believe the user needs are satisfied, vote `COMPLETED` """.stripMargin

@@ -17,6 +17,7 @@ object TryInitiatives extends IOApp.Simple:
   def run: IO[Unit] =
     val logFile: Path = fs2.io.file.Path("log.txt")
     val agent: Resource[IO, ChatGpt] = ChatGpt.defaultAuthLogToFile(logFile)
+    val agentName = Some("")
     val startMessages: List[AiMessage] = List(
       AiMessage.system(
         "You are an agent of a team that works together to solve user defined problems. You particular speciality is the tools to use local operating system functions. These may be helpful to other members of the team. "
@@ -27,8 +28,9 @@ object TryInitiatives extends IOApp.Simple:
     )
 
     val params: ChatGptConfig = ChatGptConfig(
-      model = "gpt-4-turbo",
-      temperature = Some(0.0)
+      model = "gpt-3.5-turbo",
+      temperature = Some(0.0),
+      name = Some("local-OS-tool-agent")
     )
 
     agent
@@ -46,7 +48,8 @@ object TryInitiatives extends IOApp.Simple:
           _ <- IO.println(inits.mkString("\n"))
           votes <- Democracy.vote(List(loneWolf), inits)
           _ <- IO.println(votes.mkString("\n"))
-        yield votes
+          outcome <- Democracy.delegate(inits, votes, List(loneWolf))
+        yield outcome
         end for
 
       }
