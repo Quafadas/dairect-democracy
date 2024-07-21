@@ -51,6 +51,7 @@ end UrlReader
 
 def serpware: Client[IO] => Client[IO] = authMiddleware(env("SERP_API_TOKEN").as[String].load[IO].toResource)
 
+//FIXME
 object Serp:
   def apply(client: Client[IO], baseUrl: Uri = uri"https://serpapi.com/"): Resource[IO, Serp] =
     SimpleRestJsonBuilder(API.service[Serp])
