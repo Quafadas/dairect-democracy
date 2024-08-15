@@ -5,8 +5,10 @@ import cats.effect.kernel.Resource
 import cats.instances.list.*
 import ciris.*
 import io.github.quafadas.dairect.ChatGpt.AiMessage
-import io.github.quafadas.dairect.ChatGpt.AiResponseFormat
 import io.github.quafadas.dairect.ChatGpt.ChatResponse
+
+import io.github.quafadas.dairect.Assistant.CreateAssiantResponse
+import io.github.quafadas.dairect.Assistant.AnAssistant
 
 import org.http4s.Uri
 import org.http4s.client.Client
@@ -23,6 +25,7 @@ import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 
 import smithy4s.schema.*
+import smithy4s.json.Json
 
 import scala.annotation.experimental
 import smithy4s.deriving.aliases.simpleRestJson
@@ -39,7 +42,7 @@ trait ChatGpt derives API:
       temperature: Option[Double],
       tools: Option[Document] = None,
       response_format: Option[AiResponseFormat] = None
-  ): IO[ChatResponse] = ???
+  ): IO[ChatResponse]
 end ChatGpt
 
 object ChatGpt:
@@ -187,13 +190,6 @@ object ChatGpt:
 
   case class AiAnswer(role: String, content: Option[String], tool_calls: Option[List[ToolCall]]) derives Schema
 
-  case class AiResponseFormat(`type`: AiResponseFormatString) derives Schema
-
-  object AiResponseFormat:
-    def json = AiResponseFormat(AiResponseFormatString.json_object)
-    def text = AiResponseFormat(AiResponseFormatString.text)
-  end AiResponseFormat
-
   case class ToolCall(id: String, `type`: String = "function", function: FunctionCall) derives Schema
 
   case class FunctionCall(name: String, description: Option[String], arguments: Option[String]) derives Schema
@@ -213,9 +209,108 @@ object ChatGpt:
       description: Option[String] = None
   ) derives Schema
 
-  enum AiResponseFormatString derives Schema:
-    case json_object
-    case text
-  end AiResponseFormatString
-
 end ChatGpt
+
+/** https://platform.openai.com/docs/api-reference/assistants/createAssistant
+  */
+@experimental
+@simpleRestJson
+trait Assistant derives API:
+
+  /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
+    *
+    * @param model
+    * @param name
+    * @param description
+    * @param instructions
+    * @param tools
+    * @param tool_resources
+    * @param metadata
+    * @param temperature
+    * @param top_p
+    * @param response_format
+    */
+  @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/assistants"), 200))
+  def create(
+      model: String,
+      name: Option[String] = None,
+      description: Option[String] = None,
+      instructions: Option[String] = None,
+      // tools: Seq[String] = Seq.empty,
+      // tool_resources: Option[Map[String, Any]] = None,
+      // metadata: Option[Map[String, String]] = None,
+      temperature: Option[Double] = Some(1.0),
+      top_p: Option[Double] = Some(1.0)
+      // response_format: Option[Either[String, Map[String, Any]]] = None
+  ): IO[CreateAssiantResponse]
+
+  @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/assistants"), 200))
+  def assistants(): IO[List[AnAssistant]]
+
+  def getAssisstant(id: String): IO[AnAssistant]
+
+end Assistant
+
+object Assistant:
+
+  case class AssistantTool(
+      `type`: String
+  ) derives Schema
+
+  case class AnAssistant(
+      id: String,
+      `object`: String,
+      created_at: Long,
+      name: Option[String],
+      description: Option[String],
+      model: String,
+      instructions: Option[String],
+      tools: List[AssistantTool],
+      // tool_resources: List[String],
+      // metadata: Map[String, String],
+      top_p: Option[Double],
+      temperature: Option[Double],
+      response_format: AiResponseFormat
+  ) derives Schema
+
+  case class AssistantList(
+      `object`: String,
+      data: List[AnAssistant],
+      first_id: String,
+      last_id: String,
+      has_more: Boolean
+  ) derives Schema
+
+  case class CreateAssiantResponse(
+      id: String,
+      `object`: String,
+      created_at: Long,
+      name: Option[String],
+      description: Option[String],
+      model: String,
+      instructions: Option[String],
+      tools: List[String],
+      metadata: Map[String, String],
+      top_p: Double,
+      temperature: Double,
+      response_format: String
+  ) derives Schema
+
+end Assistant
+
+@experimental
+object AiResponseFormat:
+  def json = AiResponseFormat(AiResponseFormatString.json_object)
+  def text = AiResponseFormat(AiResponseFormatString.text)
+end AiResponseFormat
+
+@experimental
+case class AiResponseFormat(`type`: AiResponseFormatString) //, json_schema: Option[smithy4s.json.Json] = None)
+    derives Schema
+
+@experimental
+enum AiResponseFormatString derives Schema:
+  case json_schema
+  case json_object
+  case text
+end AiResponseFormatString
