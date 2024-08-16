@@ -20,6 +20,8 @@ import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
 
 import scala.annotation.experimental
+import io.github.quafadas.dairect.AssistantApi.AssistantList
+import io.github.quafadas.dairect.AssistantApi.AssistantDeleted
 
 /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
   */
@@ -27,19 +29,6 @@ import scala.annotation.experimental
 @simpleRestJson
 trait AssistantApi derives API:
 
-  /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
-    *
-    * @param model
-    * @param name
-    * @param description
-    * @param instructions
-    * @param tools
-    * @param tool_resources
-    * @param metadata
-    * @param temperature
-    * @param top_p
-    * @param response_format
-    */
   @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/assistants"), 200))
   def create(
       model: String,
@@ -50,17 +39,35 @@ trait AssistantApi derives API:
       // tool_resources: Option[Map[String, Any]] = None,
       // metadata: Option[Map[String, String]] = None,
       temperature: Option[Double] = Some(1.0),
-      top_p: Option[Double] = Some(1.0)
-      // response_format: Option[Either[String, Map[String, Any]]] = None
+      top_p: Option[Double] = Some(1.0),
+      @wrapper response_format: ResponseFormat
   ): IO[CreateAssiantResponse]
 
   @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/assistants"), 200), Readonly())
-  def assistants(): IO[List[AnAssistant]]
+  def assistants(): IO[AssistantList]
 
   @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/assistants/{id}"), 200), Readonly())
   def getAssisstant(
       @hints(HttpLabel())
       id: String
+  ): IO[AnAssistant]
+
+  @hints(Http(NonEmptyString("DELETE"), NonEmptyString("/v1/assistants/{id}"), 200))
+  def deleteAssisstant(
+      @hints(HttpLabel())
+      id: String
+  ): IO[AssistantDeleted]
+
+  @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/assistants/{id}"), 200))
+  def modifyAssisstant(
+      @hints(HttpLabel())
+      id: String,
+      model: String,
+      name: Option[String] = None,
+      description: Option[String] = None,
+      instructions: Option[String] = None,
+      temperature: Option[Double] = Some(1.0),
+      top_p: Option[Double] = Some(1.0)
   ): IO[AnAssistant]
 
 end AssistantApi
@@ -106,7 +113,7 @@ object AssistantApi:
       // metadata: Map[String, String],
       top_p: Option[Double],
       temperature: Option[Double],
-      response_format: AiResponseFormat
+      response_format: ResponseFormat
   ) derives Schema
 
   case class AssistantList(
@@ -129,7 +136,13 @@ object AssistantApi:
       // metadata: Map[String, String],
       top_p: Double,
       temperature: Double,
-      response_format: String
+      response_format: ResponseFormat
+  ) derives Schema
+
+  case class AssistantDeleted(
+      id: String,
+      `object`: String,
+      deleted: Boolean
   ) derives Schema
 
 end AssistantApi

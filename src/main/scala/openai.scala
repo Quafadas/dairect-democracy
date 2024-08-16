@@ -25,6 +25,9 @@ import smithy4s.schema.*
 import scala.annotation.experimental
 import smithy4s.deriving.aliases.simpleRestJson
 import scala.annotation.nowarn
+import smithy4s.json.Json
+import smithy4s.deriving.aliases.jsonName
+import smithy4s.deriving.aliases.untagged
 
 @experimental
 case class Compounds(
@@ -220,8 +223,17 @@ object AiResponseFormat:
 end AiResponseFormat
 
 @experimental
-case class AiResponseFormat(`type`: AiResponseFormatString) //, json_schema: Option[smithy4s.json.Json] = None)
-    derives Schema
+case class AiResponseFormat(`type`: AiResponseFormatString, json_schema: Option[Document] = None) derives Schema
+
+@untagged
+enum ResponseFormat derives Schema:
+  @wrapper case Auto(t: String = "auto")
+  case AiResponseFormat(
+      `type`: AiResponseFormatString,
+      json_schema: Option[Document] = None
+  )
+
+end ResponseFormat
 
 @nowarn
 @experimental
