@@ -12,7 +12,6 @@ import scala.annotation.experimental
 import ChatGpt.AiMessage
 import ChatGpt.ChatGptConfig
 import org.http4s.ember.client.EmberClientBuilder
-import org.http4s.client.Client
 import cats.syntax.all.*
 
 @experimental
