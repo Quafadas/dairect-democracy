@@ -2,7 +2,6 @@ package io.github.quafadas.dairect
 
 import scala.annotation.experimental
 import smithy4s.*
-import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 
 import cats.effect.IO

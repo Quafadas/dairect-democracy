@@ -2,7 +2,6 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import cats.instances.list.*
 import ciris.*
 import io.github.quafadas.dairect.ChatGpt.AiMessage
 import io.github.quafadas.dairect.ChatGpt.AiResponseFormat

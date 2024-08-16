@@ -1,7 +1,6 @@
 package io.github.quafadas.dairect
 
 import cats.effect.IO
-import cats.effect.std.Console
 import cats.syntax.all.*
 import fs2.io.process.ProcessBuilder
 import fs2.text
