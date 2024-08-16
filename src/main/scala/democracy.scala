@@ -2,7 +2,6 @@ package io.github.quafadas.dairect
 
 import cats.syntax.all.toTraverseOps
 import ChatGpt.AiMessage
-import ChatGpt.AiResponseFormat
 
 import smithy4s.deriving.{*, given}
 

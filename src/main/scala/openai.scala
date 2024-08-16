@@ -6,8 +6,8 @@ import ciris.*
 import io.github.quafadas.dairect.ChatGpt.AiMessage
 import io.github.quafadas.dairect.ChatGpt.ChatResponse
 
-import io.github.quafadas.dairect.Assistant.CreateAssiantResponse
-import io.github.quafadas.dairect.Assistant.AnAssistant
+import io.github.quafadas.dairect.AssistantApi.CreateAssiantResponse
+import io.github.quafadas.dairect.AssistantApi.AnAssistant
 
 import org.http4s.Uri
 import org.http4s.client.Client
@@ -24,10 +24,16 @@ import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 
 import smithy4s.schema.*
-import smithy4s.json.Json
 
 import scala.annotation.experimental
 import smithy4s.deriving.aliases.simpleRestJson
+import scala.annotation.nowarn
+
+@experimental
+case class Compounds(
+    strings: List[String],
+    mapy: Map[String, String]
+) derives Schema
 
 @experimental
 @simpleRestJson
@@ -214,7 +220,7 @@ end ChatGpt
   */
 @experimental
 @simpleRestJson
-trait Assistant derives API:
+trait AssistantApi derives API:
 
   /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
     *
@@ -232,10 +238,10 @@ trait Assistant derives API:
   @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/assistants"), 200))
   def create(
       model: String,
+      // tools: List[String] = List(),
       name: Option[String] = None,
       description: Option[String] = None,
       instructions: Option[String] = None,
-      // tools: Seq[String] = Seq.empty,
       // tool_resources: Option[Map[String, Any]] = None,
       // metadata: Option[Map[String, String]] = None,
       temperature: Option[Double] = Some(1.0),
@@ -243,14 +249,40 @@ trait Assistant derives API:
       // response_format: Option[Either[String, Map[String, Any]]] = None
   ): IO[CreateAssiantResponse]
 
-  @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/assistants"), 200))
+  @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/assistants"), 200), Readonly())
   def assistants(): IO[List[AnAssistant]]
 
-  def getAssisstant(id: String): IO[AnAssistant]
+  @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/assistants/{id}"), 200), Readonly())
+  def getAssisstant(
+      @hints(HttpLabel())
+      id: String
+  ): IO[AnAssistant]
 
-end Assistant
+end AssistantApi
 
-object Assistant:
+object AssistantApi:
+
+  def apply(client: Client[IO], baseUrl: Uri): Resource[IO, AssistantApi] =
+    SimpleRestJsonBuilder(API.service[AssistantApi])
+      .client[IO](client)
+      .uri(baseUrl)
+      .resource
+      .map(_.unliftService)
+
+  def defaultAuthLogToFile(
+      logPath: fs2.io.file.Path,
+      provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build
+  ): Resource[IO, AssistantApi] =
+    val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
+    val logger = fileLogger(logPath)
+    for
+      _ <- makeLogFile(logPath).toResource
+      client <- provided
+      authdClient = authMiddleware(apikey)(assistWare(logger(client)))
+      chatGpt <- AssistantApi.apply((authdClient), uri"https://api.openai.com/")
+    yield chatGpt
+    end for
+  end defaultAuthLogToFile
 
   case class AssistantTool(
       `type`: String
@@ -288,14 +320,14 @@ object Assistant:
       description: Option[String],
       model: String,
       instructions: Option[String],
-      tools: List[String],
-      metadata: Map[String, String],
+      // tools: List[String],
+      // metadata: Map[String, String],
       top_p: Double,
       temperature: Double,
       response_format: String
   ) derives Schema
 
-end Assistant
+end AssistantApi
 
 @experimental
 object AiResponseFormat:
@@ -307,6 +339,7 @@ end AiResponseFormat
 case class AiResponseFormat(`type`: AiResponseFormatString) //, json_schema: Option[smithy4s.json.Json] = None)
     derives Schema
 
+@nowarn
 @experimental
 enum AiResponseFormatString derives Schema:
   case json_schema

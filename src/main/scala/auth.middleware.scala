@@ -18,3 +18,12 @@ def authMiddleware(tokResource: Resource[IO, String]): org.http4s.client.Middlew
       )
     }
   }
+
+def assistWare: org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
+  Client { req =>
+    client.run(
+      req.withHeaders(
+        req.headers ++ Headers(("OpenAI-Beta", "assistants=v2"))
+      )
+    )
+  }

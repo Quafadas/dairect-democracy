@@ -2,6 +2,9 @@
 demo:
   scala-cli run . --main-class io.github.quafadas.dairect.Showcase
 
+repl:
+  scala-cli repl .
+
 test:
   scala-cli test .
 
@@ -22,6 +25,10 @@ showcase:
 
 research:
   scala-cli run . --main-class io.github.quafadas.dairect.Researcher
+
+assist:
+  scala-cli run . --main-class io.github.quafadas.dairect.Assistant
+
 
 debug:
   scala-cli run . --main-class io.github.quafadas.dairect.Showcase --debug
