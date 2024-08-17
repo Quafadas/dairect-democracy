@@ -9,11 +9,13 @@ import smithy4s.deriving.*
 import scala.annotation.experimental
 import scala.language.experimental
 
-import ChatGpt.AiMessage
-import ChatGpt.ChatGptConfig
 
 @experimental
 object ScalaCliTest extends IOApp.Simple:
+
+  import ChatGpt.AiMessage
+  import ChatGpt.ChatGptConfig
+
 
   def run: IO[Unit] =
     val logFile = fs2.io.file.Path("log.txt")

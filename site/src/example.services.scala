@@ -12,37 +12,42 @@ import smithy4s.deriving.{*, given}
 import scala.annotation.experimental
 
 // @error("execution error")
-case class LocationNotRecognised(errorMessage: String) extends Throwable derives Schema:
-  override def getMessage(): String = errorMessage
-end LocationNotRecognised
+// case class LocationNotRecognised(errorMessage: String) extends Throwable derives Schema:
+//   override def getMessage(): String = errorMessage
+// end LocationNotRecognised
 
-val weatherImpl = new WeatherService():
-  def getWeatherLatLong(lat: Double, long: Double): IO[WeatherOut] =
-    IO(WeatherOut(s"Lovely weather at $lat, $long"))
+// val weatherImpl = new WeatherService():
+//   def getWeatherLatLong(lat: Double, long: Double): IO[WeatherOut] =
+//     IO(WeatherOut(s"Lovely weather at $lat, $long"))
+
+// @experimental
+// @simpleRestJson
+// @hints(smithy.api.Documentation("weather service"))
+// /** Get the weather for a city given a latitude and longitude
+//   */
+// trait WeatherService() derives API:
+//   @readonly
+//   @httpGet("/weather/{lat}/{long}")
+//   @hints(smithy.api.Documentation("Get the weather at lat long"))
+//   def getWeatherLatLong(
+//       @hints(Documentation("Latitude")) @httpLabel lat: Double,
+//       @hints(Documentation("Longditude")) @httpLabel long: Double
+//   ): IO[WeatherOut] // = IO(WeatherOut(s"Lovely weather at $lat, $long"))
+// end WeatherService
+
+// case class WeatherOut(weather: String) derives Schema
 
 @experimental
-@simpleRestJson
-@hints(smithy.api.Documentation("weather service"))
-/** Get the weather for a city given a latitude and longitude
-  */
-trait WeatherService() derives API:
-  @readonly
-  @httpGet("/weather/{lat}/{long}")
-  @hints(smithy.api.Documentation("Get the weather at lat long"))
-  def getWeatherLatLong(
-      @hints(Documentation("Latitude")) @httpLabel lat: Double,
-      @hints(Documentation("Longditude")) @httpLabel long: Double
-  ): IO[WeatherOut] // = IO(WeatherOut(s"Lovely weather at $lat, $long"))
-end WeatherService
-
-case class WeatherOut(weather: String) derives Schema
-
 val osImpl = new OsTool() {}
+
+@experimental
 val scalaCliImpl = new ScalaCliTool() {}
 
+@experimental
 val autoCodeable = new AutoCode {}
 
 // Note the explicit references below... can't do better for now... move on.
+@experimental
 trait AutoCode extends OsTool with ScalaCliTool derives API:
   def compileScalaDir(dir: String): IO[String] = scalaCliImpl.compile(dir)
   def runScalaDir(dir: String): IO[String] = scalaCliImpl.run(dir)
@@ -59,6 +64,7 @@ end AutoCode
 //     os.createOrOverwriteFileInDir(dir, fileName, contents)
 // end AutoCode
 
+@experimental
 trait ScalaCliTool derives API:
   def compile(dir: String): IO[String] =
     val asPath = fs2.io.file.Path(dir)

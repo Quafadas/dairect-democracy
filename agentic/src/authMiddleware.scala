@@ -1,12 +1,12 @@
 package io.github.quafadas.dairect
 
-import org.http4s.client.Client
-import cats.effect.kernel.Resource
 import cats.effect.IO
-import org.http4s.Headers
-import org.http4s.headers.Authorization
-import org.http4s.Credentials
+import cats.effect.kernel.Resource
 import org.http4s.AuthScheme
+import org.http4s.Credentials
+import org.http4s.Headers
+import org.http4s.client.Client
+import org.http4s.headers.Authorization
 
 def authMiddleware(tokResource: Resource[IO, String]): org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
   Client { req =>

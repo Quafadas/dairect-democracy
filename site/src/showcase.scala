@@ -8,11 +8,14 @@ import smithy4s.deriving.API
 
 import scala.annotation.experimental
 
-import ChatGpt.AiMessage
-import ChatGpt.ChatGptConfig
+
 
 @experimental
 object Showcase extends IOApp.Simple:
+
+  import ChatGpt.AiMessage
+  import ChatGpt.ChatGptConfig
+
   def run: IO[Unit] =
     val logFile: Path = fs2.io.file.Path("log.txt")
     val agent: Resource[IO, ChatGpt] = ChatGpt.defaultAuthLogToFile(logFile)

@@ -9,13 +9,16 @@ import smithy4s.deriving.EffectMirror
 
 import scala.annotation.experimental
 
-import ChatGpt.AiMessage
-import ChatGpt.ChatGptConfig
+
 import org.http4s.ember.client.EmberClientBuilder
 import cats.syntax.all.*
 
 @experimental
 object Researcher extends IOApp.Simple:
+
+  import ChatGpt.AiMessage
+  import ChatGpt.ChatGptConfig
+
   def run: IO[Unit] =
     val logFile: Path = fs2.io.file.Path("log.txt")
     val clientR = EmberClientBuilder.default[IO].build
