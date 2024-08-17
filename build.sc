@@ -62,6 +62,12 @@ object agentic extends Common {
     ivy"org.http4s::http4s-ember-client::0.23.26"
 
   )
+  object test extends ScalaTests with TestModule.Munit {
+    def ivyDeps = Agg(
+      ivy"org.scalameta::munit::1.0.1",
+      ivy"org.typelevel::munit-cats-effect::2.0.0"
+    )
+  }
 }
 
 object site extends SiteModule {
