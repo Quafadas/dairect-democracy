@@ -78,6 +78,6 @@ object site extends SiteModule {
 
   override def moduleDeps = Seq(agentic)
 
-  // def mainClass = Some("io.github.quafadas.dairect.Assistant")
+  def mainClass = Some("io.github.quafadas.dairect.Assistant")
 
 }

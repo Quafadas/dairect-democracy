@@ -14,6 +14,7 @@ import ciris.*
 import scala.annotation.experimental
 import org.http4s.syntax.literals.uri
 import org.http4s.Request
+import fs2.io.file.Files
 
 @simpleRestJson
 @experimental
@@ -40,7 +41,13 @@ trait UrlReader derives API:
     client.run(req).use { response =>
       response.bodyText.compile.string
     }
-  end readUrl
+
+  def downloadFile(url: String, completeFilePath: String) =
+    val req = Request[IO](org.http4s.Method.GET, Uri.unsafeFromString(url))
+    client.run(req).use { response =>
+      response.body.through(Files[IO].writeAll(fs2.io.file.Path(completeFilePath))).compile.drain
+    }
+
 
 end UrlReader
 
@@ -49,7 +56,7 @@ object UrlReader:
     override lazy val client: Client[IO] = provided
 end UrlReader
 
-def serpware: Client[IO] => Client[IO] = authMiddleware(env("SERP_API_TOKEN").as[String].load[IO].toResource)
+def serpware: Client[IO] => Client[IO] = serpWare(env("SERP_API_TOKEN").as[String].load[IO].toResource)
 
 //FIXME
 object Serp:

@@ -13,7 +13,6 @@ import scala.annotation.experimental
 import org.http4s.ember.client.EmberClientBuilder
 import cats.syntax.all.*
 
-@experimental
 object Researcher extends IOApp.Simple:
 
   import ChatGpt.AiMessage

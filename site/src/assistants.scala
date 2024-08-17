@@ -11,41 +11,18 @@ import scala.concurrent.duration.*
 import cats.effect.unsafe.implicits.global
 import scala.concurrent.Future
 
-val syncify = new PolyFunction[IO, cats.Id]{
-  def apply[A](io: IO[A]) : cats.Id[A] = io.unsafeRunSync()
-}
+object Assistant extends IOApp.Simple:
 
-val addDelay = new PolyFunction[IO, IO]{
-  def apply[A](io: IO[A]) : IO[A] = IO.sleep(1.second) *> io
-}
+  def run: IO[Unit] =
+    val a = AssistantApi.defaultAuthLogToFileAddHeader(fs2.io.file.Path("assistant.txt"))
+    a.use { assistant =>
+      // assistant
+      //   .create("gpt-4o-mini")
+      //   .flatMap(IO.println) >>
+      assistant.assistants().flatMap(IO.println) >>
+        assistant.getAssisstant("asst_7g7FJuGyXC8mXGXUg0fTMuOa").flatMap(IO.println)
+    }
 
-@experimental
-@main
-def Assistant() =
-  val a = AssistantApi.defaultAuthLogToFileAddHeader(fs2.io.file.Path("assistant.txt")).allocated.map(_._1).unsafeRunSync()
-  val a3 = a.transform(syncify)
+  end run
 
-
-  // a.use { assistant =>
-  //   // assistant
-  //   //   .create("gpt-4o-mini")
-  //   //   .flatMap(IO.println) >>
-  //   assistant.assistants().flatMap(IO.println) >>
-  //     assistant.getAssisstant("asst_7g7FJuGyXC8mXGXUg0fTMuOa").flatMap(IO.println)
-
-// @experimental
-// object Assistant extends IOApp.Simple:
-
-//   def run: IO[Unit] =
-//     val a = AssistantApi.defaultAuthLogToFileAddHeader(fs2.io.file.Path("assistant.txt"))
-//     a.use { assistant =>
-//       // assistant
-//       //   .create("gpt-4o-mini")
-//       //   .flatMap(IO.println) >>
-//       assistant.assistants().flatMap(IO.println) >>
-//         assistant.getAssisstant("asst_7g7FJuGyXC8mXGXUg0fTMuOa").flatMap(IO.println)
-//     }
-
-//   end run
-
-// end Assistant
+end Assistant

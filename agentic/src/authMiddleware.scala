@@ -19,6 +19,16 @@ def authMiddleware(tokResource: Resource[IO, String]): org.http4s.client.Middlew
     }
   }
 
+def serpWare(tokResource: Resource[IO, String]): org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
+  Client { req =>
+    tokResource.flatMap { tok =>
+      client.run(
+        req.withUri(req.uri.withQueryParam("api_key", tok))
+      )
+    }
+  }
+
+
 def assistWare: org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
   Client { req =>
     client.run(
