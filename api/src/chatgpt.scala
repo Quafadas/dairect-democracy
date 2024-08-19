@@ -216,10 +216,18 @@ enum ResponseFormat derives Schema:
   @wrapper case Auto(t: String = "auto")
   case AiResponseFormat(
       `type`: AiResponseFormatString,
-      json_schema: Option[Document] = None
+      json_schema: Option[StructuredOutput] = None
   )
 
 end ResponseFormat
+
+// https://platform.openai.com/docs/guides/structured-outputs
+case class StructuredOutput(
+    description: Option[String],
+    name: String,
+    schema: Option[Document],
+    strict: Option[Boolean]
+) derives Schema
 
 @nowarn
 enum AiResponseFormatString derives Schema:
