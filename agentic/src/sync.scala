@@ -12,3 +12,8 @@ import cats.effect.unsafe.implicits.*
 
 val sync: PolyFunction[IO, cats.Id] = new PolyFunction[IO, cats.Id]:
   def apply[A](result: IO[A]): cats.Id[A] = result.unsafeRunSync()
+
+val chatGpt = ChatGpt
+  .defaultAuthLogToFile(fs2.io.file.Path("logs/chatgpt.log"))
+  .allocated
+// .map((chatter, releaser) => chatter.transform(sync))
