@@ -1,3 +1,10 @@
+set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
+
+compileApi:
+  mill -j 0 api.__.compile
+
+formatApi:
+  mill -j 0 api.__.reformat
 
 demo:
   scala-cli run . --main-class io.github.quafadas.dairect.Showcase

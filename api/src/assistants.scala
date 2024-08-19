@@ -5,7 +5,7 @@ import cats.effect.kernel.Resource
 import io.github.quafadas.dairect.AssistantApi.AnAssistant
 import io.github.quafadas.dairect.AssistantApi.AssistantDeleted
 import io.github.quafadas.dairect.AssistantApi.AssistantList
-import io.github.quafadas.dairect.AssistantApi.CreateAssiantResponse
+import io.github.quafadas.dairect.AssistantApi.Assistant
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.Http
@@ -33,11 +33,11 @@ trait AssistantApi derives API:
       description: Option[String] = None,
       instructions: Option[String] = None,
       // tool_resources: Option[Map[String, Any]] = None,
-      // metadata: Option[Map[String, String]] = None,
+      metadata: Option[AssistantMetaData] = None,
       temperature: Option[Double] = Some(1.0),
       top_p: Option[Double] = Some(1.0),
       @wrapper response_format: ResponseFormat
-  ): IO[CreateAssiantResponse]
+  ): IO[Assistant]
 
   @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/assistants"), 200), Readonly())
   def assistants(): IO[AssistantList]
@@ -120,7 +120,7 @@ object AssistantApi:
       has_more: Boolean
   ) derives Schema
 
-  case class CreateAssiantResponse(
+  case class Assistant(
       id: String,
       `object`: String,
       created_at: Long,

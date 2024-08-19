@@ -19,12 +19,10 @@ import smithy4s.schema.*
 import scala.annotation.experimental
 import scala.annotation.nowarn
 
-
 case class Compounds(
     strings: List[String],
     mapy: Map[String, String]
 ) derives Schema
-
 
 @simpleRestJson
 trait ChatGpt derives API:
@@ -206,12 +204,10 @@ object ChatGpt:
 
 end ChatGpt
 
-
 object AiResponseFormat:
   def json = AiResponseFormat(AiResponseFormatString.json_object)
   def text = AiResponseFormat(AiResponseFormatString.text)
 end AiResponseFormat
-
 
 case class AiResponseFormat(`type`: AiResponseFormatString, json_schema: Option[Document] = None) derives Schema
 
@@ -220,10 +216,18 @@ enum ResponseFormat derives Schema:
   @wrapper case Auto(t: String = "auto")
   case AiResponseFormat(
       `type`: AiResponseFormatString,
-      json_schema: Option[Document] = None
+      json_schema: Option[StructuredOutput] = None
   )
 
 end ResponseFormat
+
+// https://platform.openai.com/docs/guides/structured-outputs
+case class StructuredOutput(
+    description: Option[String],
+    name: String,
+    schema: Option[Document],
+    strict: Option[Boolean]
+) derives Schema
 
 @nowarn
 enum AiResponseFormatString derives Schema:
