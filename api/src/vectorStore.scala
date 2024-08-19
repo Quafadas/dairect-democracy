@@ -2,10 +2,11 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import io.github.quafadas.dairect.ChatGpt.AiMessage
-import io.github.quafadas.dairect.ThreadApi.Thread
-import io.github.quafadas.dairect.ThreadApi.ThreadDeleted
-import io.github.quafadas.dairect.ThreadApi.ToolResources
+import io.github.quafadas.dairect.VectorStoreApi.DeletedVectorStore
+import io.github.quafadas.dairect.VectorStoreApi.ExpiresAfter
+import io.github.quafadas.dairect.VectorStoreApi.VectorStore
+import io.github.quafadas.dairect.VectorStoreApi.VectorStoreList
+import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.Http
@@ -18,10 +19,6 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
-import io.github.quafadas.dairect.VectorStoreApi.VectorStore
-import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
-import io.github.quafadas.dairect.VectorStoreApi.VectorStoreList
-import io.github.quafadas.dairect.VectorStoreApi.DeletedVectorStore
 
 /** https://platform.openai.com/docs/api-reference/vector-stores
   */
@@ -47,9 +44,20 @@ trait VectorStoreApi derives API:
   )
   def get(
       @hints(HttpLabel())
-      vector_store_id: String,
+      name: String,
       @hints(HttpLabel())
       file_id: String
+  ): IO[VectorStore]
+
+  @hints(
+    Http(NonEmptyString("POST"), NonEmptyString("/v1/vector_stores/{vector_store_id}"), 200),
+    Readonly()
+  )
+  def modify(
+      name: Option[String],
+      @hints(HttpLabel())
+      expires_after: Option[ExpiresAfter] = None,
+      metadata: Option[VectorStoreMetaData] = None
   ): IO[VectorStore]
 
   @hints(
@@ -111,6 +119,11 @@ object VectorStoreApi:
       first_id: String,
       last_id: String,
       has_more: Boolean
+  ) derives Schema
+
+  case class ExpiresAfter(
+      anchor: Int,
+      days: Int
   ) derives Schema
 
   case class DeletedVectorStore(

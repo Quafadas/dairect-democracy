@@ -6,6 +6,7 @@ import io.github.quafadas.dairect.ChatGpt.AiMessage
 import io.github.quafadas.dairect.ThreadApi.Thread
 import io.github.quafadas.dairect.ThreadApi.ThreadDeleted
 import io.github.quafadas.dairect.ThreadApi.ToolResources
+import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.Http
@@ -28,9 +29,8 @@ trait ThreadApi derives API:
   @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/threads"), 200))
   def create(
       messages: List[AiMessage],
-      tool_resources: ToolResources
-      // metadata: Option[Map[String, String]] = None,
-
+      tool_resources: ToolResources,
+      metadata: Option[ThreadMetaData] = None
   ): IO[Thread]
 
   @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/threads/{id}"), 200), Readonly())
@@ -83,9 +83,9 @@ object ThreadApi:
   case class Thread(
       id: String,
       `object`: String,
-      created_at: Long
-      // metadata: Map[String, String],
-      // tool_resources: Map[String, Any]
+      created_at: Long,
+      metadata: ThreadMetaData
+      //   tool_resources: Map[String, Any]
   ) derives Schema
 
   case class ToolResources(
@@ -94,14 +94,20 @@ object ThreadApi:
   ) derives Schema
 
   case class CodeInterpreter(
-      // file_ids: List[String]
+      file_ids: CodeInterpreterFileIds
   ) derives Schema
 
   final case class ThreadDeleted(id: String, `object`: String, deleted: Boolean) derives Schema
 
   case class FileSearch(
-      // vector_store_ids: List[String] // size 1
-      // vector_stores: List[String]
+      vector_store_ids: VectorStoreIds,
+      vector_stores: VectorStoreIds
+  ) derives Schema
+
+  case class VectorStoreFilesToAttach(
+      files_ids: FileIds,
+      chunking_strategy: ChunkingStrategy,
+      metadata: VectorStoreMetaData
   ) derives Schema
 
 end ThreadApi

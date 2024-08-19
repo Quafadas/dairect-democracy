@@ -1,8 +1,10 @@
+import $ivy.`com.disneystreaming.smithy4s::smithy4s-mill-codegen-plugin::0.18.23`
 import $ivy.`com.goyeau::mill-scalafix::0.4.0`
-import $ivy.`io.github.quafadas::millSite::0.0.24-3-5e8b2f`
+import $ivy.`io.github.quafadas::millSite::0.0.24`
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
 import $ivy.`com.github.lolgab::mill-crossplatform::0.2.4`
 
+import smithy4s.codegen.mill._
 import de.tobiasroeser.mill.vcs.version._
 import com.goyeau.mill.scalafix.ScalafixModule
 import mill._, scalalib._, scalafmt._
@@ -30,7 +32,7 @@ trait Common extends ScalaModule with ScalafmtModule with ScalafixModule with Pu
 }
 
 object api extends CrossPlatform {
-  trait Shared extends CrossPlatformScalaModule with Common {
+  trait Shared extends CrossPlatformScalaModule with Common with Smithy4sModule {
     def ivyDeps = Agg(
       ivy"com.disneystreaming.smithy4s::smithy4s-http4s::0.18.23",
       ivy"tech.neander::smithy4s-deriving::0.0.3",

@@ -2,10 +2,10 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import io.github.quafadas.dairect.ChatGpt.AiMessage
-import io.github.quafadas.dairect.ThreadApi.Thread
-import io.github.quafadas.dairect.ThreadApi.ThreadDeleted
-import io.github.quafadas.dairect.ThreadApi.ToolResources
+import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
+import io.github.quafadas.dairect.VectorStoreFilesApi.DeletedVectorStoreFile
+import io.github.quafadas.dairect.VectorStoreFilesApi.VectorStoreFile
+import io.github.quafadas.dairect.VectorStoreFilesApi.VectorStoreFileList
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.Http
@@ -18,10 +18,6 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
-import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
-import io.github.quafadas.dairect.VectorStoreFilesApi.VectorStoreFile
-import io.github.quafadas.dairect.VectorStoreFilesApi.VectorStoreFileList
-import io.github.quafadas.dairect.VectorStoreFilesApi.DeletedVectorStoreFile
 
 /** https://platform.openai.com/docs/api-reference/vector-stores-files
   */

@@ -1,3 +1,7 @@
+set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
+
+compileApi:
+  mill -j 0 api.__.compile
 
 demo:
   scala-cli run . --main-class io.github.quafadas.dairect.Showcase
