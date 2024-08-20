@@ -40,7 +40,7 @@ trait AssistantApi derives API:
   ): IO[Assistant]
 
   @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/assistants"), 200), Readonly())
-  def assistants(): IO[AssistantList]
+  def list(): IO[AssistantList]
 
   @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/assistants/{id}"), 200), Readonly())
   def getAssisstant(

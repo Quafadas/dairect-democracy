@@ -12,3 +12,7 @@ import cats.effect.unsafe.implicits.*
 
 val sync: PolyFunction[IO, cats.Id] = new PolyFunction[IO, cats.Id]:
   def apply[A](result: IO[A]): cats.Id[A] = result.unsafeRunSync()
+
+
+extension [A](a: IO[A])
+  infix def Ø = a.unsafeRunSync()

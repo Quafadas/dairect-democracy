@@ -1,6 +1,6 @@
 import $ivy.`com.disneystreaming.smithy4s::smithy4s-mill-codegen-plugin::0.18.23`
 import $ivy.`com.goyeau::mill-scalafix::0.4.0`
-import $ivy.`io.github.quafadas::millSite::0.0.24`
+import $ivy.`io.github.quafadas::millSite::0.0.26`
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
 import $ivy.`com.github.lolgab::mill-crossplatform::0.2.4`
 
@@ -80,6 +80,8 @@ object site extends SiteModule {
 
   override def moduleDeps = Seq(agentic)
 
-  def mainClass = Some("io.github.quafadas.dairect.Assistant")
+  override def scalaMdocVersion: T[String] = "2.5.3"
+
+  // def mainClass = Some("io.github.quafadas.dairect.Assistant")
 
 }

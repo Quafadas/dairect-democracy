@@ -11,18 +11,28 @@ import scala.concurrent.duration.*
 import cats.effect.unsafe.implicits.global
 import scala.concurrent.Future
 
-object Assistant extends IOApp.Simple:
+@main def testy = 
+  val (assistantApi,_) = AssistantApi.defaultAuthLogToFileAddHeader(fs2.io.file.Path("assistant.txt")).allocated.Ø
+  val allAssisants = assistantApi.list().Ø
+  val first = assistantApi.getAssisstant(allAssisants.data.head.id).Ø
 
-  def run: IO[Unit] =
-    val a = AssistantApi.defaultAuthLogToFileAddHeader(fs2.io.file.Path("assistant.txt"))
-    a.use { assistant =>
-      // assistant
-      //   .create("gpt-4o-mini")
-      //   .flatMap(IO.println) >>
-      assistant.assistants().flatMap(IO.println) >>
-        assistant.getAssisstant("asst_7g7FJuGyXC8mXGXUg0fTMuOa").flatMap(IO.println)
-    }
+  println(allAssisants)
+  println(first)
 
-  end run
 
-end Assistant
+ 
+// object Assistant extends IOApp.Simple:
+
+//   def run: IO[Unit] =
+//     val a = AssistantApi.defaultAuthLogToFileAddHeader(fs2.io.file.Path("assistant.txt"))
+//     a.use { assistant =>
+//       // assistant
+//       //   .create("gpt-4o-mini")
+//       //   .flatMap(IO.println) >>
+//       assistant.assistants().flatMap(IO.println) >>
+//         assistant.getAssisstant("asst_7g7FJuGyXC8mXGXUg0fTMuOa").flatMap(IO.println)
+//     }
+
+//   end run
+
+// end Assistant
