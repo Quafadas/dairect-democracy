@@ -36,6 +36,8 @@ object api extends CrossPlatform {
     def ivyDeps = Agg(
       ivy"com.disneystreaming.smithy4s::smithy4s-http4s::0.18.23",
       ivy"tech.neander::smithy4s-deriving::0.0.3",
+      ivy"org.http4s::http4s-ember-client::0.23.26",
+      ivy"is.cir::ciris::3.6.0"
     )
   }
 
@@ -59,9 +61,8 @@ object agentic extends Common {
     ivy"software.amazon.smithy:smithy-jsonschema:latest.release",
     ivy"com.lihaoyi::os-lib::0.10.3",
     ivy"com.lihaoyi::pprint::0.9.0",
-    ivy"is.cir::ciris::3.6.0",
-    ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::0.18.23",
-    ivy"org.http4s::http4s-ember-client::0.23.26"
+    ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::0.18.23"
+
 
   )
   object test extends ScalaTests with TestModule.Munit {

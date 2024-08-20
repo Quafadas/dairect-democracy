@@ -10,7 +10,6 @@ import scala.language.experimental
 import smithy4s.*
 import scala.annotation.experimental
 
-
 import fs2.io.file.Path
 import cats.effect.kernel.Resource
 
@@ -48,7 +47,6 @@ end AutoCodeExample
 
 @experimental
 object StockPrices extends IOApp.Simple:
-
 
   import ChatGpt.AiMessage
 

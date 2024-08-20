@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.effect.kernel.Resource
 import io.github.quafadas.dairect.ChatGpt.AiMessage
 import io.github.quafadas.dairect.ChatGpt.ChatResponse
-import org.http4s.Uri
+import org.http4s.syntax.literals.uri
 import org.http4s.client.Client
 import smithy.api.*
 import smithy4s.*
@@ -15,9 +15,12 @@ import smithy4s.deriving.internals.Meta
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.*
+import ciris.*
 
 import scala.annotation.experimental
 import scala.annotation.nowarn
+import org.http4s.ember.client.EmberClientBuilder
+import org.http4s.Uri
 
 case class Compounds(
     strings: List[String],
@@ -30,9 +33,9 @@ trait ChatGpt derives API:
     */
   @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/chat/completions"), 200))
   def chat(
-      model: String,
       messages: List[AiMessage],
-      temperature: Option[Double],
+      model: String = "gpt-4o-mini",
+      temperature: Option[Double] = None,
       tools: Option[Document] = None,
       response_format: Option[AiResponseFormat] = None
   ): IO[ChatResponse]
@@ -63,20 +66,20 @@ object ChatGpt:
     *   \- The path to the log file
     * @return
     */
-  // def defaultAuthLogToFile(
-  //     logPath: fs2.io.file.Path,
-  //     provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build
-  // ): Resource[IO, ChatGpt] =
-  //   val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
-  //   val logger = fileLogger(logPath)
-  //   for
-  //     _ <- makeLogFile(logPath).toResource
-  //     client <- provided
-  //     authdClient = authMiddleware(apikey)(logger(client))
-  //     chatGpt <- ChatGpt.apply((authdClient), uri"https://api.openai.com/")
-  //   yield chatGpt
-  //   end for
-  // end defaultAuthLogToFile
+  def defaultAuthLogToFile(
+      logPath: fs2.io.file.Path,
+      provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build
+  ): Resource[IO, ChatGpt] =
+    val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
+    val logger = fileLogger(logPath)
+    for
+      _ <- makeLogFile(logPath).toResource
+      client <- provided
+      authdClient = authMiddleware(apikey)(logger(client))
+      chatGpt <- ChatGpt.apply((authdClient), uri"https://api.openai.com/")
+    yield chatGpt
+    end for
+  end defaultAuthLogToFile
 
   case class ChatGptConfig(
       model: String,

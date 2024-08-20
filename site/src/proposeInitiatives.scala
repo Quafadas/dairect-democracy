@@ -9,8 +9,6 @@ import smithy4s.deriving.EffectMirror
 
 import scala.annotation.experimental
 
-
-
 @experimental
 object TryInitiatives extends IOApp.Simple:
 

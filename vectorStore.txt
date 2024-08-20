@@ -1,0 +1,91 @@
+HTTP/1.1 GET https://api.openai.com/v1/vector_stores body=""
+
+ ------------------- 
+
+HTTP/1.1 200 OK body="{
+  "object": "list",
+  "data": [
+    {
+      "id": "vs_skJUCFj83DLnhOGOfmy7CrQi",
+      "object": "vector_store",
+      "name": null,
+      "status": "completed",
+      "usage_bytes": 0,
+      "created_at": 1724178419,
+      "file_counts": {
+        "in_progress": 0,
+        "completed": 0,
+        "failed": 0,
+        "cancelled": 0,
+        "total": 0
+      },
+      "metadata": {},
+      "expires_after": null,
+      "expires_at": null,
+      "last_active_at": 1724178419
+    },
+    {
+      "id": "vs_DxCIvlDZimJBaINKBkkBxbM1",
+      "object": "vector_store",
+      "name": null,
+      "status": "completed",
+      "usage_bytes": 0,
+      "created_at": 1724178419,
+      "file_counts": {
+        "in_progress": 0,
+        "completed": 0,
+        "failed": 0,
+        "cancelled": 0,
+        "total": 0
+      },
+      "metadata": {},
+      "expires_after": null,
+      "expires_at": null,
+      "last_active_at": 1724178419
+    },
+    {
+      "id": "vs_IdOnnLdJ42JlzIasKRQwHpNC",
+      "object": "vector_store",
+      "name": null,
+      "status": "completed",
+      "usage_bytes": 0,
+      "created_at": 1724178382,
+      "file_counts": {
+        "in_progress": 0,
+        "completed": 0,
+        "failed": 0,
+        "cancelled": 0,
+        "total": 0
+      },
+      "metadata": {},
+      "expires_after": null,
+      "expires_at": null,
+      "last_active_at": 1724178382
+    },
+    {
+      "id": "vs_RZeCIZxoLqdciLG8UojVOJr6",
+      "object": "vector_store",
+      "name": null,
+      "status": "completed",
+      "usage_bytes": 0,
+      "created_at": 1724178299,
+      "file_counts": {
+        "in_progress": 0,
+        "completed": 0,
+        "failed": 0,
+        "cancelled": 0,
+        "total": 0
+      },
+      "metadata": {},
+      "expires_after": null,
+      "expires_at": null,
+      "last_active_at": 1724178299
+    }
+  ],
+  "first_id": "vs_skJUCFj83DLnhOGOfmy7CrQi",
+  "last_id": "vs_RZeCIZxoLqdciLG8UojVOJr6",
+  "has_more": false
+}"
+
+ ------------------- 
+

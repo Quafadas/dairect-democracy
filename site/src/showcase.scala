@@ -8,8 +8,6 @@ import smithy4s.deriving.API
 
 import scala.annotation.experimental
 
-
-
 @experimental
 object Showcase extends IOApp.Simple:
 

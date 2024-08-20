@@ -9,7 +9,6 @@ import smithy4s.deriving.EffectMirror
 
 import scala.annotation.experimental
 
-
 import org.http4s.ember.client.EmberClientBuilder
 import cats.syntax.all.*
 
