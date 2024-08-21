@@ -12,6 +12,11 @@ import cats.effect.unsafe.implicits.global
 import scala.concurrent.Future
 import io.github.quafadas.dairect.ChatGpt.AiMessage
 import smithy4s.json.Json
+import smithy4s.Blob
+import fs2.io.file.*
+import cats.effect.ExitCode
+import org.http4s.ember.client.EmberClientBuilder
+import ciris.*
 
 @main def testy =
   val logFile = fs2.io.file.Path("easychat.txt")
@@ -40,6 +45,28 @@ import smithy4s.json.Json
 
 end testy
 
+
+object FileTest extends IOApp {
+  override def run(args: List[String]): IO[ExitCode] =   
+    val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
+    val logger = fileLogger(Path("log.txt"))
+    val client = EmberClientBuilder.default[IO].build.map(authMiddleware(apikey)).map(logger)
+
+    val (fApi, _) = FilesApi.defaultAuthLogToFile(Path("log.txt")).allocated.Ø
+
+    println(FilesApi.upload[IO](file = fs2.io.file.Path("C:\\temp\\sample-pdf-file.pdf"), provided = client).Ø)
+
+    val all = fApi.files().Ø
+    println(all)
+
+    // println(fApi.deleteFile(all.data.head.id).Ø)
+
+    IO(ExitCode.Success)
+  end run
+    
+}
+
+
 // object Assistant extends IOApp.Simple:
 
 //   def run: IO[Unit] =
@@ -55,3 +82,4 @@ end testy
 //   end run
 
 // end Assistant
+

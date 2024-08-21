@@ -28,7 +28,7 @@ def fileLogger(toFile: fs2.io.file.Path): (Client[IO] => Client[IO]) = (cIn: Cli
   val writer = filesIo.writeUtf8Lines(toFile, Flags.Append)
   Logger(
     logBody = true,
-    logHeaders = false,
+    logHeaders = true,
     name => name.toString.toLowerCase.contains("token"),
     logAction = Some((x: String) =>
       writer(

@@ -17,6 +17,19 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
+import org.http4s.ember.client.EmberClientBuilder
+import ciris.*
+import org.http4s.Uri
+import org.http4s.syntax.literals.uri
+import org.http4s.Request
+import org.http4s.Method
+import org.http4s.multipart.Part
+import fs2.io.file.Path
+import fs2.io.file.Files
+import org.http4s.EntityDecoder
+import org.http4s.multipart.Multipart
+import org.http4s.Headers
+import cats.parse.strings.Json
 
 /** https://platform.openai.com/docs/api-reference/files
   */
@@ -24,11 +37,11 @@ import smithy4s.schema.Schema
 @simpleRestJson
 trait FilesApi derives API:
 
-  @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/files"), 200))
+  // This needs custom headers - i.e. isn't simple rest json
   def upload(
       purpose: String,
       file: Blob
-  ): IO[File]
+  ): IO[File] = throw new Exception("This operation is not a json endpoint. Look for the upload method on the companion object of the FilesAPI")
 
   @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/files"), 200), Readonly())
   def files(): IO[FileListy]
@@ -44,12 +57,11 @@ trait FilesApi derives API:
       @hints(HttpLabel())
       id: String
   ): IO[DeletedFile]
-
-  @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/files/{id}"), 200))
+  
   def content(
       @hints(HttpLabel())
       id: String
-  ): IO[Blob]
+  ): IO[Blob] = throw new Exception("This operation is not a json endpoint. Look for the method on the companion object of the FilesAPI")
 
 end FilesApi
 
@@ -62,20 +74,46 @@ object FilesApi:
       .resource
       .map(_.unliftService)
 
-  // def defaultAuthLogToFile(
-  //     logPath: fs2.io.file.Path,
-  //     provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build
-  // ): Resource[IO, FilesApi] =
-  //   val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
-  //   val logger = fileLogger(logPath)
-  //   for
-  //     _ <- makeLogFile(logPath).toResource
-  //     client <- provided
-  //     authdClient = authMiddleware(apikey)(assistWare(logger(client)))
-  //     chatGpt <- FilesApi.apply((authdClient), uri"https://api.openai.com/")
-  //   yield chatGpt
-  //   end for
-  // end defaultAuthLogToFile
+  def defaultAuthLogToFile(
+      logPath: fs2.io.file.Path,
+      provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build
+  ): Resource[IO, FilesApi] =
+    val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
+    val logger = fileLogger(logPath)
+    for
+      _ <- makeLogFile(logPath).toResource
+      client <- provided
+      authdClient = authMiddleware(apikey)(assistWare(logger(client)))
+      chatGpt <- FilesApi.apply((authdClient), uri"https://api.openai.com/")
+    yield chatGpt
+    end for
+  end defaultAuthLogToFile
+
+  def upload[F[_]: Files](
+    baseUrl: String = "https://api.openai.com", 
+    provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build,
+    file: Path,
+    purpose: String = "purpose"
+  ) =
+    val filePart = Part.fileData[IO](
+      "file", 
+      file
+    )
+    val purposePart = Part.formData[IO](name = purpose, value = "assistants")
+    val multipart = Multipart[IO](Vector(filePart, purposePart))
+    
+    val req = Request[IO](
+      Method.POST,
+      Uri.unsafeFromString(baseUrl+"/v1/files"),
+      headers = multipart.headers 
+    ).withEntity(multipart)  
+    provided.use{ _.expect[String](req)}.map(resp => smithy4s.json.Json.read[File](Blob(resp)).fold(
+      ex => throw(ex), 
+      identity
+    )  
+    )
+  end upload
+
 
   case class DeletedFile(
       id: String,
