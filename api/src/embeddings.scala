@@ -3,21 +3,18 @@ package io.github.quafadas.dairect
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import io.github.quafadas.dairect.ChatGpt.AiMessage
-import io.github.quafadas.dairect.ChatGpt.ChatResponse
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.*
 import smithy4s.*
 import smithy4s.Document.*
 import smithy4s.deriving.aliases.simpleRestJson
-import smithy4s.deriving.aliases.untagged
 import smithy4s.deriving.internals.Meta
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.*
 
 import scala.annotation.experimental
-import scala.annotation.nowarn
 import io.github.quafadas.dairect.EmbeddingsApi.EmbeddingList
 
 @simpleRestJson

@@ -56,7 +56,9 @@ object UrlReader:
     override lazy val client: Client[IO] = provided
 end UrlReader
 
-def serpware: Client[IO] => Client[IO] = serpWare(env("SERP_API_TOKEN").as[String].load[IO].toResource)
+def serpware: Client[IO] => Client[IO] = 
+  val tok: Resource[IO, String] = env("SERP_API_TOKEN").as[String].load[IO].toResource
+  serpWare(tok)
 
 //FIXME
 object Serp:

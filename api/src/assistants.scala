@@ -80,7 +80,7 @@ object AssistantApi:
       .resource
       .map(_.unliftService)
 
-  def defaultAuthLogToFile(
+  def defaultAuthLogToFileAddHeader(
       logPath: fs2.io.file.Path,
       provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build
   ): Resource[IO, AssistantApi] =
@@ -93,7 +93,7 @@ object AssistantApi:
       chatGpt <- AssistantApi.apply((authdClient), uri"https://api.openai.com/")
     yield chatGpt
     end for
-  end defaultAuthLogToFile
+  end defaultAuthLogToFileAddHeader
 
   case class AssistantTool(
       `type`: String

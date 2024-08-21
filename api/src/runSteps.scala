@@ -2,16 +2,12 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import io.github.quafadas.dairect.VectorStoreApi.DeletedVectorStore
-import io.github.quafadas.dairect.VectorStoreApi.ExpiresAfter
-import io.github.quafadas.dairect.VectorStoreApi.VectorStore
-import io.github.quafadas.dairect.VectorStoreApi.VectorStoreList
-import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
+
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.Http
 import smithy.api.HttpLabel
-import smithy.api.Idempotent
+
 import smithy.api.NonEmptyString
 import smithy.api.Readonly
 import smithy4s.*
