@@ -54,7 +54,7 @@ object FileTest extends IOApp {
 
     val (fApi, _) = FilesApi.defaultAuthLogToFile(Path("log.txt")).allocated.Ø
 
-    println(FilesApi.upload[IO](file = fs2.io.file.Path("C:\\temp\\sample-pdf-file.pdf"), provided = client).Ø)
+    println(fApi.upload[IO](file = fs2.io.file.Path("C:\\temp\\sample-pdf-file.pdf"), provided = client).Ø)
 
     val all = fApi.files().Ø
     println(all)

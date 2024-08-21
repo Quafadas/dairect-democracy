@@ -33,17 +33,17 @@ import cats.parse.strings.Json
 
 // This is not simple rest json. Hence added as an extension method, can't take adavance of smithy wizardry.
 extension (fApi: FilesApi)
-  def upload[F[_]: Files](
-      baseUrl: String = "https://api.openai.com",
-      provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build,
+  def upload[F[_]: Files](      
       file: Path,
-      purpose: String = "purpose"
+      authdClient: Resource[IO, Client[IO]],
+      purpose: String = "assistants",
+      baseUrl: String = "https://api.openai.com"
   ) =
     val filePart = Part.fileData[IO](
       "file",
       file
     )
-    val purposePart = Part.formData[IO](name = purpose, value = "assistants")
+    val purposePart = Part.formData[IO](name = purpose, value = purpose)
     val multipart = Multipart[IO](Vector(filePart, purposePart))
 
     val req = Request[IO](
@@ -51,13 +51,13 @@ extension (fApi: FilesApi)
       Uri.unsafeFromString(baseUrl + "/v1/files"),
       headers = multipart.headers
     ).withEntity(multipart)
-    provided
+    authdClient
       .use(_.expect[String](req))
       .map(resp =>
         smithy4s.json.Json
           .read[File](Blob(resp))
           .fold(
-            ex => throw (ex),
+            ex => IO.raiseError(ex),
             identity
           )
       )
