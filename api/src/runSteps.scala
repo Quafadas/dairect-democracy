@@ -34,16 +34,15 @@ trait RunStepsApi derives API:
       @hints(HttpLabel())
       thread_id: String,
       @hints(HttpLabel())
-      run_id: String,      
+      run_id: String,
       @hints(HttpQuery("limit"))
-      limit: Option[Int],      
+      limit: Option[Int],
       @hints(HttpQuery("order"))
       order: Option[String],
       @hints(HttpQuery("after"))
       after: Option[String],
       @hints(HttpQuery("before"))
-      before: Option[String],
-
+      before: Option[String]
   ): IO[RunStepList]
 
   @hints(
@@ -54,7 +53,7 @@ trait RunStepsApi derives API:
       @hints(HttpLabel())
       thread_id: String,
       @hints(HttpLabel())
-      run_id: String,      
+      run_id: String,
       @hints(HttpLabel())
       step_id: String
   ): IO[RunStep]

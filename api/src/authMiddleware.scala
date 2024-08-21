@@ -28,7 +28,6 @@ def serpWare(tokResource: Resource[IO, String]): org.http4s.client.Middleware[IO
     }
   }
 
-
 def assistWare: org.http4s.client.Middleware[IO] = (client: Client[IO]) =>
   Client { req =>
     client.run(

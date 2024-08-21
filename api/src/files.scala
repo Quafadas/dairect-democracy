@@ -31,9 +31,41 @@ import org.http4s.multipart.Multipart
 import org.http4s.Headers
 import cats.parse.strings.Json
 
+// This is not simple rest json. Hence added as an extension method, can't take adavance of smithy wizardry.
+extension (fApi: FilesApi)
+  def upload[F[_]: Files](
+      baseUrl: String = "https://api.openai.com",
+      provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build,
+      file: Path,
+      purpose: String = "purpose"
+  ) =
+    val filePart = Part.fileData[IO](
+      "file",
+      file
+    )
+    val purposePart = Part.formData[IO](name = purpose, value = "assistants")
+    val multipart = Multipart[IO](Vector(filePart, purposePart))
+
+    val req = Request[IO](
+      Method.POST,
+      Uri.unsafeFromString(baseUrl + "/v1/files"),
+      headers = multipart.headers
+    ).withEntity(multipart)
+    provided
+      .use(_.expect[String](req))
+      .map(resp =>
+        smithy4s.json.Json
+          .read[File](Blob(resp))
+          .fold(
+            ex => throw (ex),
+            identity
+          )
+      )
+  end upload
+end extension
+
 /** https://platform.openai.com/docs/api-reference/files
   */
-
 @simpleRestJson
 trait FilesApi derives API:
 
@@ -41,7 +73,9 @@ trait FilesApi derives API:
   def upload(
       purpose: String,
       file: Blob
-  ): IO[File] = throw new Exception("This operation is not a json endpoint. Look for the upload method on the companion object of the FilesAPI")
+  ): IO[File] = throw new Exception(
+    "This operation is not a json endpoint. Look for the upload method on the companion object of the FilesAPI"
+  )
 
   @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/files"), 200), Readonly())
   def files(): IO[FileListy]
@@ -57,11 +91,13 @@ trait FilesApi derives API:
       @hints(HttpLabel())
       id: String
   ): IO[DeletedFile]
-  
+
   def content(
       @hints(HttpLabel())
       id: String
-  ): IO[Blob] = throw new Exception("This operation is not a json endpoint. Look for the method on the companion object of the FilesAPI")
+  ): IO[Blob] = throw new Exception(
+    "This operation is not a json endpoint. Look for the method on the companion object of the FilesAPI"
+  )
 
 end FilesApi
 
@@ -89,31 +125,30 @@ object FilesApi:
     end for
   end defaultAuthLogToFile
 
-  def upload[F[_]: Files](
-    baseUrl: String = "https://api.openai.com", 
-    provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build,
-    file: Path,
-    purpose: String = "purpose"
-  ) =
-    val filePart = Part.fileData[IO](
-      "file", 
-      file
-    )
-    val purposePart = Part.formData[IO](name = purpose, value = "assistants")
-    val multipart = Multipart[IO](Vector(filePart, purposePart))
-    
-    val req = Request[IO](
-      Method.POST,
-      Uri.unsafeFromString(baseUrl+"/v1/files"),
-      headers = multipart.headers 
-    ).withEntity(multipart)  
-    provided.use{ _.expect[String](req)}.map(resp => smithy4s.json.Json.read[File](Blob(resp)).fold(
-      ex => throw(ex), 
-      identity
-    )  
-    )
-  end upload
+  // def upload[F[_]: Files](
+  //   baseUrl: String = "https://api.openai.com",
+  //   provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build,
+  //   file: Path,
+  //   purpose: String = "purpose"
+  // ) =
+  //   val filePart = Part.fileData[IO](
+  //     "file",
+  //     file
+  //   )
+  //   val purposePart = Part.formData[IO](name = purpose, value = "assistants")
+  //   val multipart = Multipart[IO](Vector(filePart, purposePart))
 
+  //   val req = Request[IO](
+  //     Method.POST,
+  //     Uri.unsafeFromString(baseUrl+"/v1/files"),
+  //     headers = multipart.headers
+  //   ).withEntity(multipart)
+  //   provided.use{ _.expect[String](req)}.map(resp => smithy4s.json.Json.read[File](Blob(resp)).fold(
+  //     ex => throw(ex),
+  //     identity
+  //   )
+  //   )
+  // end upload
 
   case class DeletedFile(
       id: String,
