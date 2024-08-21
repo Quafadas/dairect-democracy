@@ -18,6 +18,9 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
+import org.http4s.ember.client.EmberClientBuilder
+import ciris.*
+import org.http4s.syntax.literals.uri
 
 /** https://platform.openai.com/docs/api-reference/vector-stores-files
   */
@@ -74,20 +77,20 @@ object VectorStoreFilesApi:
       .resource
       .map(_.unliftService)
 
-  // def defaultAuthLogToFile(
-  //     logPath: fs2.io.file.Path,
-  //     provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build
-  // ): Resource[IO, VectorStoreFilesApi] =
-  //   val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
-  //   val logger = fileLogger(logPath)
-  //   for
-  //     _ <- makeLogFile(logPath).toResource
-  //     client <- provided
-  //     authdClient = authMiddleware(apikey)(assistWare(logger(client)))
-  //     chatGpt <- VectorStoreFilesApi.apply((authdClient), uri"https://api.openai.com/")
-  //   yield chatGpt
-  //   end for
-  // end defaultAuthLogToFile
+  def defaultAuthLogToFile(
+      logPath: fs2.io.file.Path,
+      provided: Resource[IO, Client[IO]] = EmberClientBuilder.default[IO].build
+  ): Resource[IO, VectorStoreFilesApi] =
+    val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
+    val logger = fileLogger(logPath)
+    for
+      _ <- makeLogFile(logPath).toResource
+      client <- provided
+      authdClient = authMiddleware(apikey)(assistWare(logger(client)))
+      chatGpt <- VectorStoreFilesApi.apply((authdClient), uri"https://api.openai.com/")
+    yield chatGpt
+    end for
+  end defaultAuthLogToFile
 
   case class StaticChunkingStrategy(
       max_chunk_size_tokens: Int,
