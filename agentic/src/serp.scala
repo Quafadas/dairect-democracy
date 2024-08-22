@@ -17,7 +17,6 @@ import org.http4s.Request
 import fs2.io.file.Files
 
 @simpleRestJson
-@experimental
 trait Serp derives API:
 
   @readonly
@@ -31,7 +30,6 @@ trait Serp derives API:
 
 end Serp
 
-@experimental
 trait UrlReader derives API:
 
   lazy val client: Client[IO] = ???
@@ -41,13 +39,14 @@ trait UrlReader derives API:
     client.run(req).use { response =>
       response.bodyText.compile.string
     }
+  end readUrl
 
   def downloadFile(url: String, completeFilePath: String) =
     val req = Request[IO](org.http4s.Method.GET, Uri.unsafeFromString(url))
     client.run(req).use { response =>
       response.body.through(Files[IO].writeAll(fs2.io.file.Path(completeFilePath))).compile.drain
     }
-
+  end downloadFile
 
 end UrlReader
 
@@ -56,9 +55,10 @@ object UrlReader:
     override lazy val client: Client[IO] = provided
 end UrlReader
 
-def serpware: Client[IO] => Client[IO] = 
+def serpware: Client[IO] => Client[IO] =
   val tok: Resource[IO, String] = env("SERP_API_TOKEN").as[String].load[IO].toResource
   serpWare(tok)
+end serpware
 
 //FIXME
 object Serp:

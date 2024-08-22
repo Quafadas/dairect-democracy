@@ -1,13 +1,11 @@
 package io.github.quafadas.dairect
 
-import scala.annotation.experimental
 import smithy4s.*
 import smithy4s.deriving.{*, given}
 
 import cats.effect.IO
 import cats.effect.std.Console
 
-@experimental
 @hints(smithy.api.Documentation("Local file and os operations"))
 /** Local file and os operations
   */
@@ -27,6 +25,12 @@ trait OsTool derives API:
         val filePath = os.Path(dir) / fileName
         os.write.over(filePath, contents.getOrElse(""))
         filePath.toString
+      }
+
+  def readTextFile(filePath: String): IO[String] =
+    IO.println(s"Reading file $filePath") >>
+      IO.blocking {
+        os.read(os.Path(filePath))
       }
 
   def askForHelp(question: String): IO[String] =

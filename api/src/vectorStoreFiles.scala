@@ -32,7 +32,7 @@ trait VectorStoreFilesApi derives API:
     */
   @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/vector_stores/{vector_store_id}/files"), 200))
   def create(
-      vector_store_id: String,
+      @hints(HttpLabel()) vector_store_id: String,
       file_id: String,
       chunkingStrategy: Option[ChunkingStrategy] = None
   ): IO[VectorStoreFile]

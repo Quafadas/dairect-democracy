@@ -12,9 +12,14 @@
 hs_err_pid*
 log.txt
 test.json
-assistant.txt
+
 out/*
 .bloop
 .jvmopts
 .DS_STORE
+
+assistant.txt
 easychat.txt
+thread.txt
+easychat.txt
+vectorStore.txt

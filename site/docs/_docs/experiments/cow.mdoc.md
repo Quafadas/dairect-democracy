@@ -4,7 +4,7 @@ title: Basic Chat
 
 # Basic Chat
 
-This is a simple chat application that uses ther chat API to chat with an assistant.
+A simple chat application that uses the chat API to chat with an assistant.
 
 ```scala mdoc
 

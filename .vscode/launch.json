@@ -1,0 +1,56 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations":  [
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "testy",
+      "buildTarget": "site",
+      "mainClass": "io.github.quafadas.dairect.testy",
+      "envFile": ".envrc"
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "vsFilesTest",
+      "buildTarget": "site",
+      "mainClass": "io.github.quafadas.dairect.vsFilesTest",
+      "envFile": ".envrc"
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "ThreadTest",
+      "buildTarget": "site",
+      "mainClass": "io.github.quafadas.dairect.ThreadTest",
+      "envFile": ".envrc"
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "Assistant",
+      "buildTarget": "site",
+      "mainClass": "io.github.quafadas.dairect.Assistant",
+      "envFile": ".envrc"
+    },
+    {
+      "type": "scala",
+      "request": "launch",
+      "name": "Researcher",
+      "buildTarget": "site",
+      "mainClass": "io.github.quafadas.dairect.Researcher",
+      "envFile": ".envrc"
+    },
+    {
+      "type": "scala",
+      "request": "attach",
+      "name": "project-test",
+      "buildTarget": "project_183d125c5c-test",
+      "hostName": "localhost",
+      "port": 5005
+    }
+  ]
+}
