@@ -10,6 +10,10 @@ map AssistantMetaData {
   value: String
 }
 
+map MessageMetaData {
+  key: String
+  value: String
+}
 map ThreadMetaData {
   key: String
   value: String

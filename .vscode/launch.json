@@ -15,6 +15,14 @@
     {
       "type": "scala",
       "request": "launch",
+      "name": "MesagesTest",
+      "buildTarget": "site",
+      "mainClass": "io.github.quafadas.dairect.MesagesTest",
+      "envFile": ".envrc"
+    },
+    {
+      "type": "scala",
+      "request": "launch",
       "name": "vsFilesTest",
       "buildTarget": "site",
       "mainClass": "io.github.quafadas.dairect.vsFilesTest",

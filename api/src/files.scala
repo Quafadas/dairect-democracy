@@ -29,7 +29,6 @@ import fs2.io.file.Files
 import org.http4s.EntityDecoder
 import org.http4s.multipart.Multipart
 import org.http4s.Headers
-import cats.parse.strings.Json
 
 // This is not simple rest json. Hence added as an extension method, can't take adavance of smithy wizardry.
 extension (fApi: FilesApi)
@@ -62,6 +61,14 @@ extension (fApi: FilesApi)
           )
       )
   end upload
+
+  def content[F[_]: Files](
+    file: Path,
+    authdClient: Resource[IO, Client[IO]],
+    file_id: String
+  ) = ???
+
+  end content
 end extension
 
 /** https://platform.openai.com/docs/api-reference/files

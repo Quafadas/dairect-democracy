@@ -19,6 +19,10 @@ import org.http4s.ember.client.EmberClientBuilder
 import ciris.*
 import io.github.quafadas.dairect.ThreadApi.ToolResources
 import io.github.quafadas.dairect.ThreadApi.FileSearch
+import io.github.quafadas.dairect.MessagesApi.MessageContent
+import org.http4s.websocket.WebSocketFrame.Text
+import io.github.quafadas.dairect.MessagesApi.TextValue
+import org.http4s.Message
 
 @main def testy =
   val logFile = fs2.io.file.Path("easychat.txt")
@@ -127,6 +131,84 @@ end vsFilesTest
     */
 
 end ThreadTest
+
+@main def MesagesTest =
+  val vsApi = VectorStoreApi.defaultAuthLogToFile(fs2.io.file.Path("vectorStore.txt")).allocated.map(_._1).Ø
+  val (threadApi, _) = ThreadApi.defaultAuthLogToFile(fs2.io.file.Path("vectorStore.txt")).allocated.Ø
+  val (msgApi, _) = MessagesApi.defaultAuthLogToFile(fs2.io.file.Path("messages.txt")).allocated.Ø
+  val (fApi, _) = FilesApi.defaultAuthLogToFile(Path("log.txt")).allocated.Ø
+
+  // file-7PeCahfYyjto2QIxNdOK1gcZ is a png
+  // println(fApi.files().Ø)
+
+
+  val vs = vsApi.list().Ø.data.head.id
+
+  val newThread = threadApi.create(
+    List(AiMessage.user("I am cow")), 
+    ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs)).some).some).some
+  ).Ø
+
+  // println("make new message")
+  // val msg = msgApi.create(
+  //   newThread.id,    
+  //   "I am cow".msg, 
+  //   None, 
+  //   None    
+  // ).Ø
+  println(newThread)
+
+  println("make new message")
+  val msg2 = msgApi.create(
+    newThread.id,        
+    "i am cow".msg,
+  ).Ø
+
+  println(msg2)
+
+  println("make new message")
+  val msg = msgApi.create(
+    newThread.id,        
+    MessageOnThread.SCase("i am cow"),
+  ).Ø
+
+  println(msg)
+
+  println("make new message1")
+  val msg1 = msgApi.create(
+    newThread.id,        
+    MessageOnThread.LCase(
+      List(
+        MessageToSend.TextCase(TextToSend("I am cow2")),
+        MessageToSend.Image_fileCase(ImageFile( ImageDetails("file-7PeCahfYyjto2QIxNdOK1gcZ", None))),
+        MessageToSend.Image_urlCase(ImageUrl(ImageUrlDetails("""https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png""", None)))
+      )
+    )
+  ).Ø
+
+
+  println(msg1)
+
+  // println("make new message 2")
+  // val msg1 = msgApi.create(
+  //   newThread.id,     
+    
+  // ).Ø
+
+  println(msgApi.list(newThread.id).Ø)
+  // println(msg1)MessageOnThread
+
+  val deleted = threadApi.deleteThread(newThread.id).Ø
+
+  println(deleted)
+
+  /** vsFilesApi.create(allVs.data.head.id, allFiles.data.head.id).Ø
+    *
+    * vsFilesApi.delete(allVsf.data.head.id).Ø
+    */
+
+end MesagesTest
+
 
 // object Assistant extends IOApp.Simple:
 
