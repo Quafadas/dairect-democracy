@@ -82,51 +82,49 @@ extension (c: ChatGpt)
         client
           .stream(
             req
-          )          
+          )
           .flatMap { str =>
             str.bodyText
-              .evalMap[IO, List[ChatChunk]] { str =>                
+              .evalMap[IO, List[ChatChunk]] { str =>
 
-                /* 
-                  This is kind of nasty, open AIs streaming format seems to 
-                  contain multiple chat chunks in each chunk sent over the wire. 
-                  I suspect the implementation is unsatisfactory in respect of error handling. 
-                */
+                /*
+                  This is kind of nasty, open AIs streaming format seems to
+                  contain multiple chat chunks in each chunk sent over the wire.
+                  I suspect the implementation is unsatisfactory in respect of error handling.
+                 */
 
                 // val argy = str.split("\n")
                 // println("--> test newline Theory")
                 // println(argy.mkString(","))
                 // println("--> exit newline ")
 
-                /** chunks arrive as 
-                
-                """data :{"CHAT_CHUNK_HERE"} 
-                
-                data :{"ANOTHER_CHAT_CHUNK_HERE"} 
-
-                data : [DONE]
-                """
-                
-                So 
-                1. String split on empty lines. Nice.
-                2. Check that we don't have the DONE marker (it's not valid, JSON so we can't easily parse it)
-                3. drop empty lines
-                4. Parse whatever is left
-                5. Pray for a miracle. Don't forget the miracle.
-                **/
-                val parsed = str.split("\n").map(_.drop(6)).filterNot(_.isEmpty()).map { maybeParseable => 
-                  if maybeParseable == "[DONE]" then 
+                /** chunks arrive as
+                  *
+                  * """data :{"CHAT_CHUNK_HERE"}
+                  *
+                  * data :{"ANOTHER_CHAT_CHUNK_HERE"}
+                  *
+                  * data : [DONE] """
+                  *
+                  * So
+                  * \1. String split on empty lines. Nice. 2. Check that we don't have the DONE marker (it's not valid,
+                  * JSON so we can't easily parse it) 3. drop empty lines 4. Parse whatever is left 5. Pray for a
+                  * miracle. Don't forget the miracle.
+                  */
+                val parsed = str.split("\n").map(_.drop(6)).filterNot(_.isEmpty()).map { maybeParseable =>
+                  if maybeParseable == "[DONE]" then
                     // println("ended")
                     None
                   else
                     Json
-                      .read[ChatChunk](Blob(maybeParseable)).fold(
-                        throw _, 
+                      .read[ChatChunk](Blob(maybeParseable))
+                      .fold(
+                        throw _,
                         Some(_)
                       )
                   end if
                 }
-                IO(parsed.flatten.toList)                                
+                IO(parsed.flatten.toList)
               }
           }
       )
@@ -154,7 +152,8 @@ extension (c: ChatGpt)
       authdClient,
       baseUrl
     )
-    .map(_.flatMap(_.choices.flatMap(_.delta.content))).flatMap(fs2.Stream.emits)
+    .map(_.flatMap(_.choices.flatMap(_.delta.content)))
+    .flatMap(fs2.Stream.emits)
 
   // end stream
 end extension

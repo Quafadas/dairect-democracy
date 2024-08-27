@@ -32,7 +32,7 @@ import org.http4s.Headers
 
 // This is not simple rest json. Hence added as an extension method, can't take adavance of smithy wizardry.
 extension (fApi: FilesApi)
-  def upload[F[_]: Files](      
+  def upload[F[_]: Files](
       file: Path,
       authdClient: Resource[IO, Client[IO]],
       purpose: String = "assistants",
@@ -63,9 +63,9 @@ extension (fApi: FilesApi)
   end upload
 
   def content[F[_]: Files](
-    file: Path,
-    authdClient: Resource[IO, Client[IO]],
-    file_id: String
+      file: Path,
+      authdClient: Resource[IO, Client[IO]],
+      file_id: String
   ) = ???
 
   end content

@@ -31,13 +31,13 @@ extension (s: String)
   // def msg : StringOrMessageList = StringOrMessageList.Raw(s)
   // def msg =
   //   MessageToSendList(
-  //     List( 
+  //     List(
   //       MessageToSend.TextCase(TextToSend(s))
-  //     )  
+  //     )
   //   )
 
   def msg = MessageOnThread.SCase(s)
-end extension 
+end extension
 
 @simpleRestJson
 trait MessagesApi derives API:
@@ -49,7 +49,7 @@ trait MessagesApi derives API:
       content: MessageOnThread,
       attachments: Option[List[MessageAttachment]] = None,
       metadata: Option[MessageMetaData] = None,
-      role: String = "user",
+      role: String = "user"
   ): IO[Message]
 
   @hints(Http(NonEmptyString("GET"), NonEmptyString("/v1/threads/{thread_id}/messages/{message_id}"), 200), Readonly())
@@ -66,26 +66,26 @@ trait MessagesApi derives API:
       @hints(HttpQuery("limit"))
       limit: Option[Int] = None,
       @hints(HttpQuery("order"))
-      order: Option[String]= None,
+      order: Option[String] = None,
       @hints(HttpQuery("after"))
-      after: Option[String]= None,
+      after: Option[String] = None,
       @hints(HttpQuery("before"))
-      before: Option[String]= None,
+      before: Option[String] = None,
       @hints(HttpQuery("run_id"))
-      run_id: Option[String]= None
+      run_id: Option[String] = None
   ): IO[MessageList]
 
-    @hints(Http(NonEmptyString("DELETE"), NonEmptyString("/v1/threads/{id}"), 200))
-    def deleteThread(
-        @hints(HttpLabel())
-        id: String
-    ): IO[MessageDeleted]
+  @hints(Http(NonEmptyString("DELETE"), NonEmptyString("/v1/threads/{id}"), 200))
+  def deleteThread(
+      @hints(HttpLabel())
+      id: String
+  ): IO[MessageDeleted]
 
   @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/threads/{thread_id}/messages/{message_id}"), 200))
   def modifyMessage(
       @hints(HttpLabel())
       thread_id: String,
-      message_id: String      
+      message_id: String
   ): IO[Message]
 
 end MessagesApi
@@ -124,16 +124,14 @@ object MessagesApi:
       assistant_id: Option[String],
       run_id: Option[String],
       attachments: Option[List[MessageAttachment]],
-      metadata: MessageMetaData, 
+      metadata: MessageMetaData,
       completed_at: Option[Int],
       incomplete_at: Option[Int]
   ) derives Schema
 
-
   case class MessageAttachment(
-    file_id : Option[String],
-    tools: Option[List[MessagesTool]]
-
+      file_id: Option[String],
+      tools: Option[List[MessagesTool]]
   ) derives Schema
 
   case class MessageDeleted(
@@ -146,43 +144,43 @@ object MessagesApi:
     case CodeInterpreter(`type`: String = "code_interpreter")
     case FileSearch(`type`: String = "file_search")
   end MessagesTool
-  
+
   // @untagged
-  // enum MsgSend derives Schema:  
+  // enum MsgSend derives Schema:
   //   @wrapper
   //   case MessageContentList(l: List[MessageContent])
-        
-  //   @wrapper 
+
+  //   @wrapper
   //   case Raw(s : String)
-  // end StringOrMessageList  
+  // end StringOrMessageList
 
   // type MessageContentList = List[MessageContent]
 
-  // @discriminated("type")  
-  // enum MessageContent derives Schema:    
-  //   case Image(image_file: ImageFile, `type`: String = "image_file")    
-  //   case ImageUrl(`type`: String, image_url: String)    
-  //   case Text(text: TextValue, `type`: String = "text")    
+  // @discriminated("type")
+  // enum MessageContent derives Schema:
+  //   case Image(image_file: ImageFile, `type`: String = "image_file")
+  //   case ImageUrl(`type`: String, image_url: String)
+  //   case Text(text: TextValue, `type`: String = "text")
   //   case Refusal(`type`: String = "refusal", refusal: String)
   // end MessageContent
 
   // case class ImageFile(file_id: String, detail: String = "low")  derives Schema
-  // case class ImageUrl(`type`: String /* png */, image_url: String)  derives Schema  
+  // case class ImageUrl(`type`: String /* png */, image_url: String)  derives Schema
   // case class TextValue(value: String, annotations: List[Annotation] = List())  derives Schema
 
   // enum Annotation derives Schema:
   //   case Citation(`type`: String = "file_path", text: String, file_citation: FilePathId, start_index: Int, end_index: Int)
-  //   case FilePath(`type`: String = "file_path", text: String, file_path: FilePathId, start_index: Int, end_index: Int)  
+  //   case FilePath(`type`: String = "file_path", text: String, file_path: FilePathId, start_index: Int, end_index: Int)
   // end Annotation
 
-  // case class FilePathId(file_id: String) derives Schema  
+  // case class FilePathId(file_id: String) derives Schema
 
   case class MessageList(
-    `object`: String, 
-    data: List[Message],
-    first_id: Option[String],
-    last_id: Option[String],
-    has_more: Boolean
+      `object`: String,
+      data: List[Message],
+      first_id: Option[String],
+      last_id: Option[String],
+      has_more: Boolean
   ) derives Schema
 
 end MessagesApi
