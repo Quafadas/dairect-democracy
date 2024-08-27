@@ -149,8 +149,6 @@ object MessagesApi:
   
   // @untagged
   // enum MsgSend derives Schema:  
-    
-
   //   @wrapper
   //   case MessageContentList(l: List[MessageContent])
         
@@ -179,12 +177,12 @@ object MessagesApi:
 
   // case class FilePathId(file_id: String) derives Schema  
 
-  // case class MessageList(
-  //   `object`: String, 
-  //   data: List[Message],
-  //   first_id: Option[String],
-  //   last_id: Option[String],
-  //   has_more: Boolean
-  // ) derives Schema
+  case class MessageList(
+    `object`: String, 
+    data: List[Message],
+    first_id: Option[String],
+    last_id: Option[String],
+    has_more: Boolean
+  ) derives Schema
 
 end MessagesApi
