@@ -12,8 +12,6 @@ import ChatGpt.AiChoice
 import ChatGpt.AiMessage
 import ChatGpt.ChatResponse
 import ChatGpt.AiAnswer
-import ChatGpt.FunctionCall
-import ChatGpt.ToolCall
 import ChatGpt.AiTokenUsage
 import ChatGpt.ChatGptConfig
 

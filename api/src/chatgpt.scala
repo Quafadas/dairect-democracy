@@ -33,6 +33,8 @@ import org.http4s.EntityEncoder
 import org.http4s.Entity
 import smithy4s.json.Json
 import smithy4s.codecs.PayloadError
+import cats.effect.kernel.Async
+import cats.Applicative
 
 case class Compounds(
     strings: List[String],
@@ -41,79 +43,121 @@ case class Compounds(
 
 extension (c: ChatGpt)
   def streamRaw(
-    messages: List[AiMessage],
-    model: String = "gpt-4o-mini",
-    temperature: Option[Double] = None,
-    tools: Option[Document] = None,
-    response_format: Option[AiResponseFormat] = None,
-    authdClient: Resource[IO, Client[IO]],
-    baseUrl : String = "https://api.openai.com"
-  ): IO[fs2.Stream[IO, ChatChunk]] = 
-    case class StreamChatRequest(
       messages: List[AiMessage],
       model: String = "gpt-4o-mini",
       temperature: Option[Double] = None,
       tools: Option[Document] = None,
       response_format: Option[AiResponseFormat] = None,
-      stream: Boolean = true
+      authdClient: Resource[IO, Client[IO]],
+      baseUrl: String = "https://api.openai.com"
+  ): fs2.Stream[IO, List[ChatChunk]] =
+    case class StreamChatRequest(
+        messages: List[AiMessage],
+        model: String = "gpt-4o-mini",
+        temperature: Option[Double] = None,
+        tools: Option[Document] = None,
+        response_format: Option[AiResponseFormat] = None,
+        stream: Boolean = true
     ) derives Schema
-  
-    val enc: EntityEncoder[IO, StreamChatRequest] = EntityEncoder.encodeBy[IO, StreamChatRequest](("Content-Type" -> "application/json"))( scr => 
-        Entity(fs2.Stream.emits[IO, Byte](smithy4s.json.Json.writeBlob(scr).toArray))        
-      ) 
+
+    val enc: EntityEncoder[IO, StreamChatRequest] =
+      EntityEncoder.encodeBy[IO, StreamChatRequest](("Content-Type" -> "application/json"))(scr =>
+        Entity(fs2.Stream.emits[IO, Byte](smithy4s.json.Json.writeBlob(scr).toArray))
+      )
 
     val req = Request[IO](
       Method.POST,
-      Uri.unsafeFromString(baseUrl + "/v1/chat/completions"),
-    ).withEntity( 
+      Uri.unsafeFromString(baseUrl + "/v1/chat/completions")
+    ).withEntity(
       StreamChatRequest(
-        messages, model, temperature, tools,response_format
+        messages,
+        model,
+        temperature,
+        tools,
+        response_format
       )
     )(using enc)
-
-    authdClient.use { client =>
+    val io = authdClient.use { client =>
       IO(
-        client.stream(
-          req
-        ).flatMap{ str => 
-          str.bodyText.evalMap[IO, Option[ChatChunk]]{ str => 
-            val parseable = str.drop(6)
-            if (parseable == "[DONE]") 
-              IO.pure(None)
-            else
-              Json.read[ChatChunk](Blob(parseable)).fold(
-                IO.raiseError, 
-                in => IO.pure(Some(in))
-              )             
-          }.collect {
-            case Some(value) => value
+        client
+          .stream(
+            req
+          )          
+          .flatMap { str =>
+            str.bodyText
+              .evalMap[IO, List[ChatChunk]] { str =>                
+
+                /* 
+                  This is kind of nasty, open AIs streaming format seems to 
+                  contain multiple chat chunks in each chunk sent over the wire. 
+                  I suspect the implementation is unsatisfactory in respect of error handling. 
+                */
+
+                // val argy = str.split("\n")
+                // println("--> test newline Theory")
+                // println(argy.mkString(","))
+                // println("--> exit newline ")
+
+                /** chunks arrive as 
+                
+                """data :{"CHAT_CHUNK_HERE"} 
+                
+                data :{"ANOTHER_CHAT_CHUNK_HERE"} 
+
+                data : [DONE]
+                """
+                
+                So 
+                1. String split on empty lines. Nice.
+                2. Check that we don't have the DONE marker (it's not valid, JSON so we can't easily parse it)
+                3. drop empty lines
+                4. Parse whatever is left
+                5. Pray for a miracle. Don't forget the miracle.
+                **/
+                val parsed = str.split("\n").map(_.drop(6)).filterNot(_.isEmpty()).map { maybeParseable => 
+                  if maybeParseable == "[DONE]" then 
+                    // println("ended")
+                    None
+                  else
+                    Json
+                      .read[ChatChunk](Blob(maybeParseable)).fold(
+                        throw _, 
+                        Some(_)
+                      )
+                  end if
+                }
+                IO(parsed.flatten.toList)                                
+              }
           }
-        }
       )
     }
+
+    fs2.Stream.eval(io).flatten
 
   end streamRaw
 
   def stream(
-    messages: List[AiMessage],
-    model: String = "gpt-4o-mini",
-    temperature: Option[Double] = None,
-    tools: Option[Document] = None,
-    response_format: Option[AiResponseFormat] = None,
-    authdClient: Resource[IO, Client[IO]],
-    baseUrl : String = "https://api.openai.com"
-  ): IO[fs2.Stream[IO, List[String]]] = c.streamRaw(
+      messages: List[AiMessage],
+      model: String = "gpt-4o-mini",
+      temperature: Option[Double] = None,
+      tools: Option[Document] = None,
+      response_format: Option[AiResponseFormat] = None,
+      authdClient: Resource[IO, Client[IO]],
+      baseUrl: String = "https://api.openai.com"
+  ): fs2.Stream[IO, String] = c
+    .streamRaw(
       messages,
       model,
-      temperature, 
+      temperature,
       tools,
       response_format,
       authdClient,
       baseUrl
-    ).map(_.map(_.choices.flatMap(_.delta.content)))
+    )
+    .map(_.flatMap(_.choices.flatMap(_.delta.content))).flatMap(fs2.Stream.emits)
 
-  end stream
-
+  // end stream
+end extension
 
 @simpleRestJson
 trait ChatGpt derives API:
@@ -274,7 +318,6 @@ object ChatGpt:
 
   case class AiAnswer(role: String, content: Option[String], tool_calls: Option[List[ToolCall]]) derives Schema
 
-
   extension (aic: AiChoice)
     def toMessage: List[AiMessage] =
       List(
@@ -324,32 +367,30 @@ enum AiResponseFormatString derives Schema:
   case text
 end AiResponseFormatString
 
-
 case class FunctionCall(name: String, description: Option[String], arguments: Option[String]) derives Schema
 
 case class ToolCall(id: String, `type`: String = "function", function: FunctionCall) derives Schema
 
 case class ChunkDelta(
-  content: Option[String],
-  tool_calls: Option[List[ToolCall]],
-  role: Option[String],
-  refusal: Option[String]   
+    content: Option[String],
+    tool_calls: Option[List[ToolCall]],
+    role: Option[String],
+    refusal: Option[String]
 ) derives Schema
 
 case class ChunkChoice(
-  delta: ChunkDelta,
-  finish_reason: Option[String], 
-  index: Int 
+    delta: ChunkDelta,
+    finish_reason: Option[String],
+    index: Int
 ) derives Schema
 
 case class ChatChunk(
-  id: String, 
-  choices: List[ChunkChoice],
-  created: Long,
-  model: String,
-  service_tier: Option[String],
-  system_fingerprint: String,
-  `object` : String,
-  usage: Option[AiTokenUsage]
-
+    id: String,
+    choices: List[ChunkChoice],
+    created: Long,
+    model: String,
+    service_tier: Option[String],
+    system_fingerprint: String,
+    `object`: String,
+    usage: Option[AiTokenUsage]
 ) derives Schema

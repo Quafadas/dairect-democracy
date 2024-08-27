@@ -92,16 +92,25 @@ end FileTest
 
   val (chat, _) = ChatGpt.defaultAuthLogToFile(Path("log.txt")).allocated.Ø
 
-  val streamIo = chat.stream(
-    List(AiMessage.system("You write in the style of shakespeare"), AiMessage.user("Write a sonnet about cows") ),
+  // val streamIo = chat.streamRaw(
+  //   List(AiMessage.system("You are cow"), AiMessage.user("Make noise") ),
+  //   authdClient = client
+  // )
+
+  // val er = streamIo.flatMap{ str => 
+  //   IO.println("startin ") >>
+  //   str.compile.toList.map(_.flatten)
+  // }.Ø
+
+  val streamEasy = chat.stream(
+    List(AiMessage.system("You are cow"), AiMessage.user("Make noise") ),
     authdClient = client
   )
 
-  streamIo.flatMap{ str => 
-    IO.println("startin ") >>
-    str.debug().compile.drain
-  }.Ø
-
+  
+  val arg = streamEasy.debug().compile.toList
+  
+  println(arg.Ø)
 end streamTest
 
 @main def vsFilesTest =

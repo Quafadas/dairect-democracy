@@ -3,7 +3,6 @@ package io.github.quafadas.dairect
 import smithy4s.deriving.API
 import cats.effect.IO
 import smithy4s.json.Json
-import ChatGpt.FunctionCall
 import munit.CatsEffectSuite
 import smithy4s.Document
 
