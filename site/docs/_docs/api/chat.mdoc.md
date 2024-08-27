@@ -24,7 +24,7 @@ chatGpt.chat(List(sysMessage, userMessage)).Ø
 
 # Streaming Chat
 
-A simple chat application that uses the chat API to chat with an assistant.
+Let's stream the response from the chat API.
 
 ```scala mdoc
 
@@ -33,6 +33,7 @@ import io.github.quafadas.dairect.ChatGpt.*
 import cats.effect.IO
 import ciris.*
 import org.http4s.ember.client.EmberClientBuilder
+import fs2.io.file.Path
 
 val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
 val logger = fileLogger(Path("log.txt"))
