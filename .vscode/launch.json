@@ -15,6 +15,14 @@
     {
       "type": "scala",
       "request": "launch",
+      "name": "streamTest",
+      "buildTarget": "site",
+      "mainClass": "io.github.quafadas.dairect.streamTest",
+      "envFile": ".envrc"
+    },
+    {
+      "type": "scala",
+      "request": "launch",
       "name": "MesagesTest",
       "buildTarget": "site",
       "mainClass": "io.github.quafadas.dairect.MesagesTest",

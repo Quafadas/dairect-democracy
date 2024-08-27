@@ -19,10 +19,12 @@ import org.http4s.ember.client.EmberClientBuilder
 import ciris.*
 import io.github.quafadas.dairect.ThreadApi.ToolResources
 import io.github.quafadas.dairect.ThreadApi.FileSearch
-import io.github.quafadas.dairect.MessagesApi.MessageContent
+import fs2.text.{lines, utf8Encode}
+
 import org.http4s.websocket.WebSocketFrame.Text
-import io.github.quafadas.dairect.MessagesApi.TextValue
+
 import org.http4s.Message
+import fs2.text.utf8
 
 @main def testy =
   val logFile = fs2.io.file.Path("easychat.txt")
@@ -80,6 +82,27 @@ object FileTest extends IOApp:
     IO(ExitCode.Success)
   end run
 end FileTest
+
+
+
+@main def streamTest =  
+  val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
+  val logger = fileLogger(Path("log.txt"))
+  val client = EmberClientBuilder.default[IO].build.map(authMiddleware(apikey)).map(logger)
+
+  val (chat, _) = ChatGpt.defaultAuthLogToFile(Path("log.txt")).allocated.Ø
+
+  val streamIo = chat.stream(
+    List(AiMessage.system("You write in the style of shakespeare"), AiMessage.user("Write a sonnet about cows") ),
+    authdClient = client
+  )
+
+  streamIo.flatMap{ str => 
+    IO.println("startin ") >>
+    str.debug().compile.drain
+  }.Ø
+
+end streamTest
 
 @main def vsFilesTest =
 

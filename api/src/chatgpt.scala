@@ -21,11 +21,99 @@ import scala.annotation.experimental
 import scala.annotation.nowarn
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.Uri
+import org.http4s.Method
+import org.http4s.Request
+import org.http4s.Response
+import org.http4s.EntityDecoder
+import org.http4s.MediaRange
+import org.http4s.Media
+import io.github.quafadas.dairect.ChatGpt.AiChoice
+import io.github.quafadas.dairect.ChatGpt.AiTokenUsage
+import org.http4s.EntityEncoder
+import org.http4s.Entity
+import smithy4s.json.Json
+import smithy4s.codecs.PayloadError
 
 case class Compounds(
     strings: List[String],
     mapy: Map[String, String]
 ) derives Schema
+
+extension (c: ChatGpt)
+  def streamRaw(
+    messages: List[AiMessage],
+    model: String = "gpt-4o-mini",
+    temperature: Option[Double] = None,
+    tools: Option[Document] = None,
+    response_format: Option[AiResponseFormat] = None,
+    authdClient: Resource[IO, Client[IO]],
+    baseUrl : String = "https://api.openai.com"
+  ): IO[fs2.Stream[IO, ChatChunk]] = 
+    case class StreamChatRequest(
+      messages: List[AiMessage],
+      model: String = "gpt-4o-mini",
+      temperature: Option[Double] = None,
+      tools: Option[Document] = None,
+      response_format: Option[AiResponseFormat] = None,
+      stream: Boolean = true
+    ) derives Schema
+  
+    val enc: EntityEncoder[IO, StreamChatRequest] = EntityEncoder.encodeBy[IO, StreamChatRequest](("Content-Type" -> "application/json"))( scr => 
+        Entity(fs2.Stream.emits[IO, Byte](smithy4s.json.Json.writeBlob(scr).toArray))        
+      ) 
+
+    val req = Request[IO](
+      Method.POST,
+      Uri.unsafeFromString(baseUrl + "/v1/chat/completions"),
+    ).withEntity( 
+      StreamChatRequest(
+        messages, model, temperature, tools,response_format
+      )
+    )(using enc)
+
+    authdClient.use { client =>
+      IO(
+        client.stream(
+          req
+        ).flatMap{ str => 
+          str.bodyText.evalMap[IO, Option[ChatChunk]]{ str => 
+            val parseable = str.drop(6)
+            if (parseable == "[DONE]") 
+              IO.pure(None)
+            else
+              Json.read[ChatChunk](Blob(parseable)).fold(
+                IO.raiseError, 
+                in => IO.pure(Some(in))
+              )             
+          }.collect {
+            case Some(value) => value
+          }
+        }
+      )
+    }
+
+  end streamRaw
+
+  def stream(
+    messages: List[AiMessage],
+    model: String = "gpt-4o-mini",
+    temperature: Option[Double] = None,
+    tools: Option[Document] = None,
+    response_format: Option[AiResponseFormat] = None,
+    authdClient: Resource[IO, Client[IO]],
+    baseUrl : String = "https://api.openai.com"
+  ): IO[fs2.Stream[IO, List[String]]] = c.streamRaw(
+      messages,
+      model,
+      temperature, 
+      tools,
+      response_format,
+      authdClient,
+      baseUrl
+    ).map(_.map(_.choices.flatMap(_.delta.content)))
+
+  end stream
+
 
 @simpleRestJson
 trait ChatGpt derives API:
@@ -186,9 +274,6 @@ object ChatGpt:
 
   case class AiAnswer(role: String, content: Option[String], tool_calls: Option[List[ToolCall]]) derives Schema
 
-  case class ToolCall(id: String, `type`: String = "function", function: FunctionCall) derives Schema
-
-  case class FunctionCall(name: String, description: Option[String], arguments: Option[String]) derives Schema
 
   extension (aic: AiChoice)
     def toMessage: List[AiMessage] =
@@ -238,3 +323,33 @@ enum AiResponseFormatString derives Schema:
   case json_object
   case text
 end AiResponseFormatString
+
+
+case class FunctionCall(name: String, description: Option[String], arguments: Option[String]) derives Schema
+
+case class ToolCall(id: String, `type`: String = "function", function: FunctionCall) derives Schema
+
+case class ChunkDelta(
+  content: Option[String],
+  tool_calls: Option[List[ToolCall]],
+  role: Option[String],
+  refusal: Option[String]   
+) derives Schema
+
+case class ChunkChoice(
+  delta: ChunkDelta,
+  finish_reason: Option[String], 
+  index: Int 
+) derives Schema
+
+case class ChatChunk(
+  id: String, 
+  choices: List[ChunkChoice],
+  created: Long,
+  model: String,
+  service_tier: Option[String],
+  system_fingerprint: String,
+  `object` : String,
+  usage: Option[AiTokenUsage]
+
+) derives Schema

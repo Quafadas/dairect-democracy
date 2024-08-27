@@ -18,8 +18,6 @@ import software.amazon.smithy.model.node.Node
 
 import scala.annotation.experimental
 
-import ChatGpt.FunctionCall
-
 /** These are toy interpreters that turn services into json-in/json-out functions, and vice versa.
   *
   * Created for testing purposes.
