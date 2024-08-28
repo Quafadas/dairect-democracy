@@ -66,7 +66,7 @@ jobs:
       - name: Setup GPG secrets
         run: |
           gpg --version
-          cat <(echo "${{ secrets.PGP_SECRET }}") | base64 --decode | gpg --batch --import
+          cat <(echo "${{ secrets.PGP_SECRET }}") | base64 --decode | gpg --batch --import --no-tty --yes
           gpg --list-secret-keys --keyid-format LONG
 
       - name: Publish to Maven Central
