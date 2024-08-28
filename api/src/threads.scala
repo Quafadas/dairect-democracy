@@ -117,8 +117,8 @@ case class FileSearch(
 ) derives Schema
 
 case class ThreadMessage(
-    role: ThreadMessageRole,
     content: MessageOnThread,
-    attachments: Option[List[MessageAttachment]],
-    metadata: ThreadMetaData
+    role: ThreadMessageRole = ThreadMessageRole.user,    
+    attachments: Option[List[MessageAttachment]] = None,
+    metadata: Option[ThreadMetaData] = None
 ) derives Schema

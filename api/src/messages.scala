@@ -26,15 +26,7 @@ import smithy4s.schema.Schema
   */
 
 extension (s: String)
-  // def msg : StringOrMessageList = StringOrMessageList.Raw(s)
-  // def msg =
-  //   MessageToSendList(
-  //     List(
-  //       MessageToSend.TextCase(TextToSend(s))
-  //     )
-  //   )
-
-  def msg = MessageOnThread.SCase(s)
+  def msg = MessageOnThread.StrCase(s)
 end extension
 
 @simpleRestJson

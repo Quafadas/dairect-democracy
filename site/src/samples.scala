@@ -17,16 +17,12 @@ import fs2.io.file.*
 import cats.effect.ExitCode
 import org.http4s.ember.client.EmberClientBuilder
 import ciris.*
-import io.github.quafadas.dairect.ThreadApi.ToolResources
-import io.github.quafadas.dairect.ThreadApi.FileSearch
 import fs2.text.{lines, utf8Encode}
 
 import org.http4s.websocket.WebSocketFrame.Text
 
 import org.http4s.Message
 import fs2.text.utf8
-import io.github.quafadas.dairect.AssistantApi.AssistantTool
-import io.github.quafadas.dairect.AssistantApi.AssistantToolFunction
 
 @main def assistantTest =
 
@@ -172,7 +168,13 @@ end vsFilesTest
   val vsApi = VectorStoreApi.defaultAuthLogToFile(fs2.io.file.Path("vectorStore.txt")).allocated.map(_._1).Ø
   val (threadApi, _) = ThreadApi.defaultAuthLogToFile(fs2.io.file.Path("vectorStore.txt")).allocated.Ø
 
-  val newThread = threadApi.create(List(AiMessage.user("I am cow"))).Ø
+  val newThread = threadApi.create(
+    List(
+      ThreadMessage(      
+        "I am cow".msg
+      )
+    )
+  ).Ø
 
   println(newThread)
 
@@ -215,7 +217,7 @@ end ThreadTest
 
   val newThread = threadApi
     .create(
-      List(AiMessage.user("I am cow")),
+      List(ThreadMessage("I am cow".msg)),
       ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs)).some).some).some
     )
     .Ø
@@ -243,7 +245,7 @@ end ThreadTest
   val msg = msgApi
     .create(
       newThread.id,
-      MessageOnThread.SCase("i am cow")
+      MessageOnThread.StrCase("i am cow")
     )
     .Ø
 
@@ -253,7 +255,7 @@ end ThreadTest
   val msg1 = msgApi
     .create(
       newThread.id,
-      MessageOnThread.LCase(
+      MessageOnThread.array(
         List(
           MessageToSend.TextCase(TextToSend("I am cow2")),
           MessageToSend.Image_fileCase(ImageFile(ImageDetails("file-7PeCahfYyjto2QIxNdOK1gcZ", None))),

@@ -34,7 +34,7 @@ trait AssistantApi derives API:
       name: Option[String] = None,
       description: Option[String] = None,
       instructions: Option[String] = None,
-      // tool_resources: Option[Map[String, Any]] = None,
+      tool_resources: Option[ToolResources] = None,
       metadata: Option[AssistantMetaData] = None,
       temperature: Option[Double] = Some(1.0),
       top_p: Option[Double] = Some(1.0),

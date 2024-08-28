@@ -5,8 +5,8 @@ use alloy#untagged
 
 @untagged
 union MessageOnThread {
-  s: String
-  l: MessageToSendList
+  str: String
+  array: MessageToSendList
 }
 
 list MessageContentList {
