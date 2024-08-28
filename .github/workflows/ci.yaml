@@ -42,10 +42,10 @@ jobs:
         run: mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources
 
       - name: Compile All
-        run: ./mill api.__.compile && ./mill site.compile
+        run: mill api.__.compile && ./mill site.compile
 
       - name: Test Agentic
-        run: ./mill agentic.test
+        run: mill agentic.test
 
   publish:
     if: github.repository == 'Quafadas/dairect-democracy' && contains(github.ref, 'refs/tags/')
