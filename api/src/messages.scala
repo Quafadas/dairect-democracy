@@ -141,8 +141,8 @@ object MessagesApi:
   ) derives Schema
 
   enum MessagesTool derives Schema:
-    case CodeInterpreter(`type`: String = "code_interpreter")
-    case FileSearch(`type`: String = "file_search")
+    case code_interpreter(`type`: String)
+    case file_search(`type`: String)
   end MessagesTool
 
   // @untagged

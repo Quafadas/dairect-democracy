@@ -352,11 +352,11 @@ enum ResponseFormat derives Schema:
 end ResponseFormat
 
 // https://platform.openai.com/docs/guides/structured-outputs
-case class StructuredOutput(
-    description: Option[String],
+case class StructuredOutput(    
     name: String,
+    description: Option[String] = None,
     schema: Option[Document],
-    strict: Option[Boolean]
+    strict: Option[Boolean] = Some(true)
 ) derives Schema
 
 @nowarn

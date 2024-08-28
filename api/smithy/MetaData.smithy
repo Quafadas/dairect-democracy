@@ -10,6 +10,11 @@ map AssistantMetaData {
   value: String
 }
 
+map RunMetaData {
+  key: String
+  value: String
+}
+
 map MessageMetaData {
   key: String
   value: String

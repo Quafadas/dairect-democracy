@@ -5,7 +5,6 @@ import cats.effect.kernel.Resource
 import io.github.quafadas.dairect.ChatGpt.AiMessage
 import io.github.quafadas.dairect.ThreadApi.Thread
 import io.github.quafadas.dairect.ThreadApi.ThreadDeleted
-import io.github.quafadas.dairect.ThreadApi.ToolResources
 import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
 import org.http4s.syntax.literals.uri
 import org.http4s.client.Client
@@ -88,23 +87,10 @@ object ThreadApi:
       created_at: Long,
       metadata: ThreadMetaData
       //   tool_resources: Map[String, Any]
-  ) derives Schema
-
-  case class ToolResources(
-      code_interpreter: Option[CodeInterpreter] = None,
-      file_search: Option[FileSearch] = None
-  ) derives Schema
-
-  case class CodeInterpreter(
-      file_ids: CodeInterpreterFileIds
-  ) derives Schema
+  ) derives Schema  
 
   final case class ThreadDeleted(id: String, `object`: String, deleted: Boolean) derives Schema
 
-  case class FileSearch(
-      vector_store_ids: Option[VectorStoreIds] = None,
-      vector_stores: Option[VectorStoreIds] = None
-  ) derives Schema
 
   case class VectorStoreFilesToAttach(
       files_ids: FileIds,
@@ -113,3 +99,19 @@ object ThreadApi:
   ) derives Schema
 
 end ThreadApi
+
+
+case class ToolResources(
+    code_interpreter: Option[CodeInterpreter] = None,
+    file_search: Option[FileSearch] = None
+) derives Schema
+
+case class CodeInterpreter(
+    file_ids: CodeInterpreterFileIds
+) derives Schema
+
+
+case class FileSearch(
+    vector_store_ids: Option[VectorStoreIds] = None,
+    vector_stores: Option[VectorStoreIds] = None
+) derives Schema

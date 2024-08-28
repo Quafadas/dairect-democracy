@@ -49,7 +49,7 @@
       "request": "launch",
       "name": "Assistant",
       "buildTarget": "site",
-      "mainClass": "io.github.quafadas.dairect.Assistant",
+      "mainClass": "io.github.quafadas.dairect.assistantTest",
       "envFile": ".envrc"
     },
     {

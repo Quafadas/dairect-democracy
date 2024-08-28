@@ -25,6 +25,47 @@ import org.http4s.websocket.WebSocketFrame.Text
 
 import org.http4s.Message
 import fs2.text.utf8
+import io.github.quafadas.dairect.AssistantApi.AssistantTool
+import io.github.quafadas.dairect.AssistantApi.AssistantToolFunction
+
+@main def assistantTest =
+
+  val simpleSchema = Document.obj(
+    ("type", Document.fromString("object")),
+    (
+      "properties",
+      Document.obj(
+        (
+          "price",
+          Document.obj(
+            ("type", Document.fromString("number"))
+          )
+        )
+      )
+    )
+  )
+
+  val (assistantApi, _) = AssistantApi.defaultAuthLogToFileAddHeader(fs2.io.file.Path("assistant.txt")).allocated.Ø
+  val newAssist = assistantApi
+    .create(
+      "gpt-4o-mini",
+      tools = List(
+        AssistantTool.code_interpreter(),
+        AssistantTool.file_search(),
+        AssistantTool.function(AssistantToolFunction("testy", Some(simpleSchema)))
+      )
+    )
+    .Ø
+  println(newAssist)
+
+  // val assist2 = assistantApi.getAssisstant(newAssist.id).Ø
+  // println(assist2)
+
+  assistantApi.deleteAssisstant(newAssist.id)
+
+  // val newAssist = assistantApi.create("gpt-4o-mini").Ø
+
+end assistantTest
 
 @main def testy =
   val logFile = fs2.io.file.Path("easychat.txt")
@@ -83,9 +124,7 @@ object FileTest extends IOApp:
   end run
 end FileTest
 
-
-
-@main def streamTest =  
+@main def streamTest =
   val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
   val logger = fileLogger(Path("log.txt"))
   val client = EmberClientBuilder.default[IO].build.map(authMiddleware(apikey)).map(logger)
@@ -97,19 +136,18 @@ end FileTest
   //   authdClient = client
   // )
 
-  // val er = streamIo.flatMap{ str => 
+  // val er = streamIo.flatMap{ str =>
   //   IO.println("startin ") >>
   //   str.compile.toList.map(_.flatten)
   // }.Ø
 
   val streamEasy = chat.stream(
-    List(AiMessage.system("You are cow"), AiMessage.user("Make noise") ),
+    List(AiMessage.system("You are cow"), AiMessage.user("Make noise")),
     authdClient = client
   )
 
-  
   val arg = streamEasy.debug().compile.toList
-  
+
   println(arg.Ø)
 end streamTest
 
@@ -173,58 +211,71 @@ end ThreadTest
   // file-7PeCahfYyjto2QIxNdOK1gcZ is a png
   // println(fApi.files().Ø)
 
-
   val vs = vsApi.list().Ø.data.head.id
 
-  val newThread = threadApi.create(
-    List(AiMessage.user("I am cow")), 
-    ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs)).some).some).some
-  ).Ø
+  val newThread = threadApi
+    .create(
+      List(AiMessage.user("I am cow")),
+      ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs)).some).some).some
+    )
+    .Ø
 
   // println("make new message")
   // val msg = msgApi.create(
-  //   newThread.id,    
-  //   "I am cow".msg, 
-  //   None, 
-  //   None    
+  //   newThread.id,
+  //   "I am cow".msg,
+  //   None,
+  //   None
   // ).Ø
   println(newThread)
 
   println("make new message")
-  val msg2 = msgApi.create(
-    newThread.id,        
-    "i am cow".msg,
-  ).Ø
+  val msg2 = msgApi
+    .create(
+      newThread.id,
+      "i am cow".msg
+    )
+    .Ø
 
   println(msg2)
 
   println("make new message")
-  val msg = msgApi.create(
-    newThread.id,        
-    MessageOnThread.SCase("i am cow"),
-  ).Ø
+  val msg = msgApi
+    .create(
+      newThread.id,
+      MessageOnThread.SCase("i am cow")
+    )
+    .Ø
 
   println(msg)
 
   println("make new message1")
-  val msg1 = msgApi.create(
-    newThread.id,        
-    MessageOnThread.LCase(
-      List(
-        MessageToSend.TextCase(TextToSend("I am cow2")),
-        MessageToSend.Image_fileCase(ImageFile( ImageDetails("file-7PeCahfYyjto2QIxNdOK1gcZ", None))),
-        MessageToSend.Image_urlCase(ImageUrl(ImageUrlDetails("""https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png""", None)))
+  val msg1 = msgApi
+    .create(
+      newThread.id,
+      MessageOnThread.LCase(
+        List(
+          MessageToSend.TextCase(TextToSend("I am cow2")),
+          MessageToSend.Image_fileCase(ImageFile(ImageDetails("file-7PeCahfYyjto2QIxNdOK1gcZ", None))),
+          MessageToSend.Image_urlCase(
+            ImageUrl(
+              ImageUrlDetails(
+                """https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png""",
+                None
+              )
+            )
+          )
+        )
       )
     )
-  ).Ø
-
+    .Ø
 
   println(msg1)
 
   // println("make new message 2")
   // val msg1 = msgApi.create(
-  //   newThread.id,     
-    
+  //   newThread.id,
+
   // ).Ø
 
   println(msgApi.list(newThread.id).Ø)
@@ -240,7 +291,6 @@ end ThreadTest
     */
 
 end MesagesTest
-
 
 // object Assistant extends IOApp.Simple:
 
