@@ -40,13 +40,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-
-      - name: Setup NodeJS v18 LTS
-        if: matrix.project == 'js'
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          cache: npm
       
       - name: Check format
         run: mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources
