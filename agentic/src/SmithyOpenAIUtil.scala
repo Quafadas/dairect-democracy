@@ -35,6 +35,7 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
     docOpt.toOption.get
   end toJsonSchema
 
+  // format: off
   @experimental
   def openAiSmithyFunctionDispatch[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
@@ -52,12 +53,8 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
             case Some(jsonEndpoint) =>
               jsonEndpoint(fctConfig)
             case None => F.raiseError(new Throwable(s"Function $m not found"))
-          end match
-
-      end match
-
-    end openAiSmithyFunctionDispatch
-  end openAiSmithyFunctionDispatch
+      end match  
+  // format: on
 
   private def toLowLevel[Op[_, _, _, _, _], I, E, O, SI, SO](
       polyFunction: PolyFunction5[Op, Kind1[F]#toKind5],
