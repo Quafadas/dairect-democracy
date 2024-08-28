@@ -10,20 +10,6 @@ import smithy4s.deriving.aliases.untagged
 
 class SchemaGenSuite extends munit.FunSuite:
 
-  test("argy".only) {
-
-    @untagged
-    enum Foo derives Schema:
-      @wrapper case Bar(x: Int)
-      @wrapper case Baz(y: String)
-    end Foo
-
-    val a = Json.read[Foo](Blob("1"))
-
-    println(a)
-
-  }
-
   test("simple schema is generated") {
     val fakeTool = API[FakeTool].liftService(new FakeTool {})
     val simpleTool = ioToolGen.toJsonSchema(fakeTool)
