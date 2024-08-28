@@ -15,7 +15,10 @@ import io.github.quafadas.dairect.ChatGpt .*
 val vsApi = VectorStoreApi.defaultAuthLogToFile(fs2.io.file.Path("thread.txt")).allocated.map(_._1).Ø
 val (threadApi, _) = ThreadApi.defaultAuthLogToFile(fs2.io.file.Path("vectorStore.txt")).allocated.Ø
 
-val newThread = threadApi.create(List(AiMessage.user("I am cow"))).Ø
+val newThread = threadApi.create(List(
+    ThreadMessage("I am cow".msg)
+  )
+).Ø
 
 println(newThread)
 
