@@ -37,7 +37,7 @@ jobs:
         with:
           jvm: temurin@17
           apps: mill
-      
+
       - name: Check format
         run: mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources
 
@@ -45,6 +45,7 @@ jobs:
         run: mill api.__.compile && mill site.compile
 
       - name: Test Agentic
+        if: matrix.project == 'jvm'
         run: mill agentic.test
 
   publish:
