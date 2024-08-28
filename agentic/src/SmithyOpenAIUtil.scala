@@ -56,6 +56,7 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
 
       end match
 
+    end openAiSmithyFunctionDispatch
   end openAiSmithyFunctionDispatch
 
   private def toLowLevel[Op[_, _, _, _, _], I, E, O, SI, SO](

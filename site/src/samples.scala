@@ -168,13 +168,15 @@ end vsFilesTest
   val vsApi = VectorStoreApi.defaultAuthLogToFile(fs2.io.file.Path("vectorStore.txt")).allocated.map(_._1).Ø
   val (threadApi, _) = ThreadApi.defaultAuthLogToFile(fs2.io.file.Path("vectorStore.txt")).allocated.Ø
 
-  val newThread = threadApi.create(
-    List(
-      ThreadMessage(      
-        "I am cow".msg
+  val newThread = threadApi
+    .create(
+      List(
+        ThreadMessage(
+          "I am cow".msg
+        )
       )
     )
-  ).Ø
+    .Ø
 
   println(newThread)
 

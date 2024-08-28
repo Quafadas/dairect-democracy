@@ -6,6 +6,9 @@ compileApi:
 formatApi:
   mill -j 0 api.__.reformat
 
+format:
+  mill -j 0 mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+
 fix:
   mill -j 0 api.__.fix
   mill -j 0 agentic.fix

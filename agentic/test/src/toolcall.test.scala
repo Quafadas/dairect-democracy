@@ -94,7 +94,7 @@ class ToolCallSuite extends CatsEffectSuite:
       )
     )
 
-    override def chat(        
+    override def chat(
         messages: List[AiMessage],
         model: String,
         temperature: Option[Double],

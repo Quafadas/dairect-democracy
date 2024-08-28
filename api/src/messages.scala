@@ -25,8 +25,7 @@ import smithy4s.schema.Schema
 /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
   */
 
-extension (s: String)
-  def msg = MessageOnThread.StrCase(s)
+extension (s: String) def msg = MessageOnThread.StrCase(s)
 end extension
 
 @simpleRestJson
