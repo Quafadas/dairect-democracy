@@ -10,8 +10,8 @@ import cats.effect.unsafe.implicits.*
   * let's make it simple to drive in a repl...
   */
 
-val sync: PolyFunction[IO, cats.Id] = new PolyFunction[IO, cats.Id]:
-  def apply[A](result: IO[A]): cats.Id[A] = result.unsafeRunSync()
+// val sync: PolyFunction[IO, cats.Id] = new PolyFunction[IO, cats.Id]:
+//   def apply[A](result: IO[A]): cats.Id[A] = result.unsafeRunSync()
 
 extension [A](a: IO[A]) inline def Ø = a.unsafeRunSync()
 
