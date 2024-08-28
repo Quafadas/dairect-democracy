@@ -5,7 +5,7 @@ on:
     branches: ['**', '!update/**', '!pr/**']
   push:
     branches: ['**', '!update/**', '!pr/**']
-    tags: [v*]
+    tags: [v*, doc_*]
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
