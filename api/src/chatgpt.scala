@@ -2,10 +2,18 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import ciris.*
 import io.github.quafadas.dairect.ChatGpt.AiMessage
+import io.github.quafadas.dairect.ChatGpt.AiTokenUsage
 import io.github.quafadas.dairect.ChatGpt.ChatResponse
-import org.http4s.syntax.literals.uri
+import org.http4s.Entity
+import org.http4s.EntityEncoder
+import org.http4s.Method
+import org.http4s.Request
+import org.http4s.Uri
 import org.http4s.client.Client
+import org.http4s.ember.client.EmberClientBuilder
+import org.http4s.syntax.literals.uri
 import smithy.api.*
 import smithy4s.*
 import smithy4s.Document.*
@@ -14,27 +22,11 @@ import smithy4s.deriving.aliases.untagged
 import smithy4s.deriving.internals.Meta
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
+import smithy4s.json.Json
 import smithy4s.schema.*
-import ciris.*
 
 import scala.annotation.experimental
 import scala.annotation.nowarn
-import org.http4s.ember.client.EmberClientBuilder
-import org.http4s.Uri
-import org.http4s.Method
-import org.http4s.Request
-import org.http4s.Response
-import org.http4s.EntityDecoder
-import org.http4s.MediaRange
-import org.http4s.Media
-import io.github.quafadas.dairect.ChatGpt.AiChoice
-import io.github.quafadas.dairect.ChatGpt.AiTokenUsage
-import org.http4s.EntityEncoder
-import org.http4s.Entity
-import smithy4s.json.Json
-import smithy4s.codecs.PayloadError
-import cats.effect.kernel.Async
-import cats.Applicative
 
 case class Compounds(
     strings: List[String],

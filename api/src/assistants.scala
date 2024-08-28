@@ -2,11 +2,14 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import ciris.*
+import io.github.quafadas.dairect.AssistantApi.Assistant
 import io.github.quafadas.dairect.AssistantApi.AssistantDeleted
 import io.github.quafadas.dairect.AssistantApi.AssistantList
-import io.github.quafadas.dairect.AssistantApi.Assistant
-import org.http4s.syntax.literals.uri
+import org.http4s.Uri
 import org.http4s.client.Client
+import org.http4s.ember.client.EmberClientBuilder
+import org.http4s.syntax.literals.uri
 import smithy.api.Http
 import smithy.api.HttpLabel
 import smithy.api.NonEmptyString
@@ -16,11 +19,8 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
-import ciris.*
 
 import scala.annotation.experimental
-import org.http4s.ember.client.EmberClientBuilder
-import org.http4s.Uri
 
 /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
   */

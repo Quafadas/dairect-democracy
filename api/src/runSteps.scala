@@ -2,12 +2,14 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-
+import io.github.quafadas.dairect.ChatGpt.AiTokenUsage
+import io.github.quafadas.dairect.RunStepsApi.RunStep
+import io.github.quafadas.dairect.RunStepsApi.RunStepList
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.Http
 import smithy.api.HttpLabel
-
+import smithy.api.HttpQuery
 import smithy.api.NonEmptyString
 import smithy.api.Readonly
 import smithy4s.*
@@ -15,10 +17,6 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
-import io.github.quafadas.dairect.RunStepsApi.RunStepList
-import smithy.api.HttpQuery
-import io.github.quafadas.dairect.ChatGpt.AiTokenUsage
-import io.github.quafadas.dairect.RunStepsApi.RunStep
 
 /** https://platform.openai.com/docs/api-reference/run-steps/getRunStep
   */

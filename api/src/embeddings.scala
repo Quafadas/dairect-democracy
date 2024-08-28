@@ -3,6 +3,7 @@ package io.github.quafadas.dairect
 import cats.effect.IO
 import cats.effect.kernel.Resource
 import io.github.quafadas.dairect.ChatGpt.AiMessage
+import io.github.quafadas.dairect.EmbeddingsApi.EmbeddingList
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.*
@@ -15,7 +16,6 @@ import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.*
 
 import scala.annotation.experimental
-import io.github.quafadas.dairect.EmbeddingsApi.EmbeddingList
 
 @simpleRestJson
 trait EmbeddingsApi derives API:

@@ -4,8 +4,6 @@ import cats.effect.IOApp
 import cats.effect.IO
 import smithy4s.deriving.*
 
-import cats.syntax.option.*
-
 import scala.language.experimental
 import smithy4s.*
 import scala.annotation.experimental

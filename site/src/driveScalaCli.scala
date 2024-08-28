@@ -3,7 +3,6 @@ package io.github.quafadas.dairect
 import cats.effect.IO
 import cats.effect.IOApp
 import cats.effect.kernel.Resource
-import cats.syntax.option.*
 import smithy4s.deriving.*
 
 import scala.annotation.experimental

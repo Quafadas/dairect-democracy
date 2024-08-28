@@ -2,27 +2,25 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import io.github.quafadas.dairect.ThreadApi.Thread
+import ciris.*
+import io.github.quafadas.dairect.MessagesApi.Message
+import io.github.quafadas.dairect.MessagesApi.MessageAttachment
+import io.github.quafadas.dairect.MessagesApi.MessageDeleted
+import io.github.quafadas.dairect.MessagesApi.MessageList
 import org.http4s.Uri
 import org.http4s.client.Client
+import org.http4s.ember.client.EmberClientBuilder
+import org.http4s.syntax.all.uri
 import smithy.api.Http
 import smithy.api.HttpLabel
+import smithy.api.HttpQuery
 import smithy.api.NonEmptyString
+import smithy.api.Readonly
 import smithy4s.*
 import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
-import org.http4s.ember.client.EmberClientBuilder
-import ciris.*
-import org.http4s.syntax.all.uri
-import io.github.quafadas.dairect.MessagesApi.MessageAttachment
-import io.github.quafadas.dairect.MessagesApi.Message
-import smithy.api.Readonly
-import smithy.api.HttpQuery
-import io.github.quafadas.dairect.MessagesApi.MessageList
-import io.github.quafadas.dairect.MessagesApi.MessageDeleted
-import smithy.api.JsonName
 
 /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
   */

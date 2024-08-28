@@ -6,6 +6,11 @@ compileApi:
 formatApi:
   mill -j 0 api.__.reformat
 
+fix:
+  mill -j 0 api.__.fix
+  mill -j 0 agentic.fix
+  mill -j 0 site.fix
+
 site:
   mill -j 0 -w site.live
 

@@ -2,12 +2,15 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import io.github.quafadas.dairect.ChatGpt.AiMessage
+import ciris.*
+import io.github.quafadas.dairect.MessagesApi.MessageAttachment
 import io.github.quafadas.dairect.ThreadApi.Thread
 import io.github.quafadas.dairect.ThreadApi.ThreadDeleted
 import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
-import org.http4s.syntax.literals.uri
+import org.http4s.Uri
 import org.http4s.client.Client
+import org.http4s.ember.client.EmberClientBuilder
+import org.http4s.syntax.literals.uri
 import smithy.api.Http
 import smithy.api.HttpLabel
 import smithy.api.Idempotent
@@ -18,10 +21,6 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
-import org.http4s.ember.client.EmberClientBuilder
-import ciris.*
-import org.http4s.Uri
-import io.github.quafadas.dairect.MessagesApi.MessageAttachment
 
 /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
   */

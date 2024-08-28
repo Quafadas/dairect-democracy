@@ -2,11 +2,22 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import ciris.*
+import fs2.io.file.Files
+import fs2.io.file.Path
 import io.github.quafadas.dairect.FilesApi.DeletedFile
 import io.github.quafadas.dairect.FilesApi.File
 import io.github.quafadas.dairect.FilesApi.FileListy
+import org.http4s.EntityDecoder
+import org.http4s.Headers
+import org.http4s.Method
+import org.http4s.Request
 import org.http4s.Uri
 import org.http4s.client.Client
+import org.http4s.ember.client.EmberClientBuilder
+import org.http4s.multipart.Multipart
+import org.http4s.multipart.Part
+import org.http4s.syntax.literals.uri
 import smithy.api.Http
 import smithy.api.HttpLabel
 import smithy.api.Idempotent
@@ -17,18 +28,6 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
-import org.http4s.ember.client.EmberClientBuilder
-import ciris.*
-import org.http4s.Uri
-import org.http4s.syntax.literals.uri
-import org.http4s.Request
-import org.http4s.Method
-import org.http4s.multipart.Part
-import fs2.io.file.Path
-import fs2.io.file.Files
-import org.http4s.EntityDecoder
-import org.http4s.multipart.Multipart
-import org.http4s.Headers
 
 // This is not simple rest json. Hence added as an extension method, can't take adavance of smithy wizardry.
 extension (fApi: FilesApi)

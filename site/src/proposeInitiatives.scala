@@ -17,8 +17,7 @@ object TryInitiatives extends IOApp.Simple:
 
   def run: IO[Unit] =
     val logFile: Path = fs2.io.file.Path("log.txt")
-    val agent: Resource[IO, ChatGpt] = ChatGpt.defaultAuthLogToFile(logFile)
-    val agentName = Some("")
+    val agent: Resource[IO, ChatGpt] = ChatGpt.defaultAuthLogToFile(logFile)    
     val startMessages: List[AiMessage] = List(
       AiMessage.system(
         """You are an agent of a team that works together to solve user defined problems. Your speciality is the tools to use local operating system functions. These may be helpful to other members of the team. """

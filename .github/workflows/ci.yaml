@@ -47,6 +47,9 @@ jobs:
         with:
           node-version: 18
           cache: npm
+      
+      - name: Check format
+        run: mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources
 
       - name: Compile All
         run: ./mill api.__.compile && ./mill site.compile

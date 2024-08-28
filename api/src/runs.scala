@@ -2,12 +2,17 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-
+import io.github.quafadas.dairect.RunsApi.CreateThread
+import io.github.quafadas.dairect.RunsApi.Run
+import io.github.quafadas.dairect.RunsApi.RunList
+import io.github.quafadas.dairect.RunsApi.ToolChoiceInRun
+import io.github.quafadas.dairect.RunsApi.ToolOutput
+import io.github.quafadas.dairect.RunsApi.TruncationStrategy
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.Http
 import smithy.api.HttpLabel
-
+import smithy.api.HttpQuery
 import smithy.api.NonEmptyString
 import smithy.api.Readonly
 import smithy4s.*
@@ -15,14 +20,6 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
-import smithy.api.HttpQuery
-
-import io.github.quafadas.dairect.RunsApi.Run
-import io.github.quafadas.dairect.RunsApi.RunList
-import io.github.quafadas.dairect.RunsApi.ToolOutput
-import io.github.quafadas.dairect.RunsApi.CreateThread
-import io.github.quafadas.dairect.RunsApi.TruncationStrategy
-import io.github.quafadas.dairect.RunsApi.ToolChoiceInRun
 
 /** https://platform.openai.com/docs/api-reference/run-steps/getRunStep
   */
