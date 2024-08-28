@@ -1,12 +1,8 @@
 package io.github.quafadas.dairect
 
-import smithy4s.deriving.API
 import cats.effect.IO
+import smithy4s.deriving.*
 import smithy4s.json.Json
-import smithy4s.schema.Schema
-import smithy4s.deriving.{*, given}
-import smithy4s.Blob
-import smithy4s.deriving.aliases.untagged
 
 class SchemaGenSuite extends munit.FunSuite:
 

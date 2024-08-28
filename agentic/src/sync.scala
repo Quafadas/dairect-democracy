@@ -1,7 +1,5 @@
 package io.github.quafadas.dairect
 
-import smithy4s.*
-import smithy4s.kinds.PolyFunction
 import cats.effect.IO
 import cats.effect.unsafe.implicits.*
 
