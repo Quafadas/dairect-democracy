@@ -33,13 +33,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Java (temurin@17)
-        id: setup-java-temurin-17
-        if: matrix.java == 'temurin@17'
-        uses: actions/setup-java@v4
+      - uses: coursier/setup-action@main
         with:
-          distribution: temurin
-          java-version: 17
+          jvm: temurin@17
+          apps: mill
       
       - name: Check format
         run: mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources
