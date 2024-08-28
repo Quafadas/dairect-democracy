@@ -106,9 +106,8 @@ extension (c: ChatGpt)
                   *
                   * data : [DONE] """
                   *
-                  * So
-                  * \1. String split on empty lines. Nice. 2. Check that we don't have the DONE marker (it's not valid,
-                  * JSON so we can't easily parse it) 3. drop empty lines 4. Parse whatever is left 5. Pray for a
+                  * So \1. String split on empty lines. Nice. 2. Check that we don't have the DONE marker (it's not
+                  * valid, JSON so we can't easily parse it) 3. drop empty lines 4. Parse whatever is left 5. Pray for a
                   * miracle. Don't forget the miracle.
                   */
                 val parsed = str.split("\n").map(_.drop(6)).filterNot(_.isEmpty()).map { maybeParseable =>
@@ -352,7 +351,7 @@ enum ResponseFormat derives Schema:
 end ResponseFormat
 
 // https://platform.openai.com/docs/guides/structured-outputs
-case class StructuredOutput(    
+case class StructuredOutput(
     name: String,
     description: Option[String] = None,
     schema: Option[Document],

@@ -21,7 +21,6 @@ import ciris.*
 import scala.annotation.experimental
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.Uri
-import io.github.quafadas.dairect.AssistantApi.AssistantTool
 
 /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
   */
@@ -125,20 +124,20 @@ object AssistantApi:
       deleted: Boolean
   ) derives Schema
 
-  case class AssistantFileSearch(max_num_results: Option[Int] = None) derives Schema
-
-  case class AssistantToolFunction(
-    name: String, 
-    parameters:Option[Document],
-    description: Option[String] = None,         
-    strict: Option[Boolean] = None
-  ) derives Schema
-
-  @discriminated("type")
-  enum AssistantTool derives Schema {
-    case code_interpreter()
-    case file_search(file_search : AssistantFileSearch = AssistantFileSearch())
-    case function(function : AssistantToolFunction)
-  }
-
 end AssistantApi
+
+case class AssistantFileSearch(max_num_results: Option[Int] = None) derives Schema
+
+case class AssistantToolFunction(
+    name: String,
+    parameters: Option[Document],
+    description: Option[String] = None,
+    strict: Option[Boolean] = None
+) derives Schema
+
+@discriminated("type")
+enum AssistantTool derives Schema:
+  case code_interpreter()
+  case file_search(file_search: AssistantFileSearch = AssistantFileSearch())
+  case function(function: AssistantToolFunction)
+end AssistantTool

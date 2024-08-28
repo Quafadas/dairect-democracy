@@ -21,6 +21,7 @@ import smithy4s.schema.Schema
 import org.http4s.ember.client.EmberClientBuilder
 import ciris.*
 import org.http4s.Uri
+import io.github.quafadas.dairect.MessagesApi.MessageAttachment
 
 /** https://platform.openai.com/docs/api-reference/assistants/createAssistant
   */
@@ -30,7 +31,7 @@ trait ThreadApi derives API:
 
   @hints(Http(NonEmptyString("POST"), NonEmptyString("/v1/threads"), 200))
   def create(
-      messages: List[AiMessage],
+      messages: List[ThreadMessage],
       tool_resources: Option[ToolResources] = None,
       metadata: Option[ThreadMetaData] = None
   ): IO[Thread]
@@ -86,11 +87,9 @@ object ThreadApi:
       `object`: String,
       created_at: Long,
       metadata: ThreadMetaData
-      //   tool_resources: Map[String, Any]
-  ) derives Schema  
+  ) derives Schema
 
   final case class ThreadDeleted(id: String, `object`: String, deleted: Boolean) derives Schema
-
 
   case class VectorStoreFilesToAttach(
       files_ids: FileIds,
@@ -100,6 +99,9 @@ object ThreadApi:
 
 end ThreadApi
 
+enum ThreadMessageRole derives Schema:
+  case user, assistant
+end ThreadMessageRole
 
 case class ToolResources(
     code_interpreter: Option[CodeInterpreter] = None,
@@ -110,8 +112,14 @@ case class CodeInterpreter(
     file_ids: CodeInterpreterFileIds
 ) derives Schema
 
-
 case class FileSearch(
     vector_store_ids: Option[VectorStoreIds] = None,
     vector_stores: Option[VectorStoreIds] = None
+) derives Schema
+
+case class ThreadMessage(
+    role: ThreadMessageRole,
+    content: MessageOnThread,
+    attachments: Option[List[MessageAttachment]],
+    metadata: ThreadMetaData
 ) derives Schema
