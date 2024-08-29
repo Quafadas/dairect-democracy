@@ -1,0 +1,56 @@
+
+name: Deploy Documentation
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  OPEN_AI_API_TOKEN: ${{ secrets.OPEN_AI_API_TOKEN }}
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  deploy-doc:            
+    runs-on: ubuntu-latest
+    steps:
+      - uses: coursier/setup-action@main
+        with:
+          jvm: temurin@17
+          apps: mill
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - run: mill site.publishDocs
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: page
+          path: out/site/publishDocs.dest
+          if-no-files-found: error
+
+    deploy:
+      needs: site
+      permissions:
+        pages: write
+        id-token: write
+      environment:
+        name: github-pages
+        url: ${{ steps.deployment.outputs.page_url }}
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: page
+          path: .
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
