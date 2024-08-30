@@ -31,6 +31,22 @@ trait Common extends ScalaModule with ScalafmtModule with ScalafixModule with Pu
   def publishVersion = VcsVersion.vcsState().format()
 }
 
+trait CommonJS extends ScalaJSModule {
+  def scalaJSVersion = "1.16.0"
+}
+
+trait CommonTests extends TestModule.Munit {
+  def ivyDeps = super.ivyDeps() ++ Agg(
+    ivy"org.scalameta::munit::1.0.1"
+  )
+}
+
+trait CommonNative extends ScalaNativeModule {
+  def ivyDeps = super.ivyDeps() ++ Agg(
+  )
+  def scalaNativeVersion: mill.T[String] = "0.4.16"
+}
+
 object api extends CrossPlatform {
   trait Shared extends CrossPlatformScalaModule with Common with Smithy4sModule {
     def ivyDeps = Agg(
@@ -39,19 +55,23 @@ object api extends CrossPlatform {
       ivy"org.http4s::http4s-ember-client::0.23.26",
       ivy"is.cir::ciris::3.6.0"
     )
+
+    trait SharedTests extends CommonTests {
+      // common `core` test settings here
+    }
   }
 
   object jvm extends Shared {
-
+    object test extends ScalaTests with SharedTests
   }
 
-  object js extends Shared {
-
+  object js extends Shared with CommonJS {
+    object test extends ScalaJSTests with SharedTests
   }
 
-  object native extends Shared {
-
-  }
+  // object native extends Shared with CommonNative {
+    // object test extends ScalaNativeTests with SharedTests
+  // }
 }
 
 object agentic extends Common {

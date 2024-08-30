@@ -35,7 +35,7 @@ trait VectorStoreApi derives API:
   def create(
       name: Option[String] = None,
       expires_after: Option[String] = None,
-      chunkingStrategy: Option[ChunkingStrategy] = None,
+      chunking_strategy: Option[ChunkingStrategy] = None,
       metadata: Option[VectorStoreMetaData] = None
   ): IO[VectorStore]
 

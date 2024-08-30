@@ -13,6 +13,15 @@ import smithy4s.deriving.*
 import smithy4s.json.Json
 
 import scala.annotation.experimental
+import cats.effect.kernel.Resource
+import org.http4s.client.Client
+import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
+import io.github.quafadas.dairect.VectorStoreFilesApi.StaticChunkingStrategy
+import io.github.quafadas.dairect.RunApi.CreateThread
+import scala.concurrent.duration.DurationInt
+
+lazy val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
+lazy val logger = fileLogger(Path("log.txt"))
 
 @main def assistantTest =
 
@@ -93,9 +102,7 @@ end testy
 
 object FileTest extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
-    val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
-    val logger = fileLogger(Path("log.txt"))
-    val client = EmberClientBuilder.default[IO].build.map(authMiddleware(apikey)).map(logger)
+    val client = EmberClientBuilder.default[IO].build.map(authMiddleware(apikey)).map(logger).allocated.map(_._1).Ø
 
     val (fApi, _) = FilesApi.defaultAuthLogToFile(Path("log.txt")).allocated.Ø
 
@@ -111,8 +118,6 @@ object FileTest extends IOApp:
 end FileTest
 
 @main def streamTest =
-  val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
-  val logger = fileLogger(Path("log.txt"))
   val client = EmberClientBuilder.default[IO].build.map(authMiddleware(apikey)).map(logger)
 
   val (chat, _) = ChatGpt.defaultAuthLogToFile(Path("log.txt")).allocated.Ø
@@ -210,7 +215,8 @@ end ThreadTest
   val newThread = threadApi
     .create(
       List(ThreadMessage("I am cow".msg)),
-      ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs)).some).some).some
+      tool_resources =
+        ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs)).some).some).some,
     )
     .Ø
 
@@ -286,4 +292,70 @@ end ThreadTest
 
 end MesagesTest
 
-// @main somethingUseful =
+@main def uploadFiles =
+  val OpenAiPlatform(
+    chatGpt,
+    assistantApi,
+    filesApi,
+    vectorStoreApi,
+    vectorStoreFilesApi,
+    runApi,
+    runStepsApi,
+    threadApi,
+    messageApi,
+    httpClient
+  ) = OpenAiPlatform.defaultAuthLogToFile().allocated.map(_._1).Ø
+
+  val vs = vectorStoreApi.create("Laminar Docs".some).Ø
+
+  def uploadFileAddToVectorStore(file: fs2.io.file.Path, httpClient: Client[IO]) =
+    IO.println("uploading file") >>
+      filesApi.upload[IO](file, httpClient).flatMap { f =>
+        vectorStoreFilesApi
+          .create(vs.id, f.id, ChunkingStrategy.static(static = StaticChunkingStrategy(4096, 500)).some) >>
+          IO.println(s"uploaded ${file} to vector store")
+      }
+
+  // read all files in resource directory with fs2
+  fs2.io.file
+    .Files[IO]
+    .list(fs2.io.file.Path("/Users/simon/Code/smithy-call-tool/site/resources"))
+    .foreach(file => uploadFileAddToVectorStore(file, httpClient))
+    .compile
+    .drain
+    .Ø
+
+  val assistant = assistantApi.create("gpt-4o").Ø
+
+  val thread = runApi
+    .createThreadAndRun(
+      assistant.id,
+      thread = CreateThread(
+        List(
+          ThreadMessage(
+            "Write a detailed summary of the key points of the scala laminar UI framework. Include examples.".msg
+          )
+        )
+      ),
+      tool_resources =
+        ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs.id)).some).some).some,
+      tools = List(
+        AssistantTool.file_search(
+          // AssistantFileSearch(
+          //   max_num_results = 5.some,
+          //   ranking_options = RankingOptions("auto", 0.5).some
+          // ).some
+        )
+      ).some
+    )
+    .flatMap { run =>
+      IO.println(run) >>
+        IO.sleep(5000.millis) >>
+        runApi.get(run.thread_id, run.id).flatMap(IO.println) >>
+        messageApi.list(run.thread_id)
+    }
+    .Ø
+
+  println(thread)
+
+end uploadFiles

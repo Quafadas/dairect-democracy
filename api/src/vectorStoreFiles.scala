@@ -34,7 +34,7 @@ trait VectorStoreFilesApi derives API:
   def create(
       @hints(HttpLabel()) vector_store_id: String,
       file_id: String,
-      chunkingStrategy: Option[ChunkingStrategy] = None
+      chunking_strategy: Option[ChunkingStrategy] = None
   ): IO[VectorStoreFile]
 
   /** https://platform.openai.com/docs/api-reference/vector-stores-files/listFiles
@@ -97,10 +97,11 @@ object VectorStoreFilesApi:
       chunk_overlap_tokens: Int
   ) derives Schema
 
-  case class ChunkingStrategy(
-      `type`: String,
-      static: Option[StaticChunkingStrategy]
-  ) derives Schema
+  @discriminated("type")
+  enum ChunkingStrategy derives Schema:
+    case auto()
+    case static(static: StaticChunkingStrategy)
+  end ChunkingStrategy
 
   case class VectorStoreFile(
       id: String,

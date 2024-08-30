@@ -16,12 +16,13 @@ val printLogger = (cIn: Client[IO]) =>
     Some((x: String) => IO.println(x))
   )(cIn)
 
-def makeLogFile(toFile: fs2.io.file.Path) =
-  filesIo
-    .isRegularFile(toFile)
-    .flatMap { exists =>
-      if exists then filesIo.delete(toFile) else IO.unit
-    } >>
+def makeLogFile(toFile: fs2.io.file.Path): IO[Unit] =
+  IO.println(s"Making log file at $toFile") >>
+    filesIo
+      .isRegularFile(toFile)
+      .flatMap { exists =>
+        if exists then filesIo.delete(toFile) else IO.unit
+      } >>
     fs2.io.file.Files[IO].createFile(toFile)
 
 def fileLogger(toFile: fs2.io.file.Path): (Client[IO] => Client[IO]) = (cIn: Client[IO]) =>

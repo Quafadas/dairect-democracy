@@ -33,15 +33,16 @@ import smithy4s.schema.Schema
 extension (fApi: FilesApi)
   def upload[F[_]: Files](
       file: Path,
-      authdClient: Resource[IO, Client[IO]],
+      authdClient: Client[IO],
       purpose: String = "assistants",
       baseUrl: String = "https://api.openai.com"
-  ) =
+  ): IO[File] =
+
     val filePart = Part.fileData[IO](
       "file",
       file
     )
-    val purposePart = Part.formData[IO](name = purpose, value = purpose)
+    val purposePart = Part.formData[IO](name = "purpose", value = purpose)
     val multipart = Multipart[IO](Vector(filePart, purposePart))
 
     val req = Request[IO](
@@ -49,21 +50,22 @@ extension (fApi: FilesApi)
       Uri.unsafeFromString(baseUrl + "/v1/files"),
       headers = multipart.headers
     ).withEntity(multipart)
+
     authdClient
-      .use(_.expect[String](req))
-      .map(resp =>
+      .expect[String](req)
+      .flatMap(resp =>
         smithy4s.json.Json
           .read[File](Blob(resp))
           .fold(
-            ex => IO.raiseError(ex),
-            identity
+            ex => IO.raiseError[File](ex),
+            IO.pure
           )
       )
   end upload
 
   def content[F[_]: Files](
       file: Path,
-      authdClient: Resource[IO, Client[IO]],
+      authdClient: Client[IO],
       file_id: String
   ) = ???
 
@@ -97,13 +99,6 @@ trait FilesApi derives API:
       @hints(HttpLabel())
       id: String
   ): IO[DeletedFile]
-
-  def content(
-      @hints(HttpLabel())
-      id: String
-  ): IO[Blob] = throw new Exception(
-    "This operation is not a json endpoint. Look for the method on the companion object of the FilesAPI"
-  )
 
 end FilesApi
 

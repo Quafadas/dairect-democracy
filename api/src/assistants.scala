@@ -126,7 +126,15 @@ object AssistantApi:
 
 end AssistantApi
 
-case class AssistantFileSearch(max_num_results: Option[Int] = None) derives Schema
+case class AssistantFileSearch(
+    max_num_results: Option[Long] = None,
+    ranking_options: Option[RankingOptions] = None
+) derives Schema
+
+case class RankingOptions(
+    ranker: String,
+    score_threshold: Double
+) derives Schema
 
 case class AssistantToolFunction(
     name: String,

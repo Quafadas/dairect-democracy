@@ -2,12 +2,12 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import io.github.quafadas.dairect.RunsApi.CreateThread
-import io.github.quafadas.dairect.RunsApi.Run
-import io.github.quafadas.dairect.RunsApi.RunList
-import io.github.quafadas.dairect.RunsApi.ToolChoiceInRun
-import io.github.quafadas.dairect.RunsApi.ToolOutput
-import io.github.quafadas.dairect.RunsApi.TruncationStrategy
+import io.github.quafadas.dairect.RunApi.CreateThread
+import io.github.quafadas.dairect.RunApi.Run
+import io.github.quafadas.dairect.RunApi.RunList
+import io.github.quafadas.dairect.RunApi.ToolChoiceInRun
+import io.github.quafadas.dairect.RunApi.ToolOutput
+import io.github.quafadas.dairect.RunApi.TruncationStrategy
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.Http
@@ -25,27 +25,27 @@ import smithy4s.schema.Schema
   */
 
 @simpleRestJson
-trait RunsApi derives API:
+trait RunApi derives API:
 
   @hints(
     Http(NonEmptyString("POST"), NonEmptyString("v1/threads/runs"), 200)
   )
   def createThreadAndRun(
       assistant_id: String,
-      thread: Option[CreateThread],
-      model: Option[String],
-      instructions: Option[String],
-      tools: Option[List[AssistantTool]],
-      tool_resources: Option[ToolResources],
-      metadata: RunMetaData,
-      temperature: Option[Double],
-      top_p: Option[Double],
-      max_prompt_tokens: Option[Long],
-      max_completion_tokens: Option[Long],
-      truncation_strategy: Option[TruncationStrategy],
-      tool_choice: Option[ToolChoiceInRun],
-      parallel_tool_calls: Option[Boolean],
-      response_format: ResponseFormat
+      thread: CreateThread,
+      model: Option[String] = None,
+      instructions: Option[String] = None,
+      tools: Option[List[AssistantTool]] = None,
+      tool_resources: Option[ToolResources] = None,
+      metadata: Option[RunMetaData] = None,
+      temperature: Option[Double] = None,
+      top_p: Option[Double] = None,
+      max_prompt_tokens: Option[Long] = None,
+      max_completion_tokens: Option[Long] = None,
+      truncation_strategy: Option[TruncationStrategy] = None,
+      tool_choice: Option[ToolChoiceInRun] = None,
+      parallel_tool_calls: Option[Boolean] = None,
+      response_format: Option[ResponseFormat] = None
   ): IO[Run]
 
   @hints(
@@ -134,12 +134,12 @@ trait RunsApi derives API:
       tool_outputs: List[ToolOutput]
   ): IO[Run]
 
-end RunsApi
+end RunApi
 
-object RunsApi:
+object RunApi:
 
-  def apply(client: Client[IO], baseUrl: Uri): Resource[IO, RunsApi] =
-    SimpleRestJsonBuilder(API.service[RunsApi])
+  def apply(client: Client[IO], baseUrl: Uri): Resource[IO, RunApi] =
+    SimpleRestJsonBuilder(API.service[RunApi])
       .client[IO](client)
       .uri(baseUrl)
       .resource
@@ -188,7 +188,7 @@ object RunsApi:
       status: RunStatus,
       required_action: Option[RequiredAction],
       last_error: Option[RunError],
-      started_at: Long,
+      started_at: Option[Long],
       expires_at: Option[Long],
       cancelled_at: Option[Long],
       failed_at: Option[Long],
@@ -198,11 +198,11 @@ object RunsApi:
       instructions: Option[String],
       tools: List[AssistantTool],
       metadata: RunMetaData,
-      usage: Usage,
+      usage: Option[Usage],
       temperature: Double,
       top_p: Double,
-      max_prompt_tokens: Int,
-      max_completion_tokens: Int,
+      max_prompt_tokens: Option[Long],
+      max_completion_tokens: Option[Long],
       truncation_strategy: TruncationStrategy,
       tool_choice: ToolChoiceInRun,
       parallel_tool_calls: Boolean,
@@ -210,15 +210,20 @@ object RunsApi:
   ) derives Schema
 
   enum RunStatus derives Schema:
-    case Queued, InProgress, RequiresAction, Cancelling, Cancelled, Failed, Completed, Incomplete, Expired
+    case queued, in_progress, requires_action, cancelling, cancelled, failed, completed, incomplete, expired
   end RunStatus
 
   case class RunIncomplete(reason: String) derives Schema
 
+  @untagged()
   enum ToolChoiceInRun derives Schema:
-    case ToolTreatment
+    @wrapper() case ToolTreatmentW(tt: ToolTreatment)
     case RunToolDetail
   end ToolChoiceInRun
+
+  case class ToolTreatmentW(
+      tt: ToolTreatment
+  ) derives Schema
 
   enum ToolTreatment derives Schema:
     case auto, none, required
@@ -242,4 +247,4 @@ object RunsApi:
       metadata: Option[ThreadMetaData] = None
   ) derives Schema
 
-end RunsApi
+end RunApi
