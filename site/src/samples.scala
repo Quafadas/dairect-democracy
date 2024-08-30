@@ -1,28 +1,18 @@
 package io.github.quafadas.dairect
 
-import cats.effect.IOApp
-import cats.effect.IO
-import scala.annotation.experimental
-import smithy4s.Document
-import smithy4s.kinds.PolyFunction
-import smithy4s.deriving.{*, given}
-import scala.concurrent.duration.*
-
-import cats.effect.unsafe.implicits.global
-import scala.concurrent.Future
-import io.github.quafadas.dairect.ChatGpt.AiMessage
-import smithy4s.json.Json
-import smithy4s.Blob
-import fs2.io.file.*
 import cats.effect.ExitCode
-import org.http4s.ember.client.EmberClientBuilder
+import cats.effect.IO
+import cats.effect.IOApp
+import cats.effect.unsafe.implicits.global
 import ciris.*
-import fs2.text.{lines, utf8Encode}
+import fs2.io.file.*
+import io.github.quafadas.dairect.ChatGpt.AiMessage
+import org.http4s.ember.client.EmberClientBuilder
+import smithy4s.Document
+import smithy4s.deriving.*
+import smithy4s.json.Json
 
-import org.http4s.websocket.WebSocketFrame.Text
-
-import org.http4s.Message
-import fs2.text.utf8
+import scala.annotation.experimental
 
 @main def assistantTest =
 
@@ -296,18 +286,4 @@ end ThreadTest
 
 end MesagesTest
 
-// object Assistant extends IOApp.Simple:
-
-//   def run: IO[Unit] =
-//     val a = AssistantApi.defaultAuthLogToFileAddHeader(fs2.io.file.Path("assistant.txt"))
-//     a.use { assistant =>
-//       // assistant
-//       //   .create("gpt-4o-mini")
-//       //   .flatMap(IO.println) >>
-//       assistant.assistants().flatMap(IO.println) >>
-//         assistant.getAssisstant("asst_7g7FJuGyXC8mXGXUg0fTMuOa").flatMap(IO.println)
-//     }
-
-//   end run
-
-// end Assistant
+// @main somethingUseful =

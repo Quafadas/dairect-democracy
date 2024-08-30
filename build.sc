@@ -58,7 +58,7 @@ object agentic extends Common {
 
   override def moduleDeps = Seq(api.jvm)
   override def ivyDeps = super.ivyDeps() ++ Agg(
-    ivy"software.amazon.smithy:smithy-jsonschema:latest.release",
+    ivy"software.amazon.smithy:smithy-jsonschema:1.50.0",
     ivy"com.lihaoyi::os-lib::0.10.3",
     ivy"com.lihaoyi::pprint::0.9.0",
     ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::0.18.23"
@@ -82,7 +82,5 @@ object site extends SiteModule {
   override def moduleDeps = Seq(agentic)
 
   override def scalaMdocVersion: T[String] = "2.5.3"
-
-  // def mainClass = Some("io.github.quafadas.dairect.Assistant")
 
 }
