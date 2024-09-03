@@ -18,10 +18,7 @@ import software.amazon.smithy.model.node.Node
 
 import scala.annotation.experimental
 
-/** These are toy interpreters that turn services into json-in/json-out functions, and vice versa.
-  *
-  * Created for testing purposes.
-  */
+// format: off
 val ioToolGen = new SmithyOpenAIUtil[IO]
 
 class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
@@ -35,7 +32,7 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
     docOpt.toOption.get
   end toJsonSchema
 
-  // format: off
+
   @experimental
   def openAiSmithyFunctionDispatch[Alg[_[_, _, _, _, _]]](
       alg: FunctorAlgebra[Alg, F]
@@ -54,7 +51,7 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
               jsonEndpoint(fctConfig)
             case None => F.raiseError(new Throwable(s"Function $m not found"))
       end match  
-  // format: on
+  
 
   private def toLowLevel[Op[_, _, _, _, _], I, E, O, SI, SO](
       polyFunction: PolyFunction5[Op, Kind1[F]#toKind5],
@@ -88,4 +85,6 @@ class SmithyOpenAIUtil[F[_]](implicit F: MonadThrow[F]):
       // println(Json.writeDocumentAsPrettyString(output))
       output
   end toLowLevel
+  
 end SmithyOpenAIUtil
+// format: on

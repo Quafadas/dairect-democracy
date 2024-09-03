@@ -17,6 +17,9 @@ fix:
 site:
   mill -j 0 -w site.live
 
+test:
+  mill -j 0 __.test
+
 demo:
   scala-cli run . --main-class io.github.quafadas.dairect.Showcase
 

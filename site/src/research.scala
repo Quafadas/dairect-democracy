@@ -22,7 +22,7 @@ object Researcher extends IOApp.Simple:
     val clientR = EmberClientBuilder.default[IO].build
     val bot: Resource[IO, ChatGpt] = ChatGpt.defaultAuthLogToFile(logFile, clientR)
     val serp = clientR.flatMap(c => Serp(fileLogger(logFile)(c)))
-    val fetcher = clientR.map(UrlReader(_))    
+    val fetcher = clientR.map(UrlReader(_))
 
     val startMessages: List[AiMessage] = List(
       AiMessage.system(
