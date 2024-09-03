@@ -17,6 +17,7 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
+import io.github.quafadas.dairect.MessagesApi.MessagesToolDelta
 
 /** https://platform.openai.com/docs/api-reference/run-steps/getRunStep
   */
@@ -74,7 +75,7 @@ object RunStepsApi:
 
   case class StepDetails(
       `type`: String,
-      message_creation: MessageCreationDetails
+      message_creation: Option[MessageCreationDetails]
   ) derives Schema
 
   case class RunStep(
@@ -91,16 +92,37 @@ object RunStepsApi:
       expired_at: Option[Long],
       failed_at: Option[Long],
       last_error: Option[String],
-      step_details: StepDetails,
-      usage: AiTokenUsage
+      step_details: Option[StepDetails],
+      usage: Option[AiTokenUsage]
   ) derives Schema
 
   case class RunStepList(
-      `object`: String,
-      data: List[RunStep],
-      first_id: String,
-      last_id: String,
-      has_more: Boolean
+    `object`: String,
+    data: List[RunStep],
+    first_id: String,
+    last_id: String,
+    has_more: Boolean
   ) derives Schema
+
+  case class RunStepDelta(
+    id: String,
+    `object`: String,
+    delta: RunStepDeltaDetail
+  ) derives Schema
+
+  case class RunStepDeltaDetail(
+    step_details: RunStepDeltaDetails
+  ) derives Schema
+
+  @discriminated("type")
+  enum RunStepDeltaDetails derives Schema :
+    case tool_calls(tool_calls: List[MessagesToolDelta])
+    case message_creation(message_creation: MessageCreation )
+  
+
+  case class MessageCreation(
+    id: String
+  ) derives Schema
+
 
 end RunStepsApi

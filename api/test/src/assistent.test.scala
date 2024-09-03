@@ -1,13 +1,8 @@
 package io.github.quafadas.dairect
 
-import munit.FunSuite
-import smithy4s.json.Json
 import io.github.quafadas.dairect.AssistantApi.Assistant
-import smithy4s.Blob
 
-extension (s: String) def blob = Blob(s)
-
-class JsonParsingTest extends FunSuite:
+class JsonParsingTest extends ParseSuite:
 
   test("correct JSON is parsed to an Assistant") {
     val jsonString = """
@@ -40,15 +35,8 @@ class JsonParsingTest extends FunSuite:
   "response_format": "auto"
 }""".trim()
 
-    val parsedResult = Json.read[Assistant](jsonString.blob)
-
-    println(parsedResult)
-
-    parsedResult match
-      case Right(assistant) =>
-        assert(assistant.id == "asst_abc123")
-        assert(assistant.tools.contains(AssistantTool.code_interpreter()))
-      case Left(error) => fail(s"Parsing failed with error: $error")
-    end match
+    val assistant = parseCheck[Assistant](jsonString)
+    assertEquals(assistant.id, "asst_abc123")
+    assert(assistant.tools.contains(AssistantTool.code_interpreter()))
   }
 end JsonParsingTest

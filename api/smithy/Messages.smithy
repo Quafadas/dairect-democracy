@@ -21,17 +21,24 @@ list MessageToSendList {
 union MessageContent {    
   text: Text,
   image_file: ImageFile,
-  image_url: ImageUrl  
+  image_url: ImageUrl
 }
-
 
 structure Text {
   @required
   text: TextValue
 }
 
+@discriminated("type")
+union Annotation {    
+  text: Text,
+  image_file: ImageFile,
+  image_url: ImageUrl
+}
+
 structure TextValue {
-  value: String
+  value: String,
+
 }
 
 @discriminated("type")

@@ -72,7 +72,7 @@ object Agent:
                 .flatMap { response =>
                   // println(response)
                   val botChoices = response.choices.head
-                  val responseMsg = botChoices.message
+                  // val responseMsg = botChoices.message
                   botChoices.finish_reason match
                     case None =>
                       IO.raiseError(

@@ -40,7 +40,7 @@ extension (c: ChatGpt)
       temperature: Option[Double] = None,
       tools: Option[Document] = None,
       response_format: Option[AiResponseFormat] = None,
-      authdClient: Resource[IO, Client[IO]],
+      authdClient: Client[IO],
       baseUrl: String = "https://api.openai.com"
   ): fs2.Stream[IO, List[ChatChunk]] =
     case class StreamChatRequest(
@@ -69,9 +69,9 @@ extension (c: ChatGpt)
         response_format
       )
     )(using enc)
-    val io = authdClient.use { client =>
+    val io = 
       IO(
-        client
+        authdClient
           .stream(
             req
           )
@@ -119,7 +119,7 @@ extension (c: ChatGpt)
               }
           }
       )
-    }
+    
 
     fs2.Stream.eval(io).flatten
 
@@ -131,7 +131,7 @@ extension (c: ChatGpt)
       temperature: Option[Double] = None,
       tools: Option[Document] = None,
       response_format: Option[AiResponseFormat] = None,
-      authdClient: Resource[IO, Client[IO]],
+      authdClient: Client[IO],
       baseUrl: String = "https://api.openai.com"
   ): fs2.Stream[IO, String] = c
     .streamRaw(

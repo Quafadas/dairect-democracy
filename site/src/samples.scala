@@ -132,12 +132,18 @@ end FileTest
   //   str.compile.toList.map(_.flatten)
   // }.Ø
 
-  val streamEasy = chat.stream(
-    List(AiMessage.system("You are cow"), AiMessage.user("Make noise")),
-    authdClient = client
-  )
+  val s = client.use { c =>
+    IO(chat.stream(
+      List(AiMessage.system("You are cow"), AiMessage.user("Make noise")),
+      authdClient = c
+    )
+    )
+  }
 
-  val arg = streamEasy.debug().compile.toList
+  fs2.Stream.eval(s).flatten
+
+
+  val arg = fs2.Stream.eval(s).flatten.debug().compile.toList
 
   println(arg.Ø)
 end streamTest
@@ -319,16 +325,18 @@ end MesagesTest
   // read all files in resource directory with fs2
   fs2.io.file
     .Files[IO]
-    .list(fs2.io.file.Path("/Users/simon/Code/smithy-call-tool/site/resources"))
+    .list(fs2.io.file.Path("C:\\temp\\dairect-democracy\\site\\resources"))
     .foreach(file => uploadFileAddToVectorStore(file, httpClient))
     .compile
     .drain
     .Ø
+    
 
   val assistant = assistantApi.create("gpt-4o").Ø
 
   val thread = runApi
-    .createThreadAndRun(
+    .createThreadRunStream(
+      httpClient,      
       assistant.id,
       thread = CreateThread(
         List(
@@ -348,14 +356,11 @@ end MesagesTest
         )
       ).some
     )
-    .flatMap { run =>
-      IO.println(run) >>
-        IO.sleep(5000.millis) >>
-        runApi.get(run.thread_id, run.id).flatMap(IO.println) >>
-        messageApi.list(run.thread_id)
-    }
-    .Ø
 
-  println(thread)
+
+  thread.compile.drain.Ø
+   
+
+  // println(thread)
 
 end uploadFiles

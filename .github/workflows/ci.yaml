@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: Compile, Test, Publish
 
 on:
   pull_request:

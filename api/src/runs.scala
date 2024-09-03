@@ -20,8 +20,209 @@ import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
 import smithy4s.schema.Schema
+import org.http4s.Request
+import org.http4s.Method
+import org.http4s.EntityEncoder
+import io.github.quafadas.dairect.RunApi.StreamRunRequest
+import org.http4s.Entity
+import io.github.quafadas.dairect.RunStepsApi.RunStep
+import io.github.quafadas.dairect.MessagesApi.Message
+import io.github.quafadas.dairect.ThreadApi.Thread
+import smithy4s.codecs.PayloadError
+import smithy4s.json.Json
+import io.github.quafadas.dairect.RunStepsApi.RunStepDelta
+import io.github.quafadas.dairect.MessagesApi.MessageDelta
 
-/** https://platform.openai.com/docs/api-reference/run-steps/getRunStep
+
+// enum AssistantStreamEvent(val id: String) derives Schema: 
+//   case ThreadCreated(thread: Thread) extends AssistantStreamEvent("thread.created")
+//   case ThreadRunCreated(run: Run) extends AssistantStreamEvent("thread.run.created")
+//   case ThreadRunQueued(run: Run) extends AssistantStreamEvent("thread.run.queued")
+//   case ThreadRunInProgress(run: Run) extends AssistantStreamEvent("thread.run.in_progress")
+//   case ThreadRunRequiresAction(run: Run) extends AssistantStreamEvent("thread.run.requires_action")
+//   case ThreadRunCompleted(run: Run) extends AssistantStreamEvent("thread.run.completed")
+//   case ThreadRunIncomplete(run: Run) extends AssistantStreamEvent("thread.run.incomplete")
+//   case ThreadRunFailed(run: Run) extends AssistantStreamEvent("thread.run.failed")
+//   case ThreadRunCancelling(run: Run) extends AssistantStreamEvent("thread.run.cancelling")
+//   case ThreadRunCancelled(run: Run) extends AssistantStreamEvent("thread.run.cancelled")
+//   case ThreadRunExpired(run: Run) extends AssistantStreamEvent("thread.run.expired")
+//   case ThreadRunStepCreated(runStep: RunStep) extends AssistantStreamEvent("thread.run.step.created")
+//   case ThreadRunStepInProgress(runStep: RunStep) extends AssistantStreamEvent("thread.run.step.in_progress")
+//   case ThreadRunStepDelta(runStepDelta: String /*RunStepDelta*/) extends AssistantStreamEvent("thread.run.step.delta")
+//   case ThreadRunStepCompleted(runStep: RunStep) extends AssistantStreamEvent("thread.run.step.completed")
+//   case ThreadRunStepFailed(runStep: RunStep) extends AssistantStreamEvent("thread.run.step.failed")
+//   case ThreadRunStepCancelled(runStep: RunStep) extends AssistantStreamEvent("thread.run.step.cancelled")
+//   case ThreadRunStepExpired(runStep: RunStep) extends AssistantStreamEvent("thread.run.step.expired")
+//   case ThreadMessageCreated(message: Message) extends AssistantStreamEvent("thread.message.created")
+//   case ThreadMessageInProgress(message: Message) extends AssistantStreamEvent("thread.message.in_progress")
+//   case ThreadMessageDelta(messageDelta: String /* MessageDelta*/) extends AssistantStreamEvent("thread.message.delta")
+//   case ThreadMessageCompleted(message: Message) extends AssistantStreamEvent("thread.message.completed")
+//   case ThreadMessageIncomplete(message: Message) extends AssistantStreamEvent("thread.message.incomplete")
+//   case Error(error: String) extends AssistantStreamEvent("error")
+//   case Done() extends AssistantStreamEvent("done")
+//   case Unknown(event: String, data: String) extends AssistantStreamEvent("****")
+
+// @discriminated("object")
+// enum AssistantStreamEvent derives Schema: 
+//   @wrapper case `thread.created`(t: Thread) extends AssistantStreamEvent
+//   @wrapper case `thread.run.created`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.queued`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.in_progress`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.requires_action`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.completed`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.incomplete`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.failed`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.cancelling`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.cancelled`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.expired`(run: Run) extends AssistantStreamEvent
+//   @wrapper case `thread.run.step.created`(runStep: RunStep) extends AssistantStreamEvent
+//   @wrapper case `thread.run.step.in_progress`(runStep: RunStep) extends AssistantStreamEvent
+//   @wrapper case `thread.run.step.delta`(runStepDelta: String /*RunStepDelta*/) extends AssistantStreamEvent
+//   @wrapper case `thread.run.step.completed`(runStep: RunStep) extends AssistantStreamEvent
+//   @wrapper case `thread.run.step.failed`(runStep: RunStep) extends AssistantStreamEvent
+//   @wrapper case `thread.run.step.cancelled`(runStep: RunStep) extends AssistantStreamEvent
+//   @wrapper case `thread.run.step.expired`(runStep: RunStep) extends AssistantStreamEvent
+//   @wrapper case `thread.ressage.created`(message: Message) extends AssistantStreamEvent
+//   @wrapper case `thread.ressage.in_progress`(message: Message) extends AssistantStreamEvent
+//   @wrapper case `thread.ressage.delta`(messageDelta: String /*MessageDelta*/) extends AssistantStreamEvent
+//   @wrapper case `thread.ressage.completed`(message: Message) extends AssistantStreamEvent
+//   @wrapper case `thread.ressage.incomplete`(message: Message) extends AssistantStreamEvent
+//   @wrapper case error(error: String) extends AssistantStreamEvent
+//   @wrapper case Done(d: String) extends AssistantStreamEvent
+
+enum AssistantStreamEvent derives Schema: 
+  case ThreadCreated(thread: Thread)
+  case ThreadRunCreated(run: Run)
+  case ThreadRunQueued(run: Run)
+  case ThreadRunInProgress(run: Run)
+  case ThreadRunRequiresAction(run: Run)
+  case ThreadRunCompleted(run: Run)
+  case ThreadRunIncomplete(run: Run)
+  case ThreadRunFailed(run: Run)
+  case ThreadRunCancelling(run: Run)
+  case ThreadRunCancelled(run: Run)
+  case ThreadRunExpired(run: Run)
+  case ThreadRunStepCreated(runStep: RunStep)
+  case ThreadRunStepInProgress(runStep: RunStep)
+  case ThreadRunStepDelta(runStepDelta: RunStepDelta )
+  case ThreadRunStepCompleted(runStep: RunStep)
+  case ThreadRunStepFailed(runStep: RunStep)
+  case ThreadRunStepCancelled(runStep: RunStep)
+  case ThreadRunStepExpired(runStep: RunStep)
+  case ThreadMessageCreated(message: Message)
+  case ThreadMessageInProgress(message: Message)
+  case ThreadMessageDelta(messageDelta: MessageDelta )
+  case ThreadMessageCompleted(message: Message)
+  case ThreadMessageIncomplete(message: Message)
+  case Error(error: String)
+  case Done()
+  case Unknown(event: String, data: String)
+
+extension [A](errorOr: Either[PayloadError, A])
+  def failFast: A = errorOr.fold(
+    throw _, 
+    identity
+  )
+
+extension (s: String) def blob = Blob(s)
+
+private def eventFromId(eventId: String, data: String): AssistantStreamEvent = eventId match
+  case "thread.created"               => AssistantStreamEvent.ThreadCreated(Json.read[Thread](data.blob).failFast )
+  case "thread.run.created"           => AssistantStreamEvent.ThreadRunCreated(Json.read[Run](data.blob).failFast)
+  case "thread.run.queued"            => AssistantStreamEvent.ThreadRunQueued(Json.read[Run](data.blob).failFast)
+  case "thread.run.in_progress"       => AssistantStreamEvent.ThreadRunInProgress(Json.read[Run](data.blob).failFast)
+  case "thread.run.requires_action"   => AssistantStreamEvent.ThreadRunRequiresAction(Json.read[Run](data.blob).failFast)
+  case "thread.run.completed"         => AssistantStreamEvent.ThreadRunCompleted(Json.read[Run](data.blob).failFast)
+  case "thread.run.incomplete"        => AssistantStreamEvent.ThreadRunIncomplete(Json.read[Run](data.blob).failFast)
+  case "thread.run.failed"            => AssistantStreamEvent.ThreadRunFailed(Json.read[Run](data.blob).failFast)
+  case "thread.run.cancelling"        => AssistantStreamEvent.ThreadRunCancelling(Json.read[Run](data.blob).failFast)
+  case "thread.run.cancelled"         => AssistantStreamEvent.ThreadRunCancelled(Json.read[Run](data.blob).failFast)
+  case "thread.run.expired"           => AssistantStreamEvent.ThreadRunExpired(Json.read[Run](data.blob).failFast)
+  case "thread.run.step.created"      => AssistantStreamEvent.ThreadRunStepCreated(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.in_progress"  => AssistantStreamEvent.ThreadRunStepInProgress(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.delta"        => AssistantStreamEvent.ThreadRunStepDelta(Json.read[RunStepDelta](data.blob).failFast)
+  case "thread.run.step.completed"    => AssistantStreamEvent.ThreadRunStepCompleted(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.failed"       => AssistantStreamEvent.ThreadRunStepFailed(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.cancelled"    => AssistantStreamEvent.ThreadRunStepCancelled(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.expired"      => AssistantStreamEvent.ThreadRunStepExpired(Json.read[RunStep](data.blob).failFast)
+  case "thread.message.created"       => AssistantStreamEvent.ThreadMessageCreated(Json.read[Message](data.blob).failFast)
+  case "thread.message.in_progress"   => AssistantStreamEvent.ThreadMessageInProgress(Json.read[Message](data.blob).failFast)
+  case "thread.message.delta"         => AssistantStreamEvent.ThreadMessageDelta(Json.read[MessageDelta](data.blob).failFast)
+  case "thread.message.completed"     => AssistantStreamEvent.ThreadMessageCompleted(Json.read[Message](data.blob).failFast)
+  case "thread.message.incomplete"    => AssistantStreamEvent.ThreadMessageIncomplete(Json.read[Message](data.blob).failFast)
+  case "error"                        => AssistantStreamEvent.Error(data)
+  case "done"                         => AssistantStreamEvent.Done()
+  case _                              => AssistantStreamEvent.Unknown(eventId, data)
+
+extension (c: RunApi)
+  def createThreadRunStream(
+      authdClient: Client[IO],
+      assistant_id: String,
+      thread: CreateThread,
+      model: Option[String] = None,
+      instructions: Option[String] = None,
+      tools: Option[List[AssistantTool]] = None,
+      tool_resources: Option[ToolResources] = None,
+      metadata: Option[RunMetaData] = None,
+      temperature: Option[Double] = None,
+      top_p: Option[Double] = None,
+      max_prompt_tokens: Option[Long] = None,
+      max_completion_tokens: Option[Long] = None,
+      truncation_strategy: Option[TruncationStrategy] = None,
+      tool_choice: Option[ToolChoiceInRun] = None,
+      parallel_tool_calls: Option[Boolean] = None,
+      response_format: Option[ResponseFormat] = None,
+      baseUrl : String = "https://api.openai.com",
+  ) = 
+    val enc: EntityEncoder[IO, StreamRunRequest] =
+      EntityEncoder.encodeBy[IO, StreamRunRequest](("Content-Type" -> "application/json"))(scr =>
+        Entity(fs2.Stream.emits[IO, Byte](smithy4s.json.Json.writeBlob(scr).toArray))
+    )
+    val req = Request[IO](
+      Method.POST,
+      Uri.unsafeFromString(baseUrl + "/v1/threads/runs")
+    ).withEntity(
+      StreamRunRequest(
+        assistant_id,
+        thread,
+        model,
+        instructions,
+        tools,
+        tool_resources,
+        metadata, 
+        temperature,
+        top_p, 
+        max_prompt_tokens,
+        max_completion_tokens,
+        truncation_strategy,
+        tool_choice,
+        parallel_tool_calls,
+        response_format
+      )
+    )(using enc)
+
+    authdClient.stream(
+      req
+    ).flatMap(
+      str => str.bodyText.evalMap{ inStr =>
+        val strSplit = inStr.split("\n")
+        val event = strSplit(0).drop(7)
+        val data = strSplit(1).drop(6)
+        IO.println(event) >>
+        IO.println(data) >>
+        IO(eventFromId(event, data)).flatMap(IO.println)        
+        // IO.println("----") >>
+        // IO.println(event) >>
+        // IO.println(strSplit(0)) >>
+        // IO.println(data) >>
+        // IO.println(strSplit(1)) >>
+        // IO.unit
+      }
+    )
+          
+
+
+/** https://platform.openai.com/docs/api-reference/runs
   */
 
 @simpleRestJson
@@ -245,6 +446,25 @@ object RunApi:
       messages: List[ThreadMessage],
       tool_resources: Option[ToolResources] = None,
       metadata: Option[ThreadMetaData] = None
+  ) derives Schema
+
+  case class StreamRunRequest(
+    assistant_id: String,
+    thread: CreateThread,
+    model: Option[String] = None,
+    instructions: Option[String] = None,
+    tools: Option[List[AssistantTool]] = None,
+    tool_resources: Option[ToolResources] = None,
+    metadata: Option[RunMetaData] = None,
+    temperature: Option[Double] = None,
+    top_p: Option[Double] = None,
+    max_prompt_tokens: Option[Long] = None,
+    max_completion_tokens: Option[Long] = None,
+    truncation_strategy: Option[TruncationStrategy] = None,
+    tool_choice: Option[ToolChoiceInRun] = None,
+    parallel_tool_calls: Option[Boolean] = None,
+    response_format: Option[ResponseFormat] = None,
+    stream: Boolean = true
   ) derives Schema
 
 end RunApi
