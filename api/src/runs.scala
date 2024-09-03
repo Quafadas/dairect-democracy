@@ -33,8 +33,7 @@ import smithy4s.json.Json
 import io.github.quafadas.dairect.RunStepsApi.RunStepDelta
 import io.github.quafadas.dairect.MessagesApi.MessageDelta
 
-
-// enum AssistantStreamEvent(val id: String) derives Schema: 
+// enum AssistantStreamEvent(val id: String) derives Schema:
 //   case ThreadCreated(thread: Thread) extends AssistantStreamEvent("thread.created")
 //   case ThreadRunCreated(run: Run) extends AssistantStreamEvent("thread.run.created")
 //   case ThreadRunQueued(run: Run) extends AssistantStreamEvent("thread.run.queued")
@@ -63,7 +62,7 @@ import io.github.quafadas.dairect.MessagesApi.MessageDelta
 //   case Unknown(event: String, data: String) extends AssistantStreamEvent("****")
 
 // @discriminated("object")
-// enum AssistantStreamEvent derives Schema: 
+// enum AssistantStreamEvent derives Schema:
 //   @wrapper case `thread.created`(t: Thread) extends AssistantStreamEvent
 //   @wrapper case `thread.run.created`(run: Run) extends AssistantStreamEvent
 //   @wrapper case `thread.run.queued`(run: Run) extends AssistantStreamEvent
@@ -90,7 +89,7 @@ import io.github.quafadas.dairect.MessagesApi.MessageDelta
 //   @wrapper case error(error: String) extends AssistantStreamEvent
 //   @wrapper case Done(d: String) extends AssistantStreamEvent
 
-enum AssistantStreamEvent derives Schema: 
+enum AssistantStreamEvent derives Schema:
   case ThreadCreated(thread: Thread)
   case ThreadRunCreated(run: Run)
   case ThreadRunQueued(run: Run)
@@ -104,55 +103,61 @@ enum AssistantStreamEvent derives Schema:
   case ThreadRunExpired(run: Run)
   case ThreadRunStepCreated(runStep: RunStep)
   case ThreadRunStepInProgress(runStep: RunStep)
-  case ThreadRunStepDelta(runStepDelta: RunStepDelta )
+  case ThreadRunStepDelta(runStepDelta: RunStepDelta)
   case ThreadRunStepCompleted(runStep: RunStep)
   case ThreadRunStepFailed(runStep: RunStep)
   case ThreadRunStepCancelled(runStep: RunStep)
   case ThreadRunStepExpired(runStep: RunStep)
   case ThreadMessageCreated(message: Message)
   case ThreadMessageInProgress(message: Message)
-  case ThreadMessageDelta(messageDelta: MessageDelta )
+  case ThreadMessageDelta(messageDelta: MessageDelta)
   case ThreadMessageCompleted(message: Message)
   case ThreadMessageIncomplete(message: Message)
   case Error(error: String)
   case Done()
   case Unknown(event: String, data: String)
+end AssistantStreamEvent
 
 extension [A](errorOr: Either[PayloadError, A])
   def failFast: A = errorOr.fold(
-    throw _, 
+    throw _,
     identity
   )
 
 extension (s: String) def blob = Blob(s)
 
 private def eventFromId(eventId: String, data: String): AssistantStreamEvent = eventId match
-  case "thread.created"               => AssistantStreamEvent.ThreadCreated(Json.read[Thread](data.blob).failFast )
-  case "thread.run.created"           => AssistantStreamEvent.ThreadRunCreated(Json.read[Run](data.blob).failFast)
-  case "thread.run.queued"            => AssistantStreamEvent.ThreadRunQueued(Json.read[Run](data.blob).failFast)
-  case "thread.run.in_progress"       => AssistantStreamEvent.ThreadRunInProgress(Json.read[Run](data.blob).failFast)
-  case "thread.run.requires_action"   => AssistantStreamEvent.ThreadRunRequiresAction(Json.read[Run](data.blob).failFast)
-  case "thread.run.completed"         => AssistantStreamEvent.ThreadRunCompleted(Json.read[Run](data.blob).failFast)
-  case "thread.run.incomplete"        => AssistantStreamEvent.ThreadRunIncomplete(Json.read[Run](data.blob).failFast)
-  case "thread.run.failed"            => AssistantStreamEvent.ThreadRunFailed(Json.read[Run](data.blob).failFast)
-  case "thread.run.cancelling"        => AssistantStreamEvent.ThreadRunCancelling(Json.read[Run](data.blob).failFast)
-  case "thread.run.cancelled"         => AssistantStreamEvent.ThreadRunCancelled(Json.read[Run](data.blob).failFast)
-  case "thread.run.expired"           => AssistantStreamEvent.ThreadRunExpired(Json.read[Run](data.blob).failFast)
-  case "thread.run.step.created"      => AssistantStreamEvent.ThreadRunStepCreated(Json.read[RunStep](data.blob).failFast)
-  case "thread.run.step.in_progress"  => AssistantStreamEvent.ThreadRunStepInProgress(Json.read[RunStep](data.blob).failFast)
-  case "thread.run.step.delta"        => AssistantStreamEvent.ThreadRunStepDelta(Json.read[RunStepDelta](data.blob).failFast)
-  case "thread.run.step.completed"    => AssistantStreamEvent.ThreadRunStepCompleted(Json.read[RunStep](data.blob).failFast)
-  case "thread.run.step.failed"       => AssistantStreamEvent.ThreadRunStepFailed(Json.read[RunStep](data.blob).failFast)
-  case "thread.run.step.cancelled"    => AssistantStreamEvent.ThreadRunStepCancelled(Json.read[RunStep](data.blob).failFast)
-  case "thread.run.step.expired"      => AssistantStreamEvent.ThreadRunStepExpired(Json.read[RunStep](data.blob).failFast)
-  case "thread.message.created"       => AssistantStreamEvent.ThreadMessageCreated(Json.read[Message](data.blob).failFast)
-  case "thread.message.in_progress"   => AssistantStreamEvent.ThreadMessageInProgress(Json.read[Message](data.blob).failFast)
-  case "thread.message.delta"         => AssistantStreamEvent.ThreadMessageDelta(Json.read[MessageDelta](data.blob).failFast)
-  case "thread.message.completed"     => AssistantStreamEvent.ThreadMessageCompleted(Json.read[Message](data.blob).failFast)
-  case "thread.message.incomplete"    => AssistantStreamEvent.ThreadMessageIncomplete(Json.read[Message](data.blob).failFast)
-  case "error"                        => AssistantStreamEvent.Error(data)
-  case "done"                         => AssistantStreamEvent.Done()
-  case _                              => AssistantStreamEvent.Unknown(eventId, data)
+  case "thread.created"             => AssistantStreamEvent.ThreadCreated(Json.read[Thread](data.blob).failFast)
+  case "thread.run.created"         => AssistantStreamEvent.ThreadRunCreated(Json.read[Run](data.blob).failFast)
+  case "thread.run.queued"          => AssistantStreamEvent.ThreadRunQueued(Json.read[Run](data.blob).failFast)
+  case "thread.run.in_progress"     => AssistantStreamEvent.ThreadRunInProgress(Json.read[Run](data.blob).failFast)
+  case "thread.run.requires_action" => AssistantStreamEvent.ThreadRunRequiresAction(Json.read[Run](data.blob).failFast)
+  case "thread.run.completed"       => AssistantStreamEvent.ThreadRunCompleted(Json.read[Run](data.blob).failFast)
+  case "thread.run.incomplete"      => AssistantStreamEvent.ThreadRunIncomplete(Json.read[Run](data.blob).failFast)
+  case "thread.run.failed"          => AssistantStreamEvent.ThreadRunFailed(Json.read[Run](data.blob).failFast)
+  case "thread.run.cancelling"      => AssistantStreamEvent.ThreadRunCancelling(Json.read[Run](data.blob).failFast)
+  case "thread.run.cancelled"       => AssistantStreamEvent.ThreadRunCancelled(Json.read[Run](data.blob).failFast)
+  case "thread.run.expired"         => AssistantStreamEvent.ThreadRunExpired(Json.read[Run](data.blob).failFast)
+  case "thread.run.step.created"    => AssistantStreamEvent.ThreadRunStepCreated(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.in_progress" =>
+    AssistantStreamEvent.ThreadRunStepInProgress(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.delta" => AssistantStreamEvent.ThreadRunStepDelta(Json.read[RunStepDelta](data.blob).failFast)
+  case "thread.run.step.completed" =>
+    AssistantStreamEvent.ThreadRunStepCompleted(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.failed" => AssistantStreamEvent.ThreadRunStepFailed(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.cancelled" =>
+    AssistantStreamEvent.ThreadRunStepCancelled(Json.read[RunStep](data.blob).failFast)
+  case "thread.run.step.expired" => AssistantStreamEvent.ThreadRunStepExpired(Json.read[RunStep](data.blob).failFast)
+  case "thread.message.created"  => AssistantStreamEvent.ThreadMessageCreated(Json.read[Message](data.blob).failFast)
+  case "thread.message.in_progress" =>
+    AssistantStreamEvent.ThreadMessageInProgress(Json.read[Message](data.blob).failFast)
+  case "thread.message.delta" => AssistantStreamEvent.ThreadMessageDelta(Json.read[MessageDelta](data.blob).failFast)
+  case "thread.message.completed" => AssistantStreamEvent.ThreadMessageCompleted(Json.read[Message](data.blob).failFast)
+  case "thread.message.incomplete" =>
+    AssistantStreamEvent.ThreadMessageIncomplete(Json.read[Message](data.blob).failFast)
+  case "error" => AssistantStreamEvent.Error(data)
+  case "done"  => AssistantStreamEvent.Done()
+  case _       => AssistantStreamEvent.Unknown(eventId, data)
 
 extension (c: RunApi)
   def createThreadRunStream(
@@ -172,12 +177,12 @@ extension (c: RunApi)
       tool_choice: Option[ToolChoiceInRun] = None,
       parallel_tool_calls: Option[Boolean] = None,
       response_format: Option[ResponseFormat] = None,
-      baseUrl : String = "https://api.openai.com",
-  ) = 
+      baseUrl: String = "https://api.openai.com"
+  ) =
     val enc: EntityEncoder[IO, StreamRunRequest] =
       EntityEncoder.encodeBy[IO, StreamRunRequest](("Content-Type" -> "application/json"))(scr =>
         Entity(fs2.Stream.emits[IO, Byte](smithy4s.json.Json.writeBlob(scr).toArray))
-    )
+      )
     val req = Request[IO](
       Method.POST,
       Uri.unsafeFromString(baseUrl + "/v1/threads/runs")
@@ -189,9 +194,9 @@ extension (c: RunApi)
         instructions,
         tools,
         tool_resources,
-        metadata, 
+        metadata,
         temperature,
-        top_p, 
+        top_p,
         max_prompt_tokens,
         max_completion_tokens,
         truncation_strategy,
@@ -201,26 +206,26 @@ extension (c: RunApi)
       )
     )(using enc)
 
-    authdClient.stream(
-      req
-    ).flatMap(
-      str => str.bodyText.evalMap{ inStr =>
-        val strSplit = inStr.split("\n")
-        val event = strSplit(0).drop(7)
-        val data = strSplit(1).drop(6)
-        IO.println(event) >>
-        IO.println(data) >>
-        IO(eventFromId(event, data)).flatMap(IO.println)        
-        // IO.println("----") >>
-        // IO.println(event) >>
-        // IO.println(strSplit(0)) >>
-        // IO.println(data) >>
-        // IO.println(strSplit(1)) >>
-        // IO.unit
-      }
-    )
-          
-
+    authdClient
+      .stream(
+        req
+      )
+      .flatMap(str =>
+        str.bodyText.evalMap { inStr =>
+          val strSplit = inStr.split("\n")
+          val event = strSplit(0).drop(7)
+          val data = strSplit(1).drop(6)
+          IO.println(event) >>
+            IO.println(data) >>
+            IO(eventFromId(event, data)).flatMap(IO.println)
+          // IO.println("----") >>
+          // IO.println(event) >>
+          // IO.println(strSplit(0)) >>
+          // IO.println(data) >>
+          // IO.println(strSplit(1)) >>
+          // IO.unit
+        }
+      )
 
 /** https://platform.openai.com/docs/api-reference/runs
   */
@@ -449,22 +454,22 @@ object RunApi:
   ) derives Schema
 
   case class StreamRunRequest(
-    assistant_id: String,
-    thread: CreateThread,
-    model: Option[String] = None,
-    instructions: Option[String] = None,
-    tools: Option[List[AssistantTool]] = None,
-    tool_resources: Option[ToolResources] = None,
-    metadata: Option[RunMetaData] = None,
-    temperature: Option[Double] = None,
-    top_p: Option[Double] = None,
-    max_prompt_tokens: Option[Long] = None,
-    max_completion_tokens: Option[Long] = None,
-    truncation_strategy: Option[TruncationStrategy] = None,
-    tool_choice: Option[ToolChoiceInRun] = None,
-    parallel_tool_calls: Option[Boolean] = None,
-    response_format: Option[ResponseFormat] = None,
-    stream: Boolean = true
+      assistant_id: String,
+      thread: CreateThread,
+      model: Option[String] = None,
+      instructions: Option[String] = None,
+      tools: Option[List[AssistantTool]] = None,
+      tool_resources: Option[ToolResources] = None,
+      metadata: Option[RunMetaData] = None,
+      temperature: Option[Double] = None,
+      top_p: Option[Double] = None,
+      max_prompt_tokens: Option[Long] = None,
+      max_completion_tokens: Option[Long] = None,
+      truncation_strategy: Option[TruncationStrategy] = None,
+      tool_choice: Option[ToolChoiceInRun] = None,
+      parallel_tool_calls: Option[Boolean] = None,
+      response_format: Option[ResponseFormat] = None,
+      stream: Boolean = true
   ) derives Schema
 
 end RunApi

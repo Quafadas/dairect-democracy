@@ -2,7 +2,6 @@ package io.github.quafadas.dairect
 
 import io.github.quafadas.dairect.RunStepsApi.RunStepDelta
 
-
 class RunStepDeltaTest extends ParseSuite:
 
   test("correct JSON is parsed to an Message Delta") {
@@ -27,6 +26,6 @@ class RunStepDeltaTest extends ParseSuite:
     val md = parseCheck[RunStepDelta](jsonString)
 
     assertEquals(md.id, "step_123")
-    
+
   }
 end RunStepDeltaTest

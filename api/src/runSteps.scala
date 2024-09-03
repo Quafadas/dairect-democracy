@@ -97,32 +97,31 @@ object RunStepsApi:
   ) derives Schema
 
   case class RunStepList(
-    `object`: String,
-    data: List[RunStep],
-    first_id: String,
-    last_id: String,
-    has_more: Boolean
+      `object`: String,
+      data: List[RunStep],
+      first_id: String,
+      last_id: String,
+      has_more: Boolean
   ) derives Schema
 
   case class RunStepDelta(
-    id: String,
-    `object`: String,
-    delta: RunStepDeltaDetail
+      id: String,
+      `object`: String,
+      delta: RunStepDeltaDetail
   ) derives Schema
 
   case class RunStepDeltaDetail(
-    step_details: RunStepDeltaDetails
+      step_details: RunStepDeltaDetails
   ) derives Schema
 
   @discriminated("type")
-  enum RunStepDeltaDetails derives Schema :
+  enum RunStepDeltaDetails derives Schema:
     case tool_calls(tool_calls: List[MessagesToolDelta])
-    case message_creation(message_creation: MessageCreation )
-  
+    case message_creation(message_creation: MessageCreation)
+  end RunStepDeltaDetails
 
   case class MessageCreation(
-    id: String
+      id: String
   ) derives Schema
-
 
 end RunStepsApi

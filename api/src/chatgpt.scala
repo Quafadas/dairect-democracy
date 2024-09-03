@@ -69,7 +69,7 @@ extension (c: ChatGpt)
         response_format
       )
     )(using enc)
-    val io = 
+    val io =
       IO(
         authdClient
           .stream(
@@ -119,7 +119,6 @@ extension (c: ChatGpt)
               }
           }
       )
-    
 
     fs2.Stream.eval(io).flatten
 

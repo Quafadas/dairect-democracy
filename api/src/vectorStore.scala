@@ -113,7 +113,7 @@ object VectorStoreApi:
       name: Option[String],
       bytes: Option[Long],
       file_counts: FileCounts,
-      status: String
+      status: Option[String]
   ) derives Schema
 
   case class VectorStoreList(

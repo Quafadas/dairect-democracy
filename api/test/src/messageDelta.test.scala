@@ -6,7 +6,6 @@ import io.github.quafadas.dairect.AssistantApi.Assistant
 import smithy4s.Blob
 import io.github.quafadas.dairect.MessagesApi.MessageDelta
 
-
 class MessageDeltaTest extends ParseSuite:
 
   test("correct JSON is parsed to an Message Delta") {
@@ -26,11 +25,12 @@ class MessageDeltaTest extends ParseSuite:
 
     val md = parseCheck[MessageDelta](jsonString)
 
-    assertEquals(md.id, "msg_123")    
+    assertEquals(md.id, "msg_123")
   }
 
   test("without annotations") {
-    val str = """{"id":"msg_Wtm0AYTAVAYz2rg8N5TiuU8J","object":"thread.message.delta","delta":{"content":[{"index":0,"type":"text","text":{"value":" Scala"}}]}}"""
+    val str =
+      """{"id":"msg_Wtm0AYTAVAYz2rg8N5TiuU8J","object":"thread.message.delta","delta":{"content":[{"index":0,"type":"text","text":{"value":" Scala"}}]}}"""
     val md = parseCheck[MessageDelta](str)
     assertEquals(md.id, "msg_Wtm0AYTAVAYz2rg8N5TiuU8J")
   }

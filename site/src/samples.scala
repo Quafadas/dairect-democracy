@@ -133,15 +133,15 @@ end FileTest
   // }.Ø
 
   val s = client.use { c =>
-    IO(chat.stream(
-      List(AiMessage.system("You are cow"), AiMessage.user("Make noise")),
-      authdClient = c
-    )
+    IO(
+      chat.stream(
+        List(AiMessage.system("You are cow"), AiMessage.user("Make noise")),
+        authdClient = c
+      )
     )
   }
 
   fs2.Stream.eval(s).flatten
-
 
   val arg = fs2.Stream.eval(s).flatten.debug().compile.toList
 
@@ -330,13 +330,12 @@ end MesagesTest
     .compile
     .drain
     .Ø
-    
 
   val assistant = assistantApi.create("gpt-4o").Ø
 
   val thread = runApi
     .createThreadRunStream(
-      httpClient,      
+      httpClient,
       assistant.id,
       thread = CreateThread(
         List(
@@ -357,9 +356,7 @@ end MesagesTest
       ).some
     )
 
-
   thread.compile.drain.Ø
-   
 
   // println(thread)
 

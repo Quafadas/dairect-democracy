@@ -44,6 +44,10 @@ jobs:
       - name: Compile All
         run: mill api.__.compile && mill site.compile
 
+      - name: Test Api
+        if: matrix.project == 'jvm'
+        run: mill api.__.test
+
       - name: Test Agentic
         if: matrix.project == 'jvm'
         run: mill agentic.test

@@ -111,7 +111,7 @@ object VectorStoreFilesApi:
       vector_store_id: String,
       status: String,
       last_error: Option[String],
-      chunking_strategy: ChunkingStrategy
+      chunking_strategy: Option[ChunkingStrategy]
   ) derives Schema
 
   case class VectorStoreFileShort(

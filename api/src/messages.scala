@@ -136,7 +136,7 @@ object MessagesApi:
     case function()
   end MessagesTool
 
-    @discriminated("type")
+  @discriminated("type")
   enum MessagesToolDelta derives Schema:
     case code_interpreter(index: Option[Int], id: String, code_interpreter: CodeInterpreterToolDelta)
     case file_search(index: Option[Int], id: String)
@@ -144,14 +144,14 @@ object MessagesApi:
   end MessagesToolDelta
 
   case class CodeInterpreterToolDelta(
-    input: String, 
-    output: Option[CodeInterpreterToolOutput]
+      input: String,
+      output: Option[CodeInterpreterToolOutput]
   ) derives Schema
 
   case class CodeInterpreterToolOutput(
-    index: Option[Int],
-    `type`: String, 
-    image: CodeInterpreterToolOutputImage
+      index: Option[Int],
+      `type`: String,
+      image: CodeInterpreterToolOutputImage
   ) derives Schema
 
   case class CodeInterpreterToolOutputImage(file_id: String) derives Schema
@@ -166,28 +166,27 @@ object MessagesApi:
 
   // type MessageContentList = List[MessageContent]
 
-    @discriminated("type")
-    enum MessageContentDelta derives Schema:
-      case image(image_file: ImageDetails, index: Option[Int])
-      case image_url(image_url: String, index: Option[Int])
-      case text(text: TextValueDelta, index: Option[Int])
-      case refusal(refusal: String, index: Option[Int])
-    end MessageContentDelta
+  @discriminated("type")
+  enum MessageContentDelta derives Schema:
+    case image(image_file: ImageDetails, index: Option[Int])
+    case image_url(image_url: String, index: Option[Int])
+    case text(text: TextValueDelta, index: Option[Int])
+    case refusal(refusal: String, index: Option[Int])
+  end MessageContentDelta
 
-    case class TextValueDelta (
-      value: String, 
+  case class TextValueDelta(
+      value: String,
       annotations: Option[List[String]]
-    ) derives Schema
+  ) derives Schema
 
   // case class ImageFileDelta(file_id: String, detail: String = "low")  derives Schema
   // case class ImageUrl(`type`: String /* png */, image_url: String)  derives Schema
-    // case class TextValueDelta(value: String, annotations: List[Annotation] = List())  derives Schema
+  // case class TextValueDelta(value: String, annotations: List[Annotation] = List())  derives Schema
 
-
-    // enum Annotation derives Schema:
-    //   case Citation(`type`: String = "file_path", text: String, file_citation: FilePathId, start_index: Int, end_index: Int)
-    //   case FilePath(`type`: String = "file_path", text: String, file_path: FilePathId, start_index: Int, end_index: Int)
-    // end Annotation
+  // enum Annotation derives Schema:
+  //   case Citation(`type`: String = "file_path", text: String, file_citation: FilePathId, start_index: Int, end_index: Int)
+  //   case FilePath(`type`: String = "file_path", text: String, file_path: FilePathId, start_index: Int, end_index: Int)
+  // end Annotation
 
   // case class FilePathId(file_id: String) derives Schema
 
@@ -200,14 +199,14 @@ object MessagesApi:
   ) derives Schema
 
   case class MessageDelta(
-    id: String, 
-    `object`: String, 
-    delta: MessageDeltaDetail
+      id: String,
+      `object`: String,
+      delta: MessageDeltaDetail
   ) derives Schema
 
   case class MessageDeltaDetail(
-    role: Option[String], 
-    content: List[MessageContentDelta]
+      role: Option[String],
+      content: List[MessageContentDelta]
   ) derives Schema
 
 end MessagesApi
