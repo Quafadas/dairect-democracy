@@ -91,9 +91,14 @@ object RunStepsApi:
       completed_at: Option[Long],
       expired_at: Option[Long],
       failed_at: Option[Long],
-      last_error: Option[String],
+      last_error: Option[LastError],
       step_details: Option[StepDetails],
       usage: Option[AiTokenUsage]
+  ) derives Schema
+
+  case class LastError(
+      code: String,
+      message: String
   ) derives Schema
 
   case class RunStepList(

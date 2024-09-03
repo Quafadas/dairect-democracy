@@ -5,7 +5,7 @@ import io.github.quafadas.dairect.VectorStoreApi.VectorStoreList
 
 class VectorStoreTest extends ParseSuite:
 
-  test("correct JSON ") {
+  test("correct JSON vectoir store") {
     val jsonString = """{
   "id": "vs_abc123",
   "object": "vector_store",

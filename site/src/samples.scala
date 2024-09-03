@@ -6,6 +6,7 @@ import cats.effect.IOApp
 import cats.effect.unsafe.implicits.global
 import ciris.*
 import fs2.io.file.*
+import cats.effect.std.Queue
 import io.github.quafadas.dairect.ChatGpt.AiMessage
 import io.github.quafadas.dairect.RunApi.CreateThread
 import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
@@ -15,8 +16,12 @@ import org.http4s.ember.client.EmberClientBuilder
 import smithy4s.Document
 import smithy4s.deriving.*
 import smithy4s.json.Json
-
-import scala.annotation.experimental
+import cats.syntax.all.toTraverseOps
+import cats.effect.kernel.Ref
+import io.github.quafadas.dairect.RunApi.Run
+import fs2.concurrent.SignallingRef
+import io.github.quafadas.dairect.RunApi.ToolOutput
+import smithy4s.deriving.given
 
 lazy val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
 lazy val logger = fileLogger(Path("log.txt"))
@@ -63,10 +68,10 @@ end assistantTest
 @main def testy =
   val logFile = fs2.io.file.Path("easychat.txt")
   val chatGpt = ChatGpt.defaultAuthLogToFile(logFile).allocated.map(_._1).Ø
-  val osTools = API[OsTool].liftService(osImpl)
 
-  val schema = ioToolGen.toJsonSchema(osTools)
-  val osDispatch = ioToolGen.openAiSmithyFunctionDispatch(osTools)
+  val osTools = API[OsTool].liftService(osImpl)
+  val schema = osTools.toJsonSchema
+  val osDispatch = osTools.dispatcher
 
   val resp = chatGpt
     .chat(
@@ -133,15 +138,15 @@ end FileTest
   val s = client.use { c =>
     IO(
       chat.stream(
-        List(AiMessage.system("You are cow"), AiMessage.user("Make noise")),
+        messages = List(AiMessage.system("You are cow"), AiMessage.user("Make noise")),
         authdClient = c
       )
     )
   }
 
-  fs2.Stream.eval(s).flatten
+  s.streamFs2.flatten
 
-  val arg = fs2.Stream.eval(s).flatten.debug().compile.toList
+  val arg = s.streamFs2.flatten.debug().compile.toList
 
   println(arg.Ø)
 end streamTest
@@ -296,6 +301,8 @@ end ThreadTest
 
 end MesagesTest
 
+val ioToolGen = new SmithyOpenAIUtil[IO]
+
 @main def uploadFiles =
   val OpenAiPlatform(
     chatGpt,
@@ -310,6 +317,7 @@ end MesagesTest
     httpClient
   ) = OpenAiPlatform.defaultAuthLogToFile().allocated.map(_._1).Ø
 
+  val osTools = API[OsTool].liftService(osImpl)
   val vs = vectorStoreApi.create("Laminar Docs".some).Ø
 
   def uploadFileAddToVectorStore(file: fs2.io.file.Path, httpClient: Client[IO]) =
@@ -324,6 +332,7 @@ end MesagesTest
   fs2.io.file
     .Files[IO]
     .list(fs2.io.file.Path("C:\\temp\\dairect-democracy\\site\\resources"))
+    .take(2)
     .foreach(file => uploadFileAddToVectorStore(file, httpClient))
     .compile
     .drain
@@ -331,30 +340,90 @@ end MesagesTest
 
   val assistant = assistantApi.create("gpt-4o").Ø
 
-  val thread = runApi
+  // val thisRun = Ref.of[IO, Option[Run]](None).Ø
+  val continue = SignallingRef.of[IO, ContinueFold](ContinueFold.Continue).Ø
+  val interrupter = continue.map(_ == ContinueFold.Stop)
+
+  val thread: fs2.Stream[IO, AssistantStreamEvent] = runApi
     .createThreadRunStream(
       httpClient,
       assistant.id,
       thread = CreateThread(
         List(
           ThreadMessage(
-            "Write a detailed summary of the key points of the scala laminar UI framework. Include examples.".msg
+            """ Create a temporary directory.
+            | Write a very short summary (in markdown format) of the key points of the scala laminar UI framework to a temporary file in the directory you created. 
+            | 
+            | Tell me the location of the temporary file""".msg
           )
         )
       ),
       tool_resources =
         ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs.id)).some).some).some,
-      tools = List(
-        AssistantTool.file_search(
-          // AssistantFileSearch(
-          //   max_num_results = 5.some,
-          //   ranking_options = RankingOptions("auto", 0.5).some
-          // ).some
-        )
-      ).some
+      tools = Some(
+        osTools.assistantTool :+ AssistantTool.file_search()
+      )
     )
 
-  thread.compile.drain.Ø
+  // thread.flatMap{event => fs2.Stream.eval(queue.offer(event))}
+
+  val q = Queue.unbounded[IO, AssistantStreamEvent].Ø
+
+  /** @param events
+    * @return
+    */
+  def processStreamEvents(
+      events: fs2.Stream[IO, AssistantStreamEvent],
+      queue: Queue[IO, AssistantStreamEvent]
+  ): fs2.Stream[IO, Unit] = {
+    val dispatcher = ioToolGen.openAiSmithyFunctionDispatch(osTools)
+    events.collect {
+
+      case AssistantStreamEvent.ThreadMessageCompleted(msg) => IO.println(msg).streamFs2
+      case AssistantStreamEvent.ThreadRunRequiresAction(run) =>
+        val toolCall = run.required_action.get
+        val dispatch = toolCall.submit_tool_outputs.tool_calls.traverse { fct =>
+          dispatcher(fct.function).map { out =>
+            ToolOutput(fct.id, Json.writePrettyString(out))
+          }
+        }
+        dispatch
+          .map { toSend =>
+            runApi
+              .streamToolOutput(
+                httpClient,
+                run.thread_id,
+                run.id,
+                toSend
+              )
+              .evalMap(queue.offer)
+          }
+          .streamFs2
+          .flatten
+
+      case AssistantStreamEvent.ThreadRunCompleted(run) =>
+        (IO.println("set stop condition") >>
+          continue.update(_ => ContinueFold.Stop)).streamFs2
+
+      case AssistantStreamEvent.Done() =>
+        IO.println("Stream finished").streamFs2
+    }
+  }.flatten
+
+  val run = thread.flatMap(a => q.offer(a).streamFs2).compile.drain
+
+  val processEvents = processStreamEvents(
+    fs2.Stream.fromQueueUnterminated(q),
+    q
+  )
+    .debug()
+    .interruptWhen(interrupter)
+    .compile
+    .drain
+
+  (run >> processEvents).Ø
+
+  // thread.debug().compile.drain.Ø
 
   // println(thread)
 

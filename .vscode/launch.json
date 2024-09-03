@@ -7,6 +7,14 @@
     {
       "type": "scala",
       "request": "launch",
+      "name": "assistantFctCall",
+      "buildTarget": "site",
+      "mainClass": "io.github.quafadas.dairect.assistantFctCall",
+      "envFile": ".envrc"
+    },
+    {
+      "type": "scala",
+      "request": "launch",
       "name": "testy",
       "buildTarget": "site",
       "mainClass": "io.github.quafadas.dairect.testy",

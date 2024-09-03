@@ -32,6 +32,7 @@ import smithy4s.codecs.PayloadError
 import smithy4s.json.Json
 import io.github.quafadas.dairect.RunStepsApi.RunStepDelta
 import io.github.quafadas.dairect.MessagesApi.MessageDelta
+import io.github.quafadas.dairect.RunApi.StreamToolOutput
 
 // enum AssistantStreamEvent(val id: String) derives Schema:
 //   case ThreadCreated(thread: Thread) extends AssistantStreamEvent("thread.created")
@@ -160,6 +161,30 @@ private def eventFromId(eventId: String, data: String): AssistantStreamEvent = e
   case _       => AssistantStreamEvent.Unknown(eventId, data)
 
 extension (c: RunApi)
+
+  def streamToolOutput(
+      authdClient: Client[IO],
+      thread_id: String,
+      run_id: String,
+      tool_outputs: List[ToolOutput],
+      baseUrl: String = "https://api.openai.com"
+  ) =
+    val enc: EntityEncoder[IO, StreamToolOutput] =
+      EntityEncoder.encodeBy[IO, StreamToolOutput](("Content-Type" -> "application/json"))(scr =>
+        Entity(fs2.Stream.emits[IO, Byte](smithy4s.json.Json.writeBlob(scr).toArray))
+      )
+    val req = Request[IO](
+      Method.POST,
+      Uri.unsafeFromString(baseUrl + s"/v1/threads/$thread_id/runs/$run_id/submit_tool_outputs")
+    ).withEntity(
+      StreamToolOutput(
+        tool_outputs
+      )
+    )(using enc)
+    fs2.Stream.eval(IO.println(s"sending tool outputs $req")) >>
+      streamAssistantEvents(authdClient, req)
+  end streamToolOutput
+
   def createThreadRunStream(
       authdClient: Client[IO],
       assistant_id: String,
@@ -178,7 +203,7 @@ extension (c: RunApi)
       parallel_tool_calls: Option[Boolean] = None,
       response_format: Option[ResponseFormat] = None,
       baseUrl: String = "https://api.openai.com"
-  ) =
+  ): fs2.Stream[IO, AssistantStreamEvent] =
     val enc: EntityEncoder[IO, StreamRunRequest] =
       EntityEncoder.encodeBy[IO, StreamRunRequest](("Content-Type" -> "application/json"))(scr =>
         Entity(fs2.Stream.emits[IO, Byte](smithy4s.json.Json.writeBlob(scr).toArray))
@@ -205,27 +230,31 @@ extension (c: RunApi)
         response_format
       )
     )(using enc)
+    streamAssistantEvents(authdClient, req)
+  end createThreadRunStream
+end extension
 
-    authdClient
-      .stream(
-        req
-      )
-      .flatMap(str =>
-        str.bodyText.evalMap { inStr =>
-          val strSplit = inStr.split("\n")
-          val event = strSplit(0).drop(7)
-          val data = strSplit(1).drop(6)
-          IO.println(event) >>
+def streamAssistantEvents(authdClient: Client[IO], req: Request[IO]) =
+  authdClient
+    .stream(
+      req
+    )
+    .flatMap(str =>
+      str.bodyText.evalMap { inStr =>
+        val strSplit = inStr.split("\n")
+        val event = strSplit(0).drop(7)
+        val data = strSplit(1).drop(6)
+        // IO.println(event) >>
+        //   IO.println(data) >>
+        IO(eventFromId(event, data)).onError { err =>
+          IO.println("Stream parsing failed -----") >>
+            IO.println(event) >>
             IO.println(data) >>
-            IO(eventFromId(event, data)).flatMap(IO.println)
-          // IO.println("----") >>
-          // IO.println(event) >>
-          // IO.println(strSplit(0)) >>
-          // IO.println(data) >>
-          // IO.println(strSplit(1)) >>
-          // IO.unit
+            IO.raiseError(err)
         }
-      )
+      }
+    )
+end streamAssistantEvents
 
 /** https://platform.openai.com/docs/api-reference/runs
   */
@@ -365,7 +394,11 @@ object RunApi:
 
   case class RequiredAction(
       `type`: String = "submit_tool_outputs",
-      submit_tool_outputs: List[ToolCall]
+      submit_tool_outputs: ToolOutputs
+  ) derives Schema
+
+  case class ToolOutputs(
+      tool_calls: List[ToolCall]
   ) derives Schema
 
   case class RunError(
@@ -469,6 +502,11 @@ object RunApi:
       tool_choice: Option[ToolChoiceInRun] = None,
       parallel_tool_calls: Option[Boolean] = None,
       response_format: Option[ResponseFormat] = None,
+      stream: Boolean = true
+  ) derives Schema
+
+  case class StreamToolOutput(
+      tool_outputs: List[ToolOutput],
       stream: Boolean = true
   ) derives Schema
 

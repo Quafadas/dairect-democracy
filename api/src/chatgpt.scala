@@ -145,7 +145,7 @@ extension (c: ChatGpt)
     .map(_.flatMap(_.choices.flatMap(_.delta.content)))
     .flatMap(fs2.Stream.emits)
 
-  // end stream
+  end stream
 end extension
 
 @simpleRestJson

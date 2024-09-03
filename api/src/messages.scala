@@ -140,8 +140,12 @@ object MessagesApi:
   enum MessagesToolDelta derives Schema:
     case code_interpreter(index: Option[Int], id: String, code_interpreter: CodeInterpreterToolDelta)
     case file_search(index: Option[Int], id: String)
-    case function(index: Option[Int], id: String)
+    case function(index: Option[Int], id: Option[String], function: Option[MessageToolFunctionDelta])
   end MessagesToolDelta
+
+  case class MessageToolFunctionDelta(
+      arguments: Option[String]
+  ) derives Schema
 
   case class CodeInterpreterToolDelta(
       input: String,
@@ -176,7 +180,21 @@ object MessagesApi:
 
   case class TextValueDelta(
       value: String,
-      annotations: Option[List[String]]
+      annotations: Option[List[AnnotationDelta]]
+  ) derives Schema
+
+  case class AnnotationDelta(
+      index: Option[Int],
+      `type`: String,
+      text: String,
+      start_index: Long,
+      end_index: Long,
+      file_citation: FileCitation
+  ) derives Schema
+
+  case class FileCitation(
+      file_id: String,
+      quote: String
   ) derives Schema
 
   // case class ImageFileDelta(file_id: String, detail: String = "low")  derives Schema

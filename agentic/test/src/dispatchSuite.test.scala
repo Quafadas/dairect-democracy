@@ -12,7 +12,7 @@ class FunctionCallSuite extends CatsEffectSuite:
     val fakeTool = API[FakeTool].liftService(
       new FakeTool {}
     )
-    val simpleTool = ioToolGen.openAiSmithyFunctionDispatch(fakeTool)
+    val simpleTool = fakeTool.dispatcher
 
     val call = FunctionCall(
       name = "fakeFunctionName",

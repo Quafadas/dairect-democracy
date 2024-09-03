@@ -8,7 +8,7 @@ class SchemaGenSuite extends munit.FunSuite:
 
   test("simple schema is generated") {
     val fakeTool = API[FakeTool].liftService(new FakeTool {})
-    val simpleTool = ioToolGen.toJsonSchema(fakeTool)
+    val simpleTool = fakeTool.toJsonSchema
     assertEquals(
       Json.writeDocumentAsPrettyString(simpleTool),
       """[
@@ -38,5 +38,4 @@ class SchemaGenSuite extends munit.FunSuite:
     )
 
   }
-
 end SchemaGenSuite

@@ -28,12 +28,11 @@ extension [Alg[_[_, _, _, _, _]]](agent: Agent[Alg])
   def systemMessage(msg: String) = AiMessage.system(msg, Some(agent.name))
 end extension
 
+enum ContinueFold:
+  case Stop
+  case Continue
+end ContinueFold
 object Agent:
-
-  private enum ContinueFold:
-    case Stop
-    case Continue
-  end ContinueFold
 
   /** @param model
     *   \- An implementation of the ChatGpt service. There is not a "single" one of these, as it is anticipated that
@@ -53,8 +52,8 @@ object Agent:
       modelParams: ChatGptConfig,
       toolkit: FunctorAlgebra[Alg, IO]
   )(implicit S: Service[Alg]) =
-    val functions = ioToolGen.toJsonSchema(toolkit)
-    val functionDispatcher = ioToolGen.openAiSmithyFunctionDispatch(toolkit)
+    val functions = toolkit.toJsonSchema
+    val functionDispatcher = toolkit.dispatcher
     fs2.Stream
       .unfoldEval[IO, (ContinueFold, List[AiMessage]), List[AiMessage]]((ContinueFold.Continue, seedMessages)) {
         (continue, allMessages) =>
