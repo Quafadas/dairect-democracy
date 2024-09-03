@@ -1,19 +1,11 @@
 package io.github.quafadas.dairect
 
-import io.github.quafadas.dairect.ChatGpt
-import io.github.quafadas.dairect.AssistantApi
-import io.github.quafadas.dairect.FilesApi
-import io.github.quafadas.dairect.VectorStoreApi
-import io.github.quafadas.dairect.VectorStoreFilesApi
-import ciris.env
 import cats.effect.IO
-import fs2.io.file.Path
 import cats.effect.kernel.Resource
+import ciris.env
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
-import java.nio.file.Paths
 import org.http4s.syntax.literals.uri
-import java.io.File
 
 case class OpenAiPlatform(
     chatApi: ChatGpt,

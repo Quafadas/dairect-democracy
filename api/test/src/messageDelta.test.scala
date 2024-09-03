@@ -1,9 +1,5 @@
 package io.github.quafadas.dairect
 
-import munit.FunSuite
-import smithy4s.json.Json
-import io.github.quafadas.dairect.AssistantApi.Assistant
-import smithy4s.Blob
 import io.github.quafadas.dairect.MessagesApi.MessageDelta
 
 class MessageDeltaTest extends ParseSuite:

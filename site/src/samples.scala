@@ -7,18 +7,16 @@ import cats.effect.unsafe.implicits.global
 import ciris.*
 import fs2.io.file.*
 import io.github.quafadas.dairect.ChatGpt.AiMessage
+import io.github.quafadas.dairect.RunApi.CreateThread
+import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
+import io.github.quafadas.dairect.VectorStoreFilesApi.StaticChunkingStrategy
+import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import smithy4s.Document
 import smithy4s.deriving.*
 import smithy4s.json.Json
 
 import scala.annotation.experimental
-import cats.effect.kernel.Resource
-import org.http4s.client.Client
-import io.github.quafadas.dairect.VectorStoreFilesApi.ChunkingStrategy
-import io.github.quafadas.dairect.VectorStoreFilesApi.StaticChunkingStrategy
-import io.github.quafadas.dairect.RunApi.CreateThread
-import scala.concurrent.duration.DurationInt
 
 lazy val apikey = env("OPEN_AI_API_TOKEN").as[String].load[IO].toResource
 lazy val logger = fileLogger(Path("log.txt"))
