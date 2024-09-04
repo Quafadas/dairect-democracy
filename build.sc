@@ -49,12 +49,12 @@ trait CommonNative extends ScalaNativeModule {
 
 
 val http4s = "0.23.27"
-
+val smithy4sV = smithy4s.codegen.BuildInfo.version
 
 object api extends CrossPlatform {
   trait Shared extends CrossPlatformScalaModule with Common with Smithy4sModule {
     def ivyDeps = Agg(
-      ivy"com.disneystreaming.smithy4s::smithy4s-http4s::$http4s",
+      ivy"com.disneystreaming.smithy4s::smithy4s-http4s::$smithy4sV",
       ivy"tech.neander::smithy4s-deriving::0.0.3",
       ivy"org.http4s::http4s-ember-client::$http4s",
       ivy"is.cir::ciris::3.6.0"
@@ -85,7 +85,7 @@ object agentic extends Common {
     ivy"software.amazon.smithy:smithy-jsonschema:1.50.0",
     ivy"com.lihaoyi::os-lib::0.10.5",
     ivy"com.lihaoyi::pprint::0.9.0",
-    ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::$http4s"
+    ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::$smithy4sV"
 
 
   )
