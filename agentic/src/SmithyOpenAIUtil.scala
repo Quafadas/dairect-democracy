@@ -1,8 +1,3 @@
-// Aggressively copy - pasted from
-// https://github.com/disneystreaming/smithy4s/blob/5902d2fd81d1eee6703daaab6e2ad95eb69684ab/modules/test-utils/src/smithy4s/tests/DefaultSchemaVisitor.scala#L4
-
-// I don't _think_ smithy exposes this functionality, because it's in the tests suite.
-// Is there a world in which at least part of it might be in the public api?
 package io.github.quafadas.dairect
 
 import cats.MonadThrow
@@ -21,7 +16,7 @@ import scala.annotation.experimental
 // format: off
 // val ioToolGen = new SmithyOpenAIUtil[IO]
 
-extension [Alg[_[_, _, _, _, _]], F[_]](alg: FunctorAlgebra[Alg, F])(using F: MonadThrow[F])
+extension [Alg[_[_, _, _, _, _]], F[_]](alg: FunctorAlgebra[Alg, F])(using F: MonadThrow[F])    
 
   def assistantTool(using S: Service[Alg]): List[AssistantTool] = 
     val allfcts = alg.toJsonSchema
