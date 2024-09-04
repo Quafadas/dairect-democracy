@@ -47,12 +47,16 @@ trait CommonNative extends ScalaNativeModule {
   def scalaNativeVersion: mill.T[String] = "0.4.16"
 }
 
+
+val http4s = "0.23.27"
+
+
 object api extends CrossPlatform {
   trait Shared extends CrossPlatformScalaModule with Common with Smithy4sModule {
     def ivyDeps = Agg(
-      ivy"com.disneystreaming.smithy4s::smithy4s-http4s::0.18.23",
+      ivy"com.disneystreaming.smithy4s::smithy4s-http4s::$http4s",
       ivy"tech.neander::smithy4s-deriving::0.0.3",
-      ivy"org.http4s::http4s-ember-client::0.23.26",
+      ivy"org.http4s::http4s-ember-client::$http4s",
       ivy"is.cir::ciris::3.6.0"
     )
 
@@ -79,9 +83,9 @@ object agentic extends Common {
   override def moduleDeps = Seq(api.jvm)
   override def ivyDeps = super.ivyDeps() ++ Agg(
     ivy"software.amazon.smithy:smithy-jsonschema:1.50.0",
-    ivy"com.lihaoyi::os-lib::0.10.3",
+    ivy"com.lihaoyi::os-lib::0.10.5",
     ivy"com.lihaoyi::pprint::0.9.0",
-    ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::0.18.23"
+    ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::$http4s"
 
 
   )
@@ -95,7 +99,7 @@ object agentic extends Common {
 
 object site extends SiteModule {
 
-  def scalaVersion = agentic.scalaVersion
+  def scalaVersion = agentic.scalaVersion  
 
   override def scalacOptions: Target[Seq[String]] = agentic.scalacOptions
 

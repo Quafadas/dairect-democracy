@@ -1,7 +1,6 @@
 package io.github.quafadas.dairect
 
 import cats.MonadThrow
-import cats.effect.IO
 import cats.syntax.all.*
 import smithy4s.*
 import smithy4s.Document.*
