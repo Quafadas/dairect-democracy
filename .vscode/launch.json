@@ -7,6 +7,14 @@
     {
       "type": "scala",
       "request": "launch",
+      "name": "BspClient",
+      "buildTarget": "agentic",
+      "mainClass": "io.github.quafadas.dairect.BspClient",
+      "envFile": ".envrc"
+    },
+    {
+      "type": "scala",
+      "request": "launch",
       "name": "assistantFctCall",
       "buildTarget": "site",
       "mainClass": "io.github.quafadas.dairect.assistantFctCall",

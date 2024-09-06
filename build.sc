@@ -85,8 +85,13 @@ object agentic extends Common {
     ivy"software.amazon.smithy:smithy-jsonschema:1.50.0",
     ivy"com.lihaoyi::os-lib::0.10.5",
     ivy"com.lihaoyi::pprint::0.9.0",
-    ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::$smithy4sV"
+    ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::$smithy4sV",
 
+    /**
+      * Note to self - this isn't going to work. It's published for scala 2.13, I think because it uses Monix. It brings in some older cats effect things which seems to generate some terrible classpath problem.
+      */
+
+    // ivy"ch.epfl.scala:bsp4s_2.13::2.1.1"
 
   )
   object test extends ScalaTests with TestModule.Munit {
@@ -99,7 +104,7 @@ object agentic extends Common {
 
 object site extends SiteModule {
 
-  def scalaVersion = agentic.scalaVersion  
+  def scalaVersion = agentic.scalaVersion
 
   override def scalacOptions: Target[Seq[String]] = agentic.scalacOptions
 
