@@ -1,27 +1,27 @@
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
 compileApi:
-  mill -j 0 api.__.compile
+  mill api.__.compile
 
 formatApi:
-  mill -j 0 api.__.reformat
+  mill api.__.reformat
 
 format:
-  mill -j 0 mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+  mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
 
 fix:
-  mill -j 0 api.__.fix
-  mill -j 0 agentic.fix
-  mill -j 0 site.fix
+  mill api.__.fix
+  mill agentic.fix
+  mill site.fix
 
 site:
-  mill -j 0 -w site.live
+  mill -w site.live
 
 test:
-  mill -j 0 __.test
+  mill __.test
 
-update: 
-  mill -j 0 mill.scalalib.Dependency/showUpdates
+update:
+  mill mill.scalalib.Dependency/showUpdates
 
 demo:
   scala-cli run . --main-class io.github.quafadas.dairect.Showcase
@@ -31,3 +31,6 @@ demo:
 
 serveSite:
   mill site.browserSync
+
+ƒsetupSmithyLsp:
+   mill smithy4s.codegen.LSP/updateConfig

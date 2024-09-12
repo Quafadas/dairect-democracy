@@ -352,8 +352,8 @@ val ioToolGen = new SmithyOpenAIUtil[IO]
         List(
           ThreadMessage(
             """ Create a temporary directory.
-            | Write a very short summary (in markdown format) of the key points of the scala laminar UI framework to a temporary file in the directory you created. 
-            | 
+            | Write a very short summary (in markdown format) of the key points of the scala laminar UI framework to a temporary file in the directory you created.
+            |
             | Tell me the location of the temporary file""".msg
           )
         )
@@ -361,7 +361,7 @@ val ioToolGen = new SmithyOpenAIUtil[IO]
       tool_resources =
         ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs.id)).some).some).some,
       tools = Some(
-        osTools.assistantTool :+ AssistantTool.file_search()
+        osTools.assistantTools :+ AssistantTool.file_search()
       )
     )
 
@@ -373,11 +373,10 @@ val ioToolGen = new SmithyOpenAIUtil[IO]
     * @return
     */
   def processStreamEvents(
-      events: fs2.Stream[IO, AssistantStreamEvent],
       queue: Queue[IO, AssistantStreamEvent]
   ): fs2.Stream[IO, Unit] = {
     val dispatcher = ioToolGen.openAiSmithyFunctionDispatch(osTools)
-    events.collect {
+    fs2.Stream.fromQueueUnterminated(queue).collect {
 
       case AssistantStreamEvent.ThreadMessageCompleted(msg) => IO.println(msg).streamFs2
       case AssistantStreamEvent.ThreadRunRequiresAction(run) =>
@@ -413,7 +412,6 @@ val ioToolGen = new SmithyOpenAIUtil[IO]
   val run = thread.flatMap(a => q.offer(a).streamFs2).compile.drain
 
   val processEvents = processStreamEvents(
-    fs2.Stream.fromQueueUnterminated(q),
     q
   )
     .debug()

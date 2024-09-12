@@ -122,3 +122,9 @@ case class ThreadMessage(
     attachments: Option[List[MessageAttachment]] = None,
     metadata: Option[ThreadMetaData] = None
 ) derives Schema
+
+object ThreadMessage:
+
+  def user(content: String): ThreadMessage = ThreadMessage(MessageOnThread.str(content), ThreadMessageRole.user)
+
+end ThreadMessage

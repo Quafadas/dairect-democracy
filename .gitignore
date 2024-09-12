@@ -24,3 +24,4 @@ thread.txt
 easychat.txt
 vectorStore.txt
 messages.txt
+*.scala.semanticdb

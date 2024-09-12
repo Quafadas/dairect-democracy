@@ -1,3 +1,5 @@
+$version: "2.0"
+
 namespace io.github.quafadas.dairect
 
 use alloy#discriminated
@@ -18,7 +20,7 @@ list MessageToSendList {
 }
 
 @discriminated("type")
-union MessageContent {    
+union MessageContent {
   text: Text,
   image_file: ImageFile,
   image_url: ImageUrl
@@ -30,7 +32,7 @@ structure Text {
 }
 
 @discriminated("type")
-union Annotation {    
+union Annotation {
   text: Text,
   image_file: ImageFile,
   image_url: ImageUrl
@@ -45,7 +47,7 @@ structure TextValue {
 union MessageToSend {
   text: TextToSend
   image_file: ImageFile
-  image_url: ImageUrl  
+  image_url: ImageUrl
 }
 
 structure TextToSend {
@@ -58,7 +60,7 @@ structure ImageFile {
 }
 
 structure ImageDetails {
-  @required file_id: String, 
+  @required file_id: String,
   detail: String
 }
 
@@ -68,7 +70,7 @@ structure ImageUrl {
 }
 
 structure ImageUrlDetails {
-  @required url: String, 
+  @required url: String,
   detail: String
 }
 

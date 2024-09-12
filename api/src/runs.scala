@@ -2,12 +2,24 @@ package io.github.quafadas.dairect
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
+import io.github.quafadas.dairect.MessagesApi.Message
+import io.github.quafadas.dairect.MessagesApi.MessageDelta
 import io.github.quafadas.dairect.RunApi.CreateThread
 import io.github.quafadas.dairect.RunApi.Run
 import io.github.quafadas.dairect.RunApi.RunList
+import io.github.quafadas.dairect.RunApi.StreamRunRequest
+import io.github.quafadas.dairect.RunApi.StreamThreadRunRequest
+import io.github.quafadas.dairect.RunApi.StreamToolOutput
 import io.github.quafadas.dairect.RunApi.ToolChoiceInRun
 import io.github.quafadas.dairect.RunApi.ToolOutput
 import io.github.quafadas.dairect.RunApi.TruncationStrategy
+import io.github.quafadas.dairect.RunStepsApi.RunStep
+import io.github.quafadas.dairect.RunStepsApi.RunStepDelta
+import io.github.quafadas.dairect.ThreadApi.Thread
+import org.http4s.Entity
+import org.http4s.EntityEncoder
+import org.http4s.Method
+import org.http4s.Request
 import org.http4s.Uri
 import org.http4s.client.Client
 import smithy.api.Http
@@ -16,23 +28,13 @@ import smithy.api.HttpQuery
 import smithy.api.NonEmptyString
 import smithy.api.Readonly
 import smithy4s.*
+import smithy4s.codecs.PayloadError
 import smithy4s.deriving.aliases.*
 import smithy4s.deriving.{*, given}
 import smithy4s.http4s.SimpleRestJsonBuilder
-import smithy4s.schema.Schema
-import org.http4s.Request
-import org.http4s.Method
-import org.http4s.EntityEncoder
-import io.github.quafadas.dairect.RunApi.StreamRunRequest
-import org.http4s.Entity
-import io.github.quafadas.dairect.RunStepsApi.RunStep
-import io.github.quafadas.dairect.MessagesApi.Message
-import io.github.quafadas.dairect.ThreadApi.Thread
-import smithy4s.codecs.PayloadError
 import smithy4s.json.Json
-import io.github.quafadas.dairect.RunStepsApi.RunStepDelta
-import io.github.quafadas.dairect.MessagesApi.MessageDelta
-import io.github.quafadas.dairect.RunApi.StreamToolOutput
+import smithy4s.schema.Schema
+import org.http4s.ServerSentEvent
 
 // enum AssistantStreamEvent(val id: String) derives Schema:
 //   case ThreadCreated(thread: Thread) extends AssistantStreamEvent("thread.created")
@@ -181,9 +183,55 @@ extension (c: RunApi)
         tool_outputs
       )
     )(using enc)
-    fs2.Stream.eval(IO.println(s"sending tool outputs $req")) >>
-      streamAssistantEvents(authdClient, req)
+    // fs2.Stream.eval(IO.println(s"sending tool outputs $req")) >>
+    streamAssistantEvents(authdClient, req)
   end streamToolOutput
+
+  def streamRun(
+      authdClient: Client[IO],
+      thread_id: String,
+      assistant_id: String,
+      model: Option[String] = None,
+      instructions: Option[String] = None,
+      additional_instructions: Option[String] = None,
+      additional_messages: Option[List[ThreadMessage]] = None,
+      tools: Option[List[AssistantTool]] = None,
+      metadata: Option[RunMetaData] = None,
+      temperature: Option[Double] = None,
+      top_p: Option[Double] = None,
+      max_prompt_tokens: Option[Long] = None,
+      max_completion_tokens: Option[Long] = None,
+      truncation_strategy: Option[TruncationStrategy] = None,
+      tool_choice: Option[ToolChoiceInRun] = None,
+      parallel_tool_calls: Option[Boolean] = None,
+      response_format: Option[ResponseFormat] = None,
+      baseUrl: String = "https://api.openai.com"
+  ): fs2.Stream[IO, AssistantStreamEvent] =
+    val enc: EntityEncoder[IO, StreamThreadRunRequest] =
+      EntityEncoder.encodeBy[IO, StreamThreadRunRequest](("Content-Type" -> "application/json"))(scr =>
+        Entity(fs2.Stream.emits[IO, Byte](smithy4s.json.Json.writeBlob(scr).toArray))
+      )
+    val req = Request[IO](
+      Method.POST,
+      Uri.unsafeFromString(baseUrl + "/v1/threads/runs")
+    ).withEntity(
+      StreamThreadRunRequest(
+        assistant_id = assistant_id,
+        model = model,
+        instructions = instructions,
+        tools = tools,
+        metadata = metadata,
+        top_p = top_p,
+        max_prompt_tokens = max_prompt_tokens,
+        max_completion_tokens = max_completion_tokens,
+        truncation_strategy = truncation_strategy,
+        tool_choice = tool_choice,
+        parallel_tool_calls = parallel_tool_calls,
+        response_format = response_format
+      )
+    )(using enc)
+    streamAssistantEvents(authdClient, req)
+  end streamRun
 
   def createThreadRunStream(
       authdClient: Client[IO],
@@ -191,6 +239,7 @@ extension (c: RunApi)
       thread: CreateThread,
       model: Option[String] = None,
       instructions: Option[String] = None,
+      additional_instructions: Option[String] = None,
       tools: Option[List[AssistantTool]] = None,
       tool_resources: Option[ToolResources] = None,
       metadata: Option[RunMetaData] = None,
@@ -217,6 +266,7 @@ extension (c: RunApi)
         thread,
         model,
         instructions,
+        additional_instructions,
         tools,
         tool_resources,
         metadata,
@@ -254,6 +304,15 @@ def streamAssistantEvents(authdClient: Client[IO], req: Request[IO]) =
         }
       }
     )
+  // .flatMap(resp =>
+  //   resp.body.through(ServerSentEvent.decoder).map {
+  //     case ServerSentEvent(Some(data), Some(event), _, _, _) =>
+  //       eventFromId(event, data)
+  //     case ServerSentEvent(data, eventType, id, retry, comment) =>
+  //       println(s"event: $eventType, data: $data, eventType: $eventType, id: $id, retry: $retry, comment: $comment")
+  //       AssistantStreamEvent.Unknown(eventType.getOrElse(""), data.getOrElse(""))
+  //   }
+  // )
 end streamAssistantEvents
 
 /** https://platform.openai.com/docs/api-reference/runs
@@ -491,6 +550,26 @@ object RunApi:
       thread: CreateThread,
       model: Option[String] = None,
       instructions: Option[String] = None,
+      additional_instructions: Option[String] = None,
+      tools: Option[List[AssistantTool]] = None,
+      tool_resources: Option[ToolResources] = None,
+      metadata: Option[RunMetaData] = None,
+      temperature: Option[Double] = None,
+      top_p: Option[Double] = None,
+      max_prompt_tokens: Option[Long] = None,
+      max_completion_tokens: Option[Long] = None,
+      truncation_strategy: Option[TruncationStrategy] = None,
+      tool_choice: Option[ToolChoiceInRun] = None,
+      parallel_tool_calls: Option[Boolean] = None,
+      response_format: Option[ResponseFormat] = None,
+      stream: Boolean = true
+  ) derives Schema
+
+  case class StreamThreadRunRequest(
+      assistant_id: String,
+      model: Option[String] = None,
+      instructions: Option[String] = None,
+      additional_instructions: Option[String] = None,
       tools: Option[List[AssistantTool]] = None,
       tool_resources: Option[ToolResources] = None,
       metadata: Option[RunMetaData] = None,

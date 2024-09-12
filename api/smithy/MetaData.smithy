@@ -1,3 +1,5 @@
+$version: "2.0"
+
 namespace io.github.quafadas.dairect
 
 map VectorStoreMetaData {
