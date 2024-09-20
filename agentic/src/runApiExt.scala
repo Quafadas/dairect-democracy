@@ -55,7 +55,7 @@ extension (r: RunApi)
 
     def processStreamEvents(
         incoming: fs2.Stream[IO, AssistantStreamEvent],
-        queue: Queue[IO, AssistantStreamEvent],
+        queue: Channel[IO, AssistantStreamEvent],
         continue: SignallingRef[IO, ContinueFold],
         dispatcher: FunctionCall => IO[Document]
     ) =
@@ -79,7 +79,7 @@ extension (r: RunApi)
                       run.thread_id,
                       run.id,
                       toSend
-                    ).evalMap(queue.offer)
+                    ).evalMap(e => queue.send(e) >> IO.unit)
                   }
             )
 
@@ -92,16 +92,16 @@ extension (r: RunApi)
               run.status == RunStatus.cancelling ||
               run.status == RunStatus.expired ||
               run.status == RunStatus.cancelled
-            then (continue.set(ContinueFold.Stop))
+            then (queue.close.flatMap(msg => IO.println(s"run finished $msg")))
             else IO.unit
           )
       }.flatten
 
-    val channel = Channel
+    val channel = Channel.unbounded[IO, AssistantStreamEvent].toResource
 
-    val qIo = Queue.unbounded[IO, AssistantStreamEvent].toResource
+    // val qIo = Queue.unbounded[IO, AssistantStreamEvent].toResource
     val continue = SignallingRef.of[IO, ContinueFold](ContinueFold.Continue).toResource
-    val queue_interrupt = qIo.both(continue)
+    val queue_interrupt = channel.both(continue)
 
     val req = Request[IO](
       Method.POST,
@@ -125,26 +125,28 @@ extension (r: RunApi)
 
     val dispacher = tools.dispatcher
 
-    val out = queue_interrupt.flatMap { case (q, interrupt) =>
-      val emitted = fs2.Stream
-        .fromQueueUnterminated(q)
+    val out = queue_interrupt.use { case (q, interrupt) =>
+      val emitted = q.stream
 
       val seed = streamAssistantEvents(authdClient, req)
-        .evalTap(q.offer)
+        .evalTap(q.send)
         .compile
         .drain
         .background
 
       val queued = processStreamEvents(emitted, q, interrupt, dispacher).compile.drain.background
 
-      val queueEvents = emitted
-        .debug()
-        .interruptWhen(interrupt.map(_ == ContinueFold.Stop))
-
-      seed *> queued *> Resource.eval(IO(queueEvents))
+      seed.both(queued).use { case (r1, r2) => r1 >> r2 >> IO(emitted) }
     }
-
-    fs2.Stream.resource(out).flatten
+    fs2.Stream.eval(out).flatten
+    // fs2.Stream
+    //   .resource(out)
+    //   .evalMap { case (r1, r2) =>
+    //     val outStr = channel.use { q =>
+    //       q.stream
+    //     }
+    //     r1.both(r1).flatMap(_ => outStr)
+    //   }
 
     // fs2.Stream.eval(out.map(_._2)).flatten
 

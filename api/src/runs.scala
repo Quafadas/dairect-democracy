@@ -289,30 +289,32 @@ def streamAssistantEvents(authdClient: Client[IO], req: Request[IO]) =
     .stream(
       req
     )
-    .flatMap(str =>
-      str.bodyText.evalMap { inStr =>
-        val strSplit = inStr.split("\n")
-        val event = strSplit(0).drop(7)
-        val data = strSplit(1).drop(6)
-        // IO.println(event) >>
-        //   IO.println(data) >>
-        IO(eventFromId(event, data)).onError { err =>
-          IO.println("Stream parsing failed -----") >>
-            IO.println(event) >>
-            IO.println(data) >>
-            IO.raiseError(err)
-        }
+    .debug()
+
+    // .flatMap(str =>
+    //   str.bodyText.evalMap { inStr =>
+    //     val strSplit = inStr.split("\n")
+    //     val event = strSplit(0).drop(7)
+    //     val data = strSplit(1).drop(6)
+    //     // IO.println(event) >>
+    //     //   IO.println(data) >>
+    //     IO(eventFromId(event, data)).onError { err =>
+    //       IO.println("Stream parsing failed -----") >>
+    //         IO.println(event) >>
+    //         IO.println(data) >>
+    //         IO.raiseError(err)
+    //     }
+    //   }
+    // )
+    .flatMap(resp =>
+      resp.body.through(ServerSentEvent.decoder).map {
+        case ServerSentEvent(Some(data), Some(event), _, _, _) =>
+          eventFromId(event, data)
+        case ServerSentEvent(data, eventType, id, retry, comment) =>
+          println(s"event: $eventType, data: $data, eventType: $eventType, id: $id, retry: $retry, comment: $comment")
+          AssistantStreamEvent.Unknown(eventType.getOrElse(""), data.getOrElse(""))
       }
     )
-  // .flatMap(resp =>
-  //   resp.body.through(ServerSentEvent.decoder).map {
-  //     case ServerSentEvent(Some(data), Some(event), _, _, _) =>
-  //       eventFromId(event, data)
-  //     case ServerSentEvent(data, eventType, id, retry, comment) =>
-  //       println(s"event: $eventType, data: $data, eventType: $eventType, id: $id, retry: $retry, comment: $comment")
-  //       AssistantStreamEvent.Unknown(eventType.getOrElse(""), data.getOrElse(""))
-  //   }
-  // )
 end streamAssistantEvents
 
 /** https://platform.openai.com/docs/api-reference/runs

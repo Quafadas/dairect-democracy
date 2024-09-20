@@ -26,7 +26,7 @@ import cats.syntax.parallel
   val internetToolAPI = API[InternetTool].liftService(internetTool)
   // val internetToolDispatch = internetToolAPI.dispatcher
 
-  val assistant = assistantApi.create("gpt-4o").Ø
+  val assistant = assistantApi.create("gpt-4o-mini").Ø
 
   println(assistant)
 
@@ -61,9 +61,11 @@ import cats.syntax.parallel
   run.compile.drain.Ø
 
   println(
-    threadApi
-      .getThread(thread.id)
-      .Ø
+    messageApi.list(thread.id, Some(100)).Ø
   )
 
 end searchTest
+
+// @main def printThread =
+//   val threadId = "thread_EYDG2BE3HjKdX7i20hz5oIfR"
+// end printThread
