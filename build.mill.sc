@@ -78,7 +78,7 @@ object api extends CrossPlatform {
   // }
 }
 
-object agentic extends Common {
+object agentic extends Common with Smithy4sModule  {
 
   override def moduleDeps = Seq(api.jvm)
   override def ivyDeps = super.ivyDeps() ++ Agg(
