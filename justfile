@@ -32,5 +32,5 @@ demo:
 serveSite:
   mill site.browserSync
 
-ƒsetupSmithyLsp:
+setupSmithyLsp:
    mill smithy4s.codegen.LSP/updateConfig

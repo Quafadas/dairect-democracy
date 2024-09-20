@@ -11,6 +11,7 @@ import smithy4s.schema.*
 import software.amazon.smithy.model.node.Node
 
 // format: off
+
 // val ioToolGen = new SmithyOpenAIUtil[IO]
 
 extension [Alg[_[_, _, _, _, _]], F[_]](alg: FunctorAlgebra[Alg, F])(using F: MonadThrow[F])
@@ -45,7 +46,7 @@ extension [Alg[_[_, _, _, _, _]], F[_]](alg: FunctorAlgebra[Alg, F])(using F: Mo
             case None => F.raiseError(new Throwable(s"Function $m not found"))
       end match
 
-
+// format: off
   private def toLowLevel[Op[_, _, _, _, _], I, E, O, SI, SO](
       polyFunction: PolyFunction5[Op, Kind1[F]#toKind5],
       endpoint: Endpoint[Op, I, E, O, SI, SO]
@@ -79,7 +80,7 @@ extension [Alg[_[_, _, _, _, _]], F[_]](alg: FunctorAlgebra[Alg, F])(using F: Mo
       output
   end toLowLevel
 
-
+// format: off
 class SmithyOpenAIUtil[F[_]](using F: MonadThrow[F]):
 
   // def assistantTool[Alg[_[_, _, _, _, _]]](
