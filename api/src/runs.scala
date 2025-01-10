@@ -126,8 +126,10 @@ extension [A](errorOr: Either[PayloadError, A])
     throw _,
     identity
   )
+end extension
 
 extension (s: String) def blob = Blob(s)
+end extension
 
 private def eventFromId(eventId: String, data: String): AssistantStreamEvent = eventId match
   case "thread.created"             => AssistantStreamEvent.ThreadCreated(Json.read[Thread](data.blob).failFast)

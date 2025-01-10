@@ -315,6 +315,7 @@ object ChatGpt:
           tool_calls = aic.message.tool_calls.getOrElse(List.empty)
         )
       )
+  end extension
 
   case class ChatCompletionFunctions(
       name: String,

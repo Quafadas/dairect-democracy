@@ -23,12 +23,14 @@ extension [Alg[_[_, _, _, _, _]], F[_]](alg: FunctorAlgebra[Alg, F])(using F: Mo
         fct.asInstanceOf[Document.DObject].value.get("function").get.decode[AssistantToolFunction].failFast
       )
     ).toList
+  end assistantTools
 
 
   def toJsonSchema(using S: Service[Alg])  =
     val unvalidatedModel = DynamicSchemaIndex.builder.addAll(S).build().toSmithyModel
     val docOpt = Json.readDocument(Node.prettyPrintJson(schemaFromModel(unvalidatedModel)))
     docOpt.toOption.get
+  end toJsonSchema
 
   def dispatcher(implicit S: Service[Alg]): FunctionCall => F[Document] =
     val transformation = S.toPolyFunction[Kind1[F]#toKind5](alg)
@@ -45,6 +47,7 @@ extension [Alg[_[_, _, _, _, _]], F[_]](alg: FunctorAlgebra[Alg, F])(using F: Mo
               jsonEndpoint(fctConfig)
             case None => F.raiseError(new Throwable(s"Function $m not found"))
       end match
+  end dispatcher
 
 // format: off
   private def toLowLevel[Op[_, _, _, _, _], I, E, O, SI, SO](
@@ -79,6 +82,7 @@ extension [Alg[_[_, _, _, _, _]], F[_]](alg: FunctorAlgebra[Alg, F])(using F: Mo
       // println(Json.writeDocumentAsPrettyString(output))
       output
   end toLowLevel
+end extension
 
 // format: off
 class SmithyOpenAIUtil[F[_]](using F: MonadThrow[F]):
@@ -121,6 +125,7 @@ class SmithyOpenAIUtil[F[_]](using F: MonadThrow[F]):
               jsonEndpoint(fctConfig)
             case None => F.raiseError(new Throwable(s"Function $m not found"))
       end match
+  end openAiSmithyFunctionDispatch
 
 
 

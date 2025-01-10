@@ -17,3 +17,4 @@ extension [A](a: IO[A])
 end extension
 
 extension [A](a: A) inline def some: Option[A] = Some(a)
+end extension

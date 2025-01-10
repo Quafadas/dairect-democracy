@@ -225,7 +225,7 @@ end ThreadTest
     .create(
       List(ThreadMessage("I am cow".msg)),
       tool_resources =
-        ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs)).some).some).some,
+        ToolResources(file_search = FileSearch(vector_store_ids = VectorStoreIds(List(vs)).some).some).some
     )
     .Ø
 
