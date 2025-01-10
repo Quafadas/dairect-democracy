@@ -1,4 +1,4 @@
-import $ivy.`com.disneystreaming.smithy4s::smithy4s-mill-codegen-plugin::0.18.23`
+import $ivy.`com.disneystreaming.smithy4s::smithy4s-mill-codegen-plugin::0.18.28`
 import $ivy.`com.goyeau::mill-scalafix::0.4.0`
 import $ivy.`io.github.quafadas::millSite::0.0.26`
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
@@ -13,8 +13,13 @@ import mill.scalalib.publish._
 import io.github.quafadas.millSite.SiteModule
 import com.github.lolgab.mill.crossplatform._
 
+
+val http4s = "0.23.30"
+val munitV = "1.0.4"
+val smithy4sV = smithy4s.codegen.BuildInfo.version
+
 trait Common extends ScalaModule with ScalafmtModule with ScalafixModule with PublishModule {
-  def scalaVersion = "3.5.0"
+  def scalaVersion = "3.6.2"
   def scalacOptions = Seq("-experimental", "-Wunused:all")
   override def pomSettings = T {
     PomSettings(
@@ -32,12 +37,12 @@ trait Common extends ScalaModule with ScalafmtModule with ScalafixModule with Pu
 }
 
 trait CommonJS extends ScalaJSModule {
-  def scalaJSVersion = "1.16.0"
+  def scalaJSVersion = "1.18.1"
 }
 
 trait CommonTests extends TestModule.Munit {
   def ivyDeps = super.ivyDeps() ++ Agg(
-    ivy"org.scalameta::munit::1.0.1"
+    ivy"org.scalameta::munit::$munitV"
   )
 }
 
@@ -48,8 +53,6 @@ trait CommonNative extends ScalaNativeModule {
 }
 
 
-val http4s = "0.23.27"
-val smithy4sV = smithy4s.codegen.BuildInfo.version
 
 object api extends CrossPlatform {
   trait Shared extends CrossPlatformScalaModule with Common with Smithy4sModule {
@@ -57,7 +60,7 @@ object api extends CrossPlatform {
       ivy"com.disneystreaming.smithy4s::smithy4s-http4s::$smithy4sV",
       ivy"tech.neander::smithy4s-deriving::0.0.3",
       ivy"org.http4s::http4s-ember-client::$http4s",
-      ivy"is.cir::ciris::3.6.0"
+      ivy"is.cir::ciris::3.7.0"
     )
 
     trait SharedTests extends CommonTests {
@@ -82,8 +85,8 @@ object agentic extends Common with Smithy4sModule  {
 
   override def moduleDeps = Seq(api.jvm)
   override def ivyDeps = super.ivyDeps() ++ Agg(
-    ivy"software.amazon.smithy:smithy-jsonschema:1.50.0",
-    ivy"com.lihaoyi::os-lib::0.10.5",
+    ivy"software.amazon.smithy:smithy-jsonschema:1.53.0",
+    ivy"com.lihaoyi::os-lib::0.11.3",
     ivy"com.lihaoyi::pprint::0.9.0",
     ivy"com.disneystreaming.smithy4s::smithy4s-dynamic::$smithy4sV"
 
@@ -91,7 +94,7 @@ object agentic extends Common with Smithy4sModule  {
   )
   object test extends ScalaTests with TestModule.Munit {
     def ivyDeps = Agg(
-      ivy"org.scalameta::munit::1.0.1",
+      ivy"org.scalameta::munit::$munitV",
       ivy"org.typelevel::munit-cats-effect::2.0.0"
     )
   }
@@ -99,12 +102,12 @@ object agentic extends Common with Smithy4sModule  {
 
 object site extends SiteModule {
 
-  def scalaVersion = agentic.scalaVersion  
+  def scalaVersion = agentic.scalaVersion
 
   override def scalacOptions: Target[Seq[String]] = agentic.scalacOptions
 
   override def moduleDeps = Seq(agentic)
 
-  override def scalaMdocVersion: T[String] = "2.5.3"
+  override def scalaMdocVersion: T[String] = "2.5.4"
 
 }
