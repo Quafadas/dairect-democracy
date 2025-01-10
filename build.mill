@@ -1,6 +1,6 @@
 import $ivy.`com.disneystreaming.smithy4s::smithy4s-mill-codegen-plugin::0.18.28`
 import $ivy.`com.goyeau::mill-scalafix::0.4.0`
-import $ivy.`io.github.quafadas::millSite::0.0.26`
+import $ivy.`io.github.quafadas::millSite::0.0.38`
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
 import $ivy.`com.github.lolgab::mill-crossplatform::0.2.4`
 
