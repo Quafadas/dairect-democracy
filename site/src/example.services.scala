@@ -48,14 +48,12 @@ trait ScalaCliTool derives API:
         val stdout = p.stdout
           .through(text.utf8.decode)
           .compile
-          .toList
-          .map(_.mkString)
+          .string
 
         val stdError = p.stderr
           .through(text.utf8.decode)
           .compile
-          .toList
-          .map(_.mkString)
+          .string
 
         stdout.both(stdError).map { (out, err) =>
           s"stdout: $out\nstderr: $err"
